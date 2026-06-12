@@ -25,8 +25,8 @@ class SignTest {
         Path key  = tmp.resolve("test.key");
         Files.writeString(file, "{\"data\":\"hello\"}");
         Sign.generateKey(key);
-        Sign.sign(key, file);
-        boolean valid = Sign.verify(key, file);
+        Sign.sign(file, key);
+        boolean valid = Sign.verify(file, key);
         assertTrue(valid, "Signature should be valid immediately after signing");
     }
 

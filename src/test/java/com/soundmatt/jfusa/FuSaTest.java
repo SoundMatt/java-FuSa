@@ -92,7 +92,7 @@ class FuSaTest {
         FuSa.Location l = new FuSa.Location("Foo.java", 42);
         assertEquals("Foo.java", l.file());
         assertEquals(42, l.line());
-        assertEquals(0, l.col());
+        assertEquals(0, l.column());
     }
 
     @Test

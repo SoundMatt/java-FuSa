@@ -41,7 +41,7 @@ public final class LintRules {
 
     // ── Shared scanner utilities ──────────────────────────────────────────────
 
-    static List<Path> javaFiles(Path root, Config cfg) throws IOException {
+    public static List<Path> javaFiles(Path root, Config cfg) throws IOException {
         List<Path> out = new ArrayList<>();
         if (!Files.isDirectory(root)) return out;
         try (Stream<Path> walk = Files.walk(root)) {
@@ -57,15 +57,15 @@ public final class LintRules {
         return false; // honour cfg.rules().exclude patterns if needed
     }
 
-    static List<String> readLines(Path f) throws IOException {
+    public static List<String> readLines(Path f) throws IOException {
         return Files.readAllLines(f, java.nio.charset.StandardCharsets.UTF_8);
     }
 
-    static FuSa.Location loc(Path root, Path file, int line) {
+    public static FuSa.Location loc(Path root, Path file, int line) {
         return new FuSa.Location(root.relativize(file).toString(), line);
     }
 
-    static boolean hasAnnotation(List<String> lines, int lineIdx, String ann) {
+    public static boolean hasAnnotation(List<String> lines, int lineIdx, String ann) {
         // Check the line itself and a small look-back window for fusa annotations
         for (int i = Math.max(0, lineIdx - 3); i <= lineIdx && i < lines.size(); i++) {
             if (lines.get(i).contains(ann)) return true;
@@ -292,8 +292,9 @@ public final class LintRules {
             List<Finding> out = new ArrayList<>();
             for (Path f : javaFiles(root, cfg)) {
                 String rel = root.relativize(f).toString();
-                // Allow in test code
-                if (rel.contains("test") || rel.contains("Test")) continue;
+                // Allow in test code (directory-based, not filename-based)
+                String relNorm = rel.replace('\\', '/');
+                if (relNorm.contains("/test/") || relNorm.startsWith("test/")) continue;
                 List<String> lines = readLines(f);
                 for (int i = 0; i < lines.size(); i++) {
                     if (PRINTLN.matcher(lines.get(i)).find()

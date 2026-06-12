@@ -50,7 +50,8 @@ public final class CyberRules {
 
     static final class RuleCWE89SQLInjection implements Rule {
         private static final Pattern SQL_CONCAT = Pattern.compile(
-                "(?:executeQuery|executeUpdate|prepareStatement)\\s*\\(.*\\+");
+                "(?:(?:executeQuery|executeUpdate|prepareStatement)\\s*\\(.*\\+)" +
+                "|(?:\"\\s*(?:SELECT|INSERT|UPDATE|DELETE|UNION|ALTER|DROP)\\b[^\"]*\"\\s*\\+)");
 
         public String id() { return "CYBER001"; }
         public String description() { return "SQL injection risk: string concatenation in SQL query (CWE-89)."; }

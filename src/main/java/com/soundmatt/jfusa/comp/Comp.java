@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public final class Comp {
 
     public static final String COMP_JSON = "comp-report.json";
-    static final int DEFAULT_THRESHOLD = 10;
+    public static final int DEFAULT_THRESHOLD = 10;
 
     private static final Pattern BRANCH = Pattern.compile(
             "\\b(if|else\\s+if|for|while|do|case|catch|&&|\\|\\|)\\b|\\?");

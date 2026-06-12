@@ -24,7 +24,7 @@ public final class Sign {
     }
 
     /** Sign artifact; writes <artifact>.sig containing the HMAC-SHA256 hex. */
-    public static void sign(Path keyFile, Path artifact) throws IOException {
+    public static void sign(Path artifact, Path keyFile) throws IOException {
         byte[] key   = HexFormat.of().parseHex(Files.readString(keyFile).strip());
         byte[] data  = Files.readAllBytes(artifact);
         String hmac  = hmacSha256(key, data);
@@ -34,7 +34,7 @@ public final class Sign {
     }
 
     /** Verify artifact against <artifact>.sig. Returns true if valid. */
-    public static boolean verify(Path keyFile, Path artifact) throws IOException {
+    public static boolean verify(Path artifact, Path keyFile) throws IOException {
         Path sigFile = artifact.resolveSibling(artifact.getFileName() + ".sig");
         if (!Files.exists(sigFile)) { System.err.println("No .sig file found for " + artifact); return false; }
         byte[] key      = HexFormat.of().parseHex(Files.readString(keyFile).strip());

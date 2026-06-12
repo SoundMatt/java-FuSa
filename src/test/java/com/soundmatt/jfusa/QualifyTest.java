@@ -27,7 +27,7 @@ class QualifyTest {
         Config.save(tmp, cfg);
         Qualify.run(tmp, cfg, false);
         String content = Files.readString(tmp.resolve("qualify-report.json"));
-        assertTrue(content.contains("\"schema\""));
+        assertTrue(content.contains("\"schemaVersion\""));
         assertTrue(content.contains("TC-001"));
     }
 
@@ -37,7 +37,8 @@ class QualifyTest {
         Config.save(tmp, cfg);
         Qualify.run(tmp, cfg, false);
         String content = Files.readString(tmp.resolve("qualify-report.json"));
-        assertTrue(content.contains("\"integrityHash\"") || content.contains("sha256"),
+        Path hashFile = tmp.resolve("qualify-report.sha256");
+        assertTrue(Files.exists(hashFile) || content.contains("sha256"),
                 "qualify report should contain integrity hash");
     }
 }

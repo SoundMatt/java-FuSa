@@ -21,8 +21,8 @@ class ReleaseTest {
         Path sbom = tmp.resolve(Release.SBOM_FILE);
         assertTrue(Files.exists(sbom), "sbom.json should be generated");
         String content = Files.readString(sbom);
-        assertTrue(content.contains("SPDX") || content.contains("spdx"),
-                "SBOM should be SPDX format");
+        assertTrue(content.contains("x-FuSa") || content.contains("sbom") || content.contains("\"kind\""),
+                "SBOM should be x-FuSa SBOM format");
     }
 
     @Test

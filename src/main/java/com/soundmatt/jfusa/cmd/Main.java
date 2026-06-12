@@ -1,7 +1,7 @@
 package com.soundmatt.jfusa.cmd;
 
 import com.soundmatt.jfusa.FuSa;
-import com.soundmatt.jfusa.FuSa.*;
+import static com.soundmatt.jfusa.FuSa.*;
 import com.soundmatt.jfusa.analyze.AnalyzeRules;
 import com.soundmatt.jfusa.auditpack.AuditPack;
 import com.soundmatt.jfusa.badge.Badge;
@@ -404,11 +404,11 @@ public final class Main {
             }
             case "sign" -> {
                 if (!Files.exists(keyFile)) Sign.generateKey(keyFile);
-                Sign.sign(keyFile, root.resolve(args[1]));
+                Sign.sign(root.resolve(args[1]), keyFile);
                 System.out.println("Signed: " + args[1]);
             }
             case "verify" -> {
-                boolean ok = Sign.verify(keyFile, root.resolve(args[1]));
+                boolean ok = Sign.verify(root.resolve(args[1]), keyFile);
                 System.out.println(args[1] + ": " + (ok ? "VALID" : "INVALID"));
                 if (!ok) System.exit(EXIT_GATE_FAIL);
             }

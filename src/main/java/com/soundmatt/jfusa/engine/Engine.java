@@ -57,8 +57,7 @@ public final class Engine {
         }
 
         public boolean hasWarnings() {
-            return findings.stream().anyMatch(f ->
-                    f.severity() == Severity.WARNING || f.severity() == Severity.ERROR);
+            return findings.stream().anyMatch(f -> f.severity() == Severity.WARNING);
         }
     }
 

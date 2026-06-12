@@ -223,7 +223,7 @@ public final class FuSa {
      * NFC normalisation for non-ASCII is left to the caller (ASCII-only tools need
      * no Unicode dependency per §4.2).
      */
-    static String normalizeMessage(String msg) {
+    public static String normalizeMessage(String msg) {
         if (msg == null || msg.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(msg.length());
         boolean inDigits = false;
@@ -231,7 +231,11 @@ public final class FuSa {
         for (int i = 0; i < msg.length(); i++) {
             char c = msg.charAt(i);
             if (c >= '0' && c <= '9') {
-                if (!inDigits) { sb.append('#'); inDigits = true; }
+                if (!inDigits) {
+                    if (inSpace && !sb.isEmpty()) sb.append(' ');
+                    sb.append('#');
+                    inDigits = true;
+                }
                 inSpace = false;
             } else if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
                 inDigits = false;

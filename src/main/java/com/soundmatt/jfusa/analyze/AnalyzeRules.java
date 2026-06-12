@@ -38,7 +38,7 @@ public final class AnalyzeRules {
 
     static final class RuleNullDeref implements Rule {
         private static final Pattern NULLABLE_CALL_THEN_DOT = Pattern.compile(
-                "(?:get|find|lookup|fetch|read|load|obtain)\\w*\\(.*\\)\\.\\w+");
+                "\\b\\w+\\s*\\([^)]*\\)\\.\\w+");
 
         public String id() { return "ANA001"; }
         public String description() { return "Potential null dereference — chained call without null check."; }
@@ -195,12 +195,23 @@ public final class AnalyzeRules {
                 List<String> lines = LintRules.readLines(f);
                 for (int i = 0; i < lines.size() - 1; i++) {
                     String line = lines.get(i).strip();
-                    if (line.startsWith("catch") && line.endsWith("{")) {
-                        // Next non-empty line should not be just "}"
+                    if (!line.startsWith("catch")) continue;
+                    if (LintRules.hasAnnotation(lines, i, "//fusa:unsafe")) continue;
+                    // Single-line empty catch: catch (...) {}
+                    if (line.endsWith("{}")) {
+                        out.add(Finding.builder("ANA005", Severity.ERROR,
+                                "empty catch block silently swallows exception",
+                                LintRules.loc(root, f, i + 1))
+                                .category(FuSa.Category.safety)
+                                .standard("IEC 61508-3").clause("7.4.10")
+                                .remediation("log or rethrow the exception; add //fusa:unsafe with rationale if intentional")
+                                .build());
+                    } else if (line.endsWith("{")) {
+                        // Multi-line catch: next non-empty line is "}"
                         for (int j = i + 1; j < Math.min(i + 5, lines.size()); j++) {
                             String next = lines.get(j).strip();
                             if (next.isEmpty()) continue;
-                            if (next.equals("}") && !LintRules.hasAnnotation(lines, i, "//fusa:unsafe")) {
+                            if (next.equals("}")) {
                                 out.add(Finding.builder("ANA005", Severity.ERROR,
                                         "empty catch block silently swallows exception",
                                         LintRules.loc(root, f, i + 1))
