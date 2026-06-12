@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.iec61508;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -34,6 +35,14 @@ public final class Iec61508 {
 
     static GapItem gap(String c, String t, String sil, String s, String n) { return new GapItem(c, t, sil, s, n); }
 
+    private static String canonicalStatus(String s) {
+        return switch (s) {
+            case "Met"           -> "satisfied";
+            case "Partially Met", "Warning" -> "partial";
+            default              -> "gap";
+        };
+    }
+
     static String intWarning(String sil) {
         return switch (sil) {
             case "SIL-3", "SIL-4" -> "Warning";
@@ -52,19 +61,47 @@ public final class Iec61508 {
         List<GapItem> items = buildGapReport(sil);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-gap-report-1.0");
-        w.field("standard", "IEC 61508"); w.field("sil", "SIL-" + sil);
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "gap-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "iec61508");
+        w.field("level", "SIL-" + sil.replace("SIL-", ""));
         w.key("objectives"); w.arrayStart();
         for (GapItem g : items) {
             w.objectStart();
-            w.field("clause", g.clause()); w.field("title", g.title());
-            w.field("status", g.status()); w.field("notes", g.notes());
+            w.field("id", g.clause());
+            w.field("title", g.title());
+            w.field("clause", g.clause());
+            w.field("status", canonicalStatus(g.status()));
+            w.key("evidence"); w.arrayStart(); w.arrayEnd();
+            w.key("findings"); w.arrayStart(); w.arrayEnd();
+            w.field("notes", g.notes());
             w.objectEnd();
         }
         w.arrayEnd();
-        w.field("totalObjectives", items.size());
+        long sat  = items.stream().filter(i -> i.status().equals("Met")).count();
+        long part = items.stream().filter(i -> i.status().equals("Partially Met")).count();
+        long gap  = items.size() - sat - part;
+        w.key("summary"); w.objectStart();
+        w.field("total", items.size());
+        w.field("satisfied", sat);
+        w.field("partial", part);
+        w.field("gaps", gap);
+        w.objectEnd();
         w.objectEnd();
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
+    }
+
+    public static String renderText(String sil) {
+        var sb = new StringBuilder();
+        sb.append("IEC 61508 Gap Report — ").append(sil).append('\n');
+        sb.append("=".repeat(60)).append('\n');
+        for (GapItem g : buildGapReport(sil)) {
+            sb.append(String.format("%-12s %-38s %s%n", g.clause(), g.title(), g.status()));
+        }
+        return sb.toString();
     }
 }

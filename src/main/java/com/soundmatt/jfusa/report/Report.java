@@ -1,7 +1,9 @@
 package com.soundmatt.jfusa.report;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.FuSa.Finding;
 import com.soundmatt.jfusa.FuSa.Severity;
+import com.soundmatt.jfusa.config.Config;
 import com.soundmatt.jfusa.engine.Engine.Result;
 
 import java.util.List;
@@ -18,6 +20,15 @@ public record Report(
         long timestampEpochMs,
         Result result
 ) {
+    /** Convenience constructor from engine result + project config. */
+    public Report(Result result, Config cfg) {
+        this("java-FuSa", FuSa.VERSION, FuSa.SPEC_VERSION,
+                cfg != null ? cfg.project().name() : "",
+                cfg != null ? cfg.project().standard().name() : "generic",
+                System.currentTimeMillis(),
+                result);
+    }
+
     /** Formats this report as text, JSON, HTML, or SARIF. */
     public String render(String format) {
         return switch (format.toLowerCase()) {

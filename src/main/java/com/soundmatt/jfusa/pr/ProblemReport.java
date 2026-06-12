@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.pr;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -24,8 +25,13 @@ public final class ProblemReport {
         if (Files.exists(root.resolve(PR_FILE))) { System.out.println("Problem report log already exists."); return; }
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-problems-1.0");
-        w.field("standard", "DO-178C §11.17");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "problem-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "do178c");
         w.key("problems"); w.arrayStart(); w.arrayEnd();
         w.objectEnd();
         Files.writeString(root.resolve(PR_FILE), w.toPretty() + "\n");
@@ -73,8 +79,13 @@ public final class ProblemReport {
     public static void save(Path root, List<Entry> entries) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-problems-1.0");
-        w.field("standard", "DO-178C §11.17");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "problem-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "do178c");
         w.key("problems"); w.arrayStart();
         for (Entry e : entries) {
             w.objectStart();

@@ -31,8 +31,6 @@ import com.soundmatt.jfusa.pr.ProblemReport;
 import com.soundmatt.jfusa.qualify.Qualify;
 import com.soundmatt.jfusa.release.Release;
 import com.soundmatt.jfusa.report.Report;
-import com.soundmatt.jfusa.runtime.SafeStateGuard;
-import com.soundmatt.jfusa.runtime.Watchdog;
 import com.soundmatt.jfusa.safetycase.SafetyCase;
 import com.soundmatt.jfusa.sas.Sas;
 import com.soundmatt.jfusa.sci.Sci;
@@ -67,6 +65,10 @@ public final class Main {
         LintRules.activate();
         AnalyzeRules.activate();
         CyberRules.activate();
+        Trace.activate();
+        Verify.activate();
+        Release.activate();
+        Qualify.activate();
         Slsa.activate();
         Iec62443.activate();
         Coverage.activate();
@@ -125,8 +127,12 @@ public final class Main {
                 case "impact"       -> cmdImpact(root, rest);
                 case "metrics"      -> cmdMetrics(root, rest);
                 case "misra"        -> cmdMisra(root, rest);
-                case "capabilities" -> cmdCapabilities();
-                case "version"      -> cmdVersion();
+                case "capabilities" -> cmdCapabilitiesFmt(flagValue(rest, "--format", "text"));
+                case "version"      -> {
+                    if (hasFlag(rest, "--format") && "json".equals(flagValue(rest, "--format", "text")))
+                        cmdVersionJson();
+                    else cmdVersion();
+                }
                 case "--version", "-v" -> cmdVersion();
                 case "--help", "-h"    -> { usage(); }
                 default -> {
@@ -169,7 +175,12 @@ public final class Main {
         if (!Files.exists(reqs)) {
             var w = new Json.Writer();
             w.objectStart();
-            w.field("schema", "x-fusa-reqs-1.0");
+            w.field("schemaVersion", FuSa.SPEC_VERSION);
+            w.field("kind", "requirements");
+            w.field("tool", "java-FuSa");
+            w.field("toolVersion", FuSa.VERSION);
+            w.field("language", "java");
+            w.field("generatedAt", java.time.Instant.now().toString());
             w.key("requirements"); w.arrayStart(); w.arrayEnd();
             w.objectEnd();
             Files.writeString(reqs, w.toPretty() + "\n");
@@ -192,7 +203,7 @@ public final class Main {
 
         if (!output.isEmpty()) {
             Files.writeString(root.resolve(output), rendered);
-            System.out.println("Report written to " + output);
+            System.err.println("Report written to " + output);  // §2.2: progress on stderr only
         } else {
             System.out.print(rendered);
         }
@@ -255,9 +266,15 @@ public final class Main {
     static void cmdTrace(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         String format = flagValue(args, "--format", "text");
-        Trace trace = new Trace(root, cfg);
-        if ("json".equals(format)) System.out.println(trace.renderJson());
-        else System.out.println(trace.renderText());
+        String output = flagValue(args, "--output", "");
+        var matrix = Trace.buildMatrix(root, cfg);
+        String rendered = "json".equals(format) ? Trace.renderJson(matrix) : Trace.renderText(matrix);
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered + "\n");
+            System.err.println("Trace written to " + output);
+        } else {
+            System.out.println(rendered);
+        }
     }
 
     static void cmdVerify(Path root, String[] args) throws IOException {
@@ -278,20 +295,17 @@ public final class Main {
 
     static void cmdSafetyCase(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        String format = flagValue(args, "--format", "json");
-        SafetyCase.generate(root, cfg, format);
+        SafetyCase.generate(root, cfg);
     }
 
     static void cmdFmea(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        String format = flagValue(args, "--format", "json");
-        Fmea.generate(root, cfg, format);
+        Fmea.generate(root, cfg);
     }
 
     static void cmdBoundary(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        String format = flagValue(args, "--format", "mermaid");
-        Boundary.generate(root, cfg, format);
+        Boundary.generate(root, cfg);
     }
 
     static void cmdCoupling(Path root, String[] args) throws IOException {
@@ -300,13 +314,13 @@ public final class Main {
 
     static void cmdTara(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        String format = flagValue(args, "--format", "json");
-        Tara.generate(root, cfg, format);
+        Tara.generate(root, cfg.project().name());
     }
 
     static void cmdHara(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        Hara.generate(root, cfg);
+        Hara.init(root, cfg.project().name());
+        System.out.println(Hara.show(root));
     }
 
     static void cmdVuln(Path root, String[] args) throws IOException {
@@ -314,9 +328,7 @@ public final class Main {
     }
 
     static void cmdAuditPack(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
-        String output = flagValue(args, "--output", "audit-pack.zip");
-        AuditPack.generate(root, cfg, root.resolve(output));
+        AuditPack.generate(root);
     }
 
     static void cmdDiff(Path root, String[] args) throws IOException {
@@ -324,19 +336,17 @@ public final class Main {
             System.err.println("Usage: jfusa diff <before.json> <after.json>");
             System.exit(EXIT_USAGE);
         }
-        Diff.Result r = Diff.compare(root.resolve(args[0]), root.resolve(args[1]));
-        System.out.println(Diff.renderText(r));
+        Diff.DiffResult r = Diff.compare(root.resolve(args[0]), root.resolve(args[1]));
+        System.out.println(Diff.renderText(r, args[0], args[1]));
     }
 
     static void cmdBadge(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         Engine.Result result = Engine.DEFAULT.run(root, cfg);
-        String status = result.hasErrors() ? "failing" : result.hasWarnings() ? "warnings" : "passing";
-        String color  = result.hasErrors() ? "red" : result.hasWarnings() ? "yellow" : "brightgreen";
-        String label  = flagValue(args, "--label", "jfusa");
+        com.soundmatt.jfusa.report.Report report = new com.soundmatt.jfusa.report.Report(result, cfg);
         String output = flagValue(args, "--output", "badge.svg");
-        Badge.generate(root.resolve(output), label, status, color);
-        System.out.println("Badge written: " + output + " [" + status + "]");
+        Badge.writeToFile(root, report, output);
+        System.out.println("Badge written: " + output);
     }
 
     static void cmdReq(Path root, String[] args) throws IOException {
@@ -394,11 +404,11 @@ public final class Main {
             }
             case "sign" -> {
                 if (!Files.exists(keyFile)) Sign.generateKey(keyFile);
-                Sign.sign(root.resolve(args[1]), keyFile);
+                Sign.sign(keyFile, root.resolve(args[1]));
                 System.out.println("Signed: " + args[1]);
             }
             case "verify" -> {
-                boolean ok = Sign.verify(root.resolve(args[1]), keyFile);
+                boolean ok = Sign.verify(keyFile, root.resolve(args[1]));
                 System.out.println(args[1] + ": " + (ok ? "VALID" : "INVALID"));
                 if (!ok) System.exit(EXIT_GATE_FAIL);
             }
@@ -407,27 +417,31 @@ public final class Main {
     }
 
     static void cmdDo178(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
+        String dal  = flagValue(args, "--dal",  "DAL-C");
         String format = flagValue(args, "--format", "text");
-        Do178.generate(root, cfg, format);
+        if ("text".equals(format)) System.out.println(Do178.renderText(dal));
+        else { Do178.generate(root, dal); System.out.println("Written: " + Do178.GAP_REPORT); }
     }
 
     static void cmdIso21434(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
+        String cal  = flagValue(args, "--cal",  "CAL-3");
         String format = flagValue(args, "--format", "text");
-        Iso21434.generate(root, cfg, format);
+        if ("text".equals(format)) System.out.println(Iso21434.renderText(cal));
+        else { Iso21434.generate(root, cal); System.out.println("Written: " + Iso21434.GAP_REPORT); }
     }
 
     static void cmdIso26262(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
+        String asil = flagValue(args, "--asil", "ASIL-B");
         String format = flagValue(args, "--format", "text");
-        Iso26262.generate(root, cfg, format);
+        if ("text".equals(format)) System.out.println(Iso26262.renderText(asil));
+        else { Iso26262.generate(root, asil); System.out.println("Written: " + Iso26262.GAP_REPORT); }
     }
 
     static void cmdIec61508(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
+        String sil  = flagValue(args, "--sil",  "SIL-2");
         String format = flagValue(args, "--format", "text");
-        Iec61508.generate(root, cfg, format);
+        if ("text".equals(format)) System.out.println(Iec61508.renderText(sil));
+        else { Iec61508.generate(root, sil); System.out.println("Written: " + Iec61508.GAP_REPORT); }
     }
 
     static void cmdIec62443(Path root, String[] args) throws IOException {
@@ -439,17 +453,15 @@ public final class Main {
     }
 
     static void cmdUnece(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
         String format = flagValue(args, "--format", "text");
-        Unece.generate(root, cfg, format);
+        if ("text".equals(format)) System.out.println(Unece.renderText());
+        else Unece.generate(root);
     }
 
     static void cmdSlsa(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
-        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
-                r -> r.id().startsWith("SLSA"));
-        Report report = new Report(result, cfg);
-        System.out.print(report.render("text"));
+        String level = flagValue(args, "--level", "L2");
+        String format = flagValue(args, "--format", "text");
+        Slsa.generateGapReport(root, level, format);
     }
 
     static void cmdSas(Path root, String[] args) throws IOException {
@@ -470,7 +482,23 @@ public final class Main {
     }
 
     static void cmdComp(Path root, String[] args) throws IOException {
-        Comp.generate(root);
+        String dal = flagValue(args, "--dal", null);
+        String threshStr = flagValue(args, "--threshold", null);
+        int threshold = dal != null ? Comp.thresholdForDal(dal)
+                : (threshStr != null ? Integer.parseInt(threshStr) : Comp.DEFAULT_THRESHOLD);
+        String format = flagValue(args, "--format", "text");
+        if ("json".equals(format)) {
+            Comp.generate(root, threshold, dal);
+        } else {
+            List<Comp.MethodComplexity> results = Comp.analyze(root);
+            long violations = results.stream().filter(r -> r.complexity() > threshold).count();
+            System.out.printf("Complexity analysis (threshold=%d%s): %d function(s), %d violation(s)%n",
+                    threshold, dal != null ? " / " + dal : "", results.size(), violations);
+            results.stream().filter(r -> r.complexity() > threshold)
+                    .forEach(r -> System.out.printf("  FAIL  %s:%d  %s  complexity=%d%n",
+                            r.file(), r.line(), r.method(), r.complexity()));
+            if (violations > 0) throw new FuSa.CheckFailedException("complexity gate failed");
+        }
     }
 
     static void cmdPr(Path root, String[] args) throws IOException {
@@ -495,8 +523,8 @@ public final class Main {
         switch (args[0]) {
             case "list" -> System.out.print(Disposition.list(root));
             case "add"  -> {
-                if (args.length < 4) { System.err.println("Usage: jfusa disposition add <fp> <disposition> <rationale>"); System.exit(EXIT_USAGE); }
-                Disposition.add(root, args[1], args[2], args[3]);
+                if (args.length < 5) { System.err.println("Usage: jfusa disposition add <ruleId> <file> <action> <rationale>"); System.exit(EXIT_USAGE); }
+                Disposition.add(root, args[1], args[2], args[3], args[4]);
             }
             default -> System.err.println("Unknown disposition sub-command: " + args[0]);
         }
@@ -530,18 +558,56 @@ public final class Main {
         }
     }
 
-    static void cmdCapabilities() {
-        System.out.println("jfusa " + FuSa.VERSION + " (x-FuSa spec " + FuSa.SPEC_VERSION + ")");
-        System.out.println();
-        System.out.println("Rule packages:");
-        Engine.DEFAULT.rules().forEach(r ->
-                System.out.printf("  %-14s %s%n", r.id(), r.description()));
-        System.out.println();
-        System.out.printf("Total rules registered: %d%n", Engine.DEFAULT.rules().size());
+    static void cmdCapabilitiesFmt(String format) {
+        if ("json".equals(format)) {
+            var w = new Json.Writer();
+            w.objectStart();
+            w.field("schemaVersion", FuSa.SPEC_VERSION);
+            w.field("kind", "capabilities");
+            w.field("tool", "java-FuSa");
+            w.field("toolVersion", FuSa.VERSION);
+            w.field("language", "java");
+            w.field("generatedAt", java.time.Instant.now().toString());
+            w.field("specVersion", FuSa.SPEC_VERSION);
+            w.key("commands"); w.arrayStart();
+            for (String c : List.of("version","capabilities","init","check","lint","analyze",
+                    "cyber","report","template","trace","verify","release","qualify",
+                    "safety-case","fmea","boundary","coupling","tara","hara","vuln",
+                    "audit-pack","diff","badge","req","fix","hooks","sign","do178",
+                    "iso21434","iso26262","iec61508","iec62443","unece","slsa","sas",
+                    "sci","coverage","comp","pr","disposition","impact","metrics","misra")) {
+                w.value(c);
+            }
+            w.arrayEnd();
+            w.key("formats"); w.objectStart();
+            w.key("check"); w.arrayStart(); w.value("text"); w.value("json"); w.value("html"); w.value("sarif"); w.arrayEnd();
+            w.key("trace"); w.arrayStart(); w.value("text"); w.value("json"); w.arrayEnd();
+            w.key("report"); w.arrayStart(); w.value("text"); w.value("json"); w.value("html"); w.value("sarif"); w.arrayEnd();
+            w.key("comp"); w.arrayStart(); w.value("text"); w.value("json"); w.arrayEnd();
+            w.objectEnd();
+            w.key("standards"); w.arrayStart();
+            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443-4-1","unece-r155","slsa")) w.value(s);
+            w.arrayEnd();
+            w.objectEnd();
+            System.out.println(w.toPretty());
+        } else {
+            System.out.println("jfusa " + FuSa.VERSION + " (x-FuSa spec " + FuSa.SPEC_VERSION + ")");
+            System.out.println();
+            System.out.println("Rule packages:");
+            Engine.DEFAULT.rules().forEach(r ->
+                    System.out.printf("  %-14s %s%n", r.id(), r.description()));
+            System.out.println();
+            System.out.printf("Total rules registered: %d%n", Engine.DEFAULT.rules().size());
+        }
     }
 
     static void cmdVersion() {
-        System.out.println("jfusa " + FuSa.VERSION + " (x-FuSa spec v" + FuSa.SPEC_VERSION + ")");
+        System.out.println("jfusa " + FuSa.VERSION);
+    }
+
+    static void cmdVersionJson() {
+        System.out.printf("{\"tool\":\"java-FuSa\",\"version\":\"%s\",\"specVersion\":\"%s\"}%n",
+                FuSa.VERSION, FuSa.SPEC_VERSION);
     }
 
     // -------------------------------------------------------------------------

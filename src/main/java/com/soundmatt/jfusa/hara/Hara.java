@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.hara;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -59,10 +60,14 @@ public final class Hara {
         if (Files.exists(root.resolve(HARA_FILE))) return;
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-hara-1.0");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "hara-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.field("project", project);
-        w.field("standard", "ISO 26262-3");
-        w.field("timestamp", Instant.now().toString());
+        w.field("standard", "iso26262");
         w.key("hazards"); w.arrayStart();
         for (HazardEntry h : defaults(project)) {
             w.objectStart();

@@ -32,10 +32,14 @@ public final class SafetyCase {
     static void writeJson(Path root, String project, String standard) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-safety-case-1.0");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "safety-case");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.field("project", project);
         w.field("standard", standard);
-        w.field("timestamp", Instant.now().toString());
         w.key("goals"); w.arrayStart();
         for (String g : List.of(
                 "G-001: The system is acceptably safe for its intended use",

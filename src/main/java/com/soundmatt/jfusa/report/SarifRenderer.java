@@ -59,8 +59,20 @@ public final class SarifRenderer {
             w.objectEnd(); // physicalLocation
             w.objectEnd(); // location
             w.arrayEnd();
-            w.fieldIfNonBlank("fingerprints",
-                    f.fingerprint().isBlank() ? null : f.fingerprint());
+            if (!f.fingerprint().isBlank()) {
+                w.key("fingerprints"); w.objectStart();
+                w.field("uniqueId/v1", f.fingerprint());
+                w.objectEnd();
+            }
+            // §2.9: category/standard/clause ride in result.properties (SHOULD)
+            boolean hasProp = f.category() != null || !f.standard().isBlank() || !f.clause().isBlank();
+            if (hasProp) {
+                w.key("properties"); w.objectStart();
+                if (f.category() != null) w.field("category", f.category().jsonValue());
+                if (!f.standard().isBlank()) w.field("standard", f.standard());
+                if (!f.clause().isBlank())  w.field("clause", f.clause());
+                w.objectEnd();
+            }
             w.objectEnd(); // result
         }
         w.arrayEnd(); // results

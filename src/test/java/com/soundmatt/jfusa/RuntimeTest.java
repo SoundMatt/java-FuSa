@@ -4,7 +4,6 @@ import com.soundmatt.jfusa.runtime.Heartbeat;
 import com.soundmatt.jfusa.runtime.SafeStateGuard;
 import com.soundmatt.jfusa.runtime.Watchdog;
 import org.junit.jupiter.api.Test;
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,9 +13,8 @@ class RuntimeTest {
     @Test
     void watchdog_doesNotFire_whenKickedInTime() throws Exception {
         AtomicBoolean fired = new AtomicBoolean(false);
-        Watchdog wd = new Watchdog("test-wd", Duration.ofMillis(200), () -> fired.set(true));
+        Watchdog wd = new Watchdog(200, () -> fired.set(true));
         wd.start();
-        // Kick twice within timeout
         Thread.sleep(50); wd.kick();
         Thread.sleep(50); wd.kick();
         wd.stop();
@@ -26,7 +24,7 @@ class RuntimeTest {
     @Test
     void watchdog_fires_onTimeout() throws Exception {
         AtomicBoolean fired = new AtomicBoolean(false);
-        Watchdog wd = new Watchdog("test-wd-fire", Duration.ofMillis(100), () -> fired.set(true));
+        Watchdog wd = new Watchdog(100, () -> fired.set(true));
         wd.start();
         Thread.sleep(300);
         wd.stop();
@@ -36,7 +34,7 @@ class RuntimeTest {
     @Test
     void heartbeat_callsAction() throws Exception {
         AtomicInteger count = new AtomicInteger(0);
-        Heartbeat hb = new Heartbeat("test-hb", Duration.ofMillis(50), count::incrementAndGet);
+        Heartbeat hb = new Heartbeat(50, count::incrementAndGet);
         hb.start();
         Thread.sleep(250);
         hb.stop();
@@ -56,9 +54,9 @@ class RuntimeTest {
     @Test
     void safeStateGuard_isEntered_afterEnter() {
         SafeStateGuard guard = new SafeStateGuard("test-guard-2");
-        assertFalse(guard.isEntered());
+        assertFalse(guard.isInSafeState());
         guard.enter("reason");
-        assertTrue(guard.isEntered());
+        assertTrue(guard.isInSafeState());
     }
 
     @Test

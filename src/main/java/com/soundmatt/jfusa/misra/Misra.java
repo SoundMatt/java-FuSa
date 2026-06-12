@@ -54,9 +54,13 @@ public final class Misra {
         List<Object[]> hits = scan(root);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-misra-1.0");
-        w.field("standard", "MISRA Java 2023");
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "misra-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "misra-java");
         w.field("totalFindings", hits.size());
         w.key("findings"); w.arrayStart();
         for (Object[] h : hits) {
@@ -71,7 +75,7 @@ public final class Misra {
         System.out.println("MISRA report: " + hits.size() + " finding(s) written to " + MISRA_JSON);
     }
 
-    static List<Object[]> scan(Path root) throws IOException {
+    public static List<Object[]> scan(Path root) throws IOException {
         List<Path> files = javaFiles(root);
         List<Object[]> hits = new ArrayList<>();
         for (Path f : files) {

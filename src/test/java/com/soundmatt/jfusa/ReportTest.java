@@ -51,7 +51,7 @@ class ReportTest {
         Report report = new Report(result, Config.defaultConfig("rpt-test"));
         String json = report.render("json");
         assertTrue(json.contains("\"findings\""));
-        assertTrue(json.contains("\"schema\""));
+        assertTrue(json.contains("\"schemaVersion\""));  // §3.1 common header
         assertTrue(json.startsWith("{"));
     }
 

@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.impact;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -63,8 +64,12 @@ public final class Impact {
         ImpactResult r = analyze(root, changedFiles);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-impact-1.0");
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "impact-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.key("changedFiles"); w.arrayStart();
         for (String f : r.changedFiles()) { w.value(f); }
         w.arrayEnd();

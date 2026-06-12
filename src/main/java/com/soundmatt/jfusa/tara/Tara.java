@@ -67,10 +67,14 @@ public final class Tara {
     static void writeJson(Path root, List<ThreatEntry> threats, String project) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-tara-1.0");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "tara-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.field("project", project);
-        w.field("standard", "ISO 21434");
-        w.field("timestamp", Instant.now().toString());
+        w.field("standard", "iso21434");
         w.key("threats"); w.arrayStart();
         for (ThreatEntry t : threats) {
             w.objectStart();

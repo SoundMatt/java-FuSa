@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.unece;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -33,23 +34,47 @@ public final class Unece {
 
     static ThreatCategory tc(String id, String t, String s, String c) { return new ThreatCategory(id, t, s, c); }
 
+    private static String canonicalStatus(String s) {
+        return switch (s) {
+            case "Met"           -> "satisfied";
+            case "Partially Met" -> "partial";
+            default              -> "gap";
+        };
+    }
+
     public static void generate(Path root) throws IOException {
         List<ThreatCategory> cats = threatCategories();
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-gap-report-1.0");
-        w.field("standard", "UN R.155 Annex 5");
-        w.field("timestamp", Instant.now().toString());
-        w.key("threatCategories"); w.arrayStart();
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "gap-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "unece-r155");
+        w.key("objectives"); w.arrayStart();
         for (ThreatCategory tc : cats) {
             w.objectStart();
-            w.field("id", tc.id()); w.field("title", tc.title());
-            w.field("status", tc.status()); w.field("coverage", tc.coverage());
+            w.field("id", tc.id());
+            w.field("title", tc.title());
+            w.field("clause", tc.id());
+            w.field("status", canonicalStatus(tc.status()));
+            w.key("evidence"); w.arrayStart(); w.arrayEnd();
+            w.key("findings"); w.arrayStart(); w.arrayEnd();
+            w.field("coverage", tc.coverage());
             w.objectEnd();
         }
         w.arrayEnd();
-        long met = cats.stream().filter(c -> c.status().equals("Met")).count();
-        w.field("met", met); w.field("total", cats.size());
+        long sat  = cats.stream().filter(c -> c.status().equals("Met")).count();
+        long part = cats.stream().filter(c -> c.status().equals("Partially Met")).count();
+        long gap  = cats.size() - sat - part;
+        w.key("summary"); w.objectStart();
+        w.field("total", cats.size());
+        w.field("satisfied", sat);
+        w.field("partial", part);
+        w.field("gaps", gap);
+        w.objectEnd();
         w.objectEnd();
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }

@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.iso26262;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -38,29 +39,50 @@ public final class Iso26262 {
         return new GapItem(clause, title, status, notes);
     }
 
+    private static String canonicalStatus(String s) {
+        return switch (s) {
+            case "Met"           -> "satisfied";
+            case "Partially Met" -> "partial";
+            default              -> "gap";
+        };
+    }
+
     public static void generate(Path root, String asil) throws IOException {
         List<GapItem> items = buildGapReport(asil);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-gap-report-1.0");
-        w.field("standard", "ISO 26262");
-        w.field("asil", "ASIL-" + asil);
-        w.field("timestamp", Instant.now().toString());
+        // §3.1 common header
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "gap-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        // §9.3 gap-report body
+        w.field("standard", "iso26262");
+        w.field("level", "ASIL-" + asil);
         w.key("objectives"); w.arrayStart();
         for (GapItem g : items) {
             w.objectStart();
-            w.field("clause", g.clause());
+            w.field("id", g.clause());
             w.field("title", g.title());
-            w.field("status", g.status());
+            w.field("clause", g.clause());
+            w.field("status", canonicalStatus(g.status()));
+            w.key("evidence"); w.arrayStart(); w.arrayEnd();
+            w.key("findings"); w.arrayStart(); w.arrayEnd();
             w.field("notes", g.notes());
             w.objectEnd();
         }
         w.arrayEnd();
-        long met = items.stream().filter(i -> i.status().equals("Met")).count();
-        w.field("totalObjectives", items.size());
-        w.field("met", met);
-        w.field("partial", items.stream().filter(i -> i.status().equals("Partially Met")).count());
-        w.field("notMet", items.stream().filter(i -> i.status().equals("Not Met")).count());
+        long satisfied = items.stream().filter(i -> i.status().equals("Met")).count();
+        long partial   = items.stream().filter(i -> i.status().equals("Partially Met")).count();
+        long gaps      = items.stream().filter(i -> i.status().equals("Not Met")).count();
+        w.key("summary"); w.objectStart();
+        w.field("total", items.size());
+        w.field("satisfied", satisfied);
+        w.field("partial", partial);
+        w.field("gaps", gaps);
+        w.objectEnd();
         w.objectEnd();
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }

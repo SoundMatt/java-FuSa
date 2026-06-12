@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.coupling;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -53,9 +54,12 @@ public final class Coupling {
         List<CouplingEntry> couplings = analyze(root);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-coupling-1.0");
-        w.field("standard", "DO-178C §6.3.4b MC/DC");
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "coupling-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.field("totalCouplings", couplings.size());
         long dataCoupling = couplings.stream().filter(c -> "data".equals(c.type())).count();
         long controlCoupling = couplings.stream().filter(c -> "control".equals(c.type())).count();

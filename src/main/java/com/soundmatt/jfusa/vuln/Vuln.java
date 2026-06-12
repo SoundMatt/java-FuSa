@@ -70,7 +70,7 @@ public final class Vuln {
         }
     }
 
-    static List<VulnEntry> checkKnownVulns(List<Dependency> deps) {
+    public static List<VulnEntry> checkKnownVulns(List<Dependency> deps) {
         Map<String, String> knownBad = Map.of(
             "log4j-core:2.14", "CVE-2021-44228:CRITICAL:Log4Shell — RCE via JNDI lookup in log messages",
             "log4j-core:2.15", "CVE-2021-45046:CRITICAL:Log4Shell bypass in 2.15.0",
@@ -91,8 +91,12 @@ public final class Vuln {
     static void writeReport(Path root, List<Dependency> deps, List<VulnEntry> vulns) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-vuln-1.0");
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "vuln-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.field("dependencyCount", deps.size());
         w.field("vulnerabilityCount", vulns.size());
         w.key("vulnerabilities"); w.arrayStart();

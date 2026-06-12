@@ -14,7 +14,7 @@ class ConfigTest {
     void defaultConfig_hasName() {
         Config c = Config.defaultConfig("my-project");
         assertEquals("my-project", c.project().name());
-        assertEquals("0.1.0", c.project().version());
+        assertEquals("1.0", c.configVersion());
         assertNotNull(c.rules());
         assertNotNull(c.report());
     }
@@ -25,7 +25,7 @@ class ConfigTest {
         Config.save(tmp, original);
         Config loaded = Config.load(tmp);
         assertEquals(original.project().name(), loaded.project().name());
-        assertEquals(original.project().version(), loaded.project().version());
+        assertEquals(original.configVersion(), loaded.configVersion());
     }
 
     @Test

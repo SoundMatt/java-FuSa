@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.fmea;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 import com.soundmatt.jfusa.lint.LintRules;
 
@@ -80,8 +81,12 @@ public final class Fmea {
     static void writeJson(Path root, List<FmeaEntry> entries) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-fmea-1.0");
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "fmea-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.key("entries"); w.arrayStart();
         for (FmeaEntry e : entries) {
             w.objectStart();

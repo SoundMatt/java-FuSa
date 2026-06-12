@@ -9,26 +9,35 @@ import java.nio.file.Path;
 import java.util.*;
 
 /**
- * Project configuration for java-FuSa.
+ * Project configuration: load, parse, save, and validate {@code .fusa.json}.
  *
- * <p>A project is configured via a {@code .fusa.json} file at the project root.
- * Use {@link #load(Path)} to read an existing file, {@link #defaultConfig(String)} to
- * build a starter config, and {@link #save(Path, Config)} to write to disk.
+ * <p>Conforms to x-FuSa spec v1.10 §1.2.1 schema.
  */
 public final class Config {
 
-    /** Conventional name of the java-FuSa configuration file. */
     public static final String CONFIG_FILE = ".fusa.json";
+    public static final String CONFIG_VERSION = "1.0";
 
     // ── Standard identifiers ─────────────────────────────────────────────────
 
     //fusa:req REQ-NF003
     public enum Standard {
-        ISO26262, IEC61508, ISO21434, DO178C, generic;
+        ISO26262("iso26262"), IEC61508("iec61508"), ISO21434("iso21434"),
+        DO178C("do178c"), IEC62443("iec62443-4-1"), generic("generic");
+
+        private final String canonicalId;
+        Standard(String id) { this.canonicalId = id; }
+
+        /** Lowercase canonical id for JSON output per §2.4.1. */
+        public String canonicalId() { return canonicalId; }
 
         public static Standard of(String s) {
             if (s == null || s.isBlank()) return generic;
-            try { return Standard.valueOf(s.toUpperCase()); } catch (IllegalArgumentException e) { return generic; }
+            // Accept canonical lowercase id (iso26262) or enum name (ISO26262)
+            for (Standard st : values()) {
+                if (st.canonicalId.equalsIgnoreCase(s) || st.name().equalsIgnoreCase(s)) return st;
+            }
+            return generic;
         }
     }
 
@@ -36,45 +45,49 @@ public final class Config {
 
     public record ProjectConfig(
             String name,
-            String artifact,
+            String version,
             Standard standard,
             String asil,
-            String sil
-    ) {
+            String sil,
+            String dal) {
+
         public ProjectConfig(String name) {
-            this(name, "", Standard.generic, "", "");
+            this(name, "0.1.0", Standard.generic, "", "", "");
+        }
+
+        public ProjectConfig(String name, String artifact, Standard standard, String asil, String sil) {
+            this(name, "0.1.0", standard, asil, sil, "");
         }
     }
 
-    public record RulesConfig(
-            List<String> exclude,
-            Map<String, String> severity
-    ) {
+    public record RulesConfig(List<String> exclude, Map<String, String> severity) {
         public RulesConfig() { this(List.of(), Map.of()); }
     }
 
-    public record ReportConfig(
-            String format,
-            String output
-    ) {
+    public record ReportConfig(String format, String output) {
         public ReportConfig() { this("text", ""); }
     }
 
-    // ── Config record ─────────────────────────────────────────────────────────
+    // ── Config ────────────────────────────────────────────────────────────────
 
-    private final String version;
+    private final String configVersion;
     private final ProjectConfig project;
     private final RulesConfig rules;
     private final ReportConfig report;
 
-    public Config(String version, ProjectConfig project, RulesConfig rules, ReportConfig report) {
-        this.version = version;
+    public Config(String configVersion, ProjectConfig project, RulesConfig rules, ReportConfig report) {
+        this.configVersion = configVersion;
         this.project = project;
         this.rules = rules;
         this.report = report;
     }
 
-    public String version()    { return version; }
+    /** Config-format version (own series, "1.0" per §2.8). */
+    public String configVersion() { return configVersion; }
+
+    /** Legacy accessor — returns the configVersion field for backwards compatibility. */
+    public String version() { return configVersion; }
+
     public ProjectConfig project() { return project; }
     public RulesConfig rules() { return rules; }
     public ReportConfig report() { return report; }
@@ -83,13 +96,12 @@ public final class Config {
 
     //fusa:req REQ-CFG005
     public static Config defaultConfig(String name) {
-        return new Config("1",
-                new ProjectConfig(name, "", Standard.generic, "", ""),
-                new RulesConfig(),
-                new ReportConfig());
+        return new Config(
+                CONFIG_VERSION,
+                new ProjectConfig(name, "0.1.0", Standard.generic, "", "", ""),
+                new RulesConfig(List.of(), Map.of()),
+                new ReportConfig("text", ""));
     }
-
-    // ── Load ──────────────────────────────────────────────────────────────────
 
     //fusa:req REQ-CFG001
     public static Config load(Path projectRoot) {
@@ -112,23 +124,37 @@ public final class Config {
 
     //fusa:req REQ-CFG002
     @SuppressWarnings("unchecked")
-    static Config parse(String json) {
+    public static Config parse(String json) {
         Map<String, Object> root = Json.parseObject(json);
 
-        String version = Json.str(root, "version", "");
-        if (version.isBlank()) {
-            throw new FuSa.InvalidConfigException("missing version field");
-        }
+        // configVersion (v1.10) or version (legacy)
+        String cfgVer = Json.str(root, "configVersion", "");
+        if (cfgVer.isBlank()) cfgVer = Json.str(root, "version", CONFIG_VERSION);
+        if (cfgVer.isBlank()) cfgVer = CONFIG_VERSION;
 
         Map<String, Object> proj = Json.obj(root, "project");
-        String asil = Json.str(proj, "asil", "");
-        String sil  = Json.str(proj, "sil", "");
-        Standard std = Standard.of(Json.str(proj, "standard", "generic"));
-        ProjectConfig pc = new ProjectConfig(
-                Json.str(proj, "name", ""),
-                Json.str(proj, "artifact", ""),
-                std, asil, sil);
+        String name = Json.str(proj, "name", "");
+        String projVer = Json.str(proj, "version", "0.1.0");
 
+        // standard: top-level (v1.10) or inside project (legacy)
+        String stdStr = Json.str(root, "standard", "");
+        if (stdStr.isBlank()) stdStr = Json.str(proj, "standard", "generic");
+        Standard std = Standard.of(stdStr);
+
+        // integrity field: top-level (v1.10) or inside project (legacy)
+        String asil = Json.str(root, "asil", "");
+        if (asil.isBlank()) asil = Json.str(proj, "asil", "");
+        String sil = Json.str(root, "sil", "");
+        if (sil.isBlank()) sil = Json.str(proj, "sil", "");
+        String dal = Json.str(root, "dal", "");
+        if (dal.isBlank()) dal = Json.str(proj, "dal", "");
+
+        // artifact is a legacy java-FuSa extension field
+        String artifact = Json.str(proj, "artifact", "");
+
+        ProjectConfig pc = new ProjectConfig(name, projVer, std, asil, sil, dal);
+
+        // rules (java-FuSa extension, not in spec)
         Map<String, Object> rulesMap = Json.obj(root, "rules");
         List<String> exclude = new ArrayList<>();
         for (Object o : Json.arr(rulesMap, "exclude")) {
@@ -142,13 +168,14 @@ public final class Config {
         RulesConfig rc = new RulesConfig(Collections.unmodifiableList(exclude),
                 Collections.unmodifiableMap(severity));
 
+        // report (java-FuSa extension, not in spec)
         Map<String, Object> repMap = Json.obj(root, "report");
         String fmt = Json.str(repMap, "format", "text");
         String out = Json.str(repMap, "output", "");
         validateFormat(fmt);
         validateSeverityOverrides(severity);
 
-        return new Config(version, pc, rc, new ReportConfig(fmt, out));
+        return new Config(cfgVer, pc, rc, new ReportConfig(fmt, out));
     }
 
     //fusa:req REQ-CFG003
@@ -158,32 +185,30 @@ public final class Config {
         }
     }
 
-    //fusa:req REQ-CFG008
     private static void validateSeverityOverrides(Map<String, String> severity) {
         for (var e : severity.entrySet()) {
-            String sev = e.getValue();
-            if (!sev.equals("ERROR") && !sev.equals("WARNING") && !sev.equals("INFO")) {
-                throw new FuSa.InvalidConfigException("rule " + e.getKey() +
-                        " has invalid severity override \"" + sev + "\" (must be ERROR, WARNING, or INFO)");
+            try { FuSa.Severity.valueOf(e.getValue()); }
+            catch (IllegalArgumentException ex) {
+                throw new FuSa.InvalidConfigException(
+                        "invalid severity override for " + e.getKey() + ": " + e.getValue());
             }
         }
     }
 
-    // ── Save ──────────────────────────────────────────────────────────────────
-
-    //fusa:req REQ-CFG006
+    /** Write §1.2.1 v1.10 schema format. */
     public static void save(Path projectRoot, Config cfg) throws IOException {
         Path path = projectRoot.resolve(CONFIG_FILE);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("version", cfg.version());
+        w.field("configVersion", CONFIG_VERSION);
         w.key("project"); w.objectStart();
         w.field("name", cfg.project().name());
-        w.field("artifact", cfg.project().artifact());
-        w.field("standard", cfg.project().standard().name());
+        w.field("version", cfg.project().version());
+        w.objectEnd();
+        w.field("standard", cfg.project().standard().canonicalId());
         if (!cfg.project().asil().isBlank()) w.field("asil", cfg.project().asil());
         if (!cfg.project().sil().isBlank())  w.field("sil",  cfg.project().sil());
-        w.objectEnd();
+        if (!cfg.project().dal().isBlank())  w.field("dal",  cfg.project().dal());
         w.key("rules"); w.objectStart();
         w.key("exclude"); w.arrayStart();
         for (String ex : cfg.rules().exclude()) w.value(ex);

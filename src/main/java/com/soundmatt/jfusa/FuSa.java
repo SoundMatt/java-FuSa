@@ -18,7 +18,7 @@ public final class FuSa {
     public static final String VERSION = "0.1.0";
 
     /** x-FuSa spec version this release implements. */
-    public static final String SPEC_VERSION = "1.9";
+    public static final String SPEC_VERSION = "1.10";
 
     // § 2.3 exit codes
     /** Success — no gate failure. */

@@ -21,21 +21,29 @@ import java.util.function.Predicate;
  */
 public final class Engine {
 
-    /** Package-level default registry; populated by built-in rule init. */
-    public static final Registry DEFAULT = new Registry();
+    /** Shared default engine instance; populated by built-in rule init. */
+    public static final Engine DEFAULT;
 
     static {
-        DEFAULT.mustRegister(new RuleConfigPresent());
-        DEFAULT.mustRegister(new RuleJavaProjectPresent());
-        DEFAULT.mustRegister(new RuleLicensePresent());
-        DEFAULT.mustRegister(new RuleReadmePresent());
-        DEFAULT.mustRegister(new RuleCIPresent());
+        Registry reg = new Registry();
+        reg.mustRegister(new RuleConfigPresent());
+        reg.mustRegister(new RuleJavaProjectPresent());
+        reg.mustRegister(new RuleLicensePresent());
+        reg.mustRegister(new RuleReadmePresent());
+        reg.mustRegister(new RuleCIPresent());
+        DEFAULT = new Engine(reg);
     }
 
     private final Registry registry;
 
     public Engine(Registry registry) { this.registry = registry; }
-    public Engine() { this(DEFAULT); }
+    public Engine() { this(new Registry()); }
+
+    /** Delegate registration so rule packages can call Engine.DEFAULT.mustRegister(). */
+    public void mustRegister(Rule r) { registry.mustRegister(r); }
+
+    /** Return sorted rule list from the underlying registry. */
+    public List<Rule> rules() { return registry.rules(); }
 
     // ── Result ────────────────────────────────────────────────────────────────
 

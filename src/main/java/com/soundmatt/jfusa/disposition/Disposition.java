@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.disposition;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -48,7 +49,12 @@ public final class Disposition {
     public static void save(Path root, List<Entry> entries) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-dispositions-1.0");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "dispositions");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.key("dispositions"); w.arrayStart();
         for (Entry e : entries) {
             w.objectStart();

@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.iso21434;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -41,6 +42,14 @@ public final class Iso21434 {
         };
     }
 
+    private static String canonicalStatus(String s) {
+        return switch (s) {
+            case "Met"           -> "satisfied";
+            case "Partially Met" -> "partial";
+            default              -> "gap";
+        };
+    }
+
     static String calNote(String cal) {
         return "CAL-" + cal.replace("CAL-", "") + " requires " +
                (cal.equals("CAL-4") ? "comprehensive penetration testing and formal method evidence" :
@@ -51,18 +60,47 @@ public final class Iso21434 {
         List<GapItem> items = buildGapReport(cal);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-gap-report-1.0");
-        w.field("standard", "ISO 21434"); w.field("cal", "CAL-" + cal);
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "gap-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "iso21434");
+        w.field("level", "CAL-" + cal.replace("CAL-", ""));
         w.key("objectives"); w.arrayStart();
         for (GapItem g : items) {
             w.objectStart();
-            w.field("clause", g.clause()); w.field("title", g.title());
-            w.field("status", g.status()); w.field("notes", g.notes());
+            w.field("id", g.clause());
+            w.field("title", g.title());
+            w.field("clause", g.clause());
+            w.field("status", canonicalStatus(g.status()));
+            w.key("evidence"); w.arrayStart(); w.arrayEnd();
+            w.key("findings"); w.arrayStart(); w.arrayEnd();
+            w.field("notes", g.notes());
             w.objectEnd();
         }
         w.arrayEnd();
+        long sat  = items.stream().filter(i -> i.status().equals("Met")).count();
+        long part = items.stream().filter(i -> i.status().equals("Partially Met")).count();
+        long gap  = items.size() - sat - part;
+        w.key("summary"); w.objectStart();
+        w.field("total", items.size());
+        w.field("satisfied", sat);
+        w.field("partial", part);
+        w.field("gaps", gap);
+        w.objectEnd();
         w.objectEnd();
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
+    }
+
+    public static String renderText(String cal) {
+        var sb = new StringBuilder();
+        sb.append("ISO 21434 Gap Report — ").append(cal).append('\n');
+        sb.append("=".repeat(60)).append('\n');
+        for (GapItem g : buildGapReport(cal)) {
+            sb.append(String.format("%-10s %-40s %s%n", g.clause(), g.title(), g.status()));
+        }
+        return sb.toString();
     }
 }

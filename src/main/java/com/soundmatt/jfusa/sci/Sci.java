@@ -35,9 +35,13 @@ public final class Sci {
     static void generateJson(Path root) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-sci-1.0");
-        w.field("standard", "DO-178C §11.16");
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "sci-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "do178c");
         w.key("items"); w.arrayStart();
         for (String item : LIFECYCLE_ITEMS) {
             Path p = root.resolve(item);

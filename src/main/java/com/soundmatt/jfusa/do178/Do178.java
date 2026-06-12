@@ -1,5 +1,6 @@
 package com.soundmatt.jfusa.do178;
 
+import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.internal.Json;
 
 import java.io.IOException;
@@ -51,6 +52,14 @@ public final class Do178 {
         return new TableObjective(t, n, d, s, notes);
     }
 
+    private static String canonicalStatus(String s) {
+        return switch (s) {
+            case "Met"           -> "satisfied";
+            case "Partially Met" -> "partial";
+            default              -> "gap";
+        };
+    }
+
     static String dalCovStatus(String dal, String type) {
         return switch (dal + ":" + type) {
             case "DAL-A:stmt", "DAL-B:stmt", "DAL-C:stmt" -> "Required";
@@ -72,19 +81,48 @@ public final class Do178 {
         List<TableObjective> items = buildGapReport(dal);
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-gap-report-1.0");
-        w.field("standard", "DO-178C"); w.field("dal", "DAL-" + dal);
-        w.field("timestamp", Instant.now().toString());
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "gap-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("standard", "do178c");
+        w.field("level", "DAL-" + dal.replace("DAL-", ""));
         w.key("objectives"); w.arrayStart();
         for (TableObjective o : items) {
             w.objectStart();
-            w.field("table", o.table()); w.field("objective", o.objective());
-            w.field("description", o.description()); w.field("status", o.status());
+            w.field("id", o.table() + "/" + o.objective());
+            w.field("title", o.description());
+            w.field("clause", o.table());
+            w.field("status", canonicalStatus(o.status()));
+            w.key("evidence"); w.arrayStart(); w.arrayEnd();
+            w.key("findings"); w.arrayStart(); w.arrayEnd();
             w.field("notes", o.notes());
             w.objectEnd();
         }
         w.arrayEnd();
+        long sat  = items.stream().filter(i -> i.status().equals("Met")).count();
+        long part = items.stream().filter(i -> i.status().equals("Partially Met")).count();
+        long gap  = items.size() - sat - part;
+        w.key("summary"); w.objectStart();
+        w.field("total", items.size());
+        w.field("satisfied", sat);
+        w.field("partial", part);
+        w.field("gaps", gap);
+        w.objectEnd();
         w.objectEnd();
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
+    }
+
+    public static String renderText(String dal) {
+        var sb = new StringBuilder();
+        sb.append("DO-178C Gap Report — ").append(dal).append('\n');
+        sb.append("=".repeat(60)).append('\n');
+        for (TableObjective o : buildGapReport(dal)) {
+            sb.append(String.format("Table %-5s #%-3s %-38s %s%n",
+                    o.table(), o.objective(), o.description(), o.status()));
+        }
+        return sb.toString();
     }
 }

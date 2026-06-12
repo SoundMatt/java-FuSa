@@ -33,6 +33,13 @@ public final class Qualify {
 
     // ── Self-test suite ───────────────────────────────────────────────────────
 
+    public static void run(Path projectRoot, Config cfg, boolean full) throws IOException {
+        List<TestCase> cases = runSelfTests();
+        generateReport(projectRoot, cases);
+        long passed = cases.stream().filter(TestCase::passed).count();
+        System.out.printf("Qualification: %d/%d passed%s%n", passed, cases.size(), passed == cases.size() ? " [PASS]" : " [FAIL]");
+    }
+
     public record TestCase(String name, boolean passed, String detail) {}
 
     public static List<TestCase> runSelfTests() {
@@ -105,40 +112,36 @@ public final class Qualify {
     // ── Report generation ─────────────────────────────────────────────────────
 
     public static void generateReport(Path projectRoot, List<TestCase> cases) throws IOException {
-        boolean allPass = cases.stream().allMatch(TestCase::passed);
+        long passedCount = cases.stream().filter(TestCase::passed).count();
+        long failedCount = cases.stream().filter(tc -> !tc.passed()).count();
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-qualify-1.0");
+        // §3.1 common header
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "qualification");
         w.field("tool", "java-FuSa");
-        w.field("version", FuSa.VERSION);
-        w.field("specVersion", FuSa.SPEC_VERSION);
-        w.field("timestamp", Instant.now().toString());
-        w.field("passed", allPass);
-        w.key("testCases"); w.arrayStart();
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        // §6 qualify body
+        w.field("total", cases.size());
+        w.field("passed", passedCount);
+        w.field("failed", failedCount);
+        w.key("results"); w.arrayStart();
         for (TestCase tc : cases) {
             w.objectStart();
             w.field("name", tc.name());
-            w.field("passed", tc.passed());
-            w.field("detail", tc.detail());
+            w.field("result", tc.passed() ? "PASS" : "FAIL");
             w.objectEnd();
         }
         w.arrayEnd();
-        w.field("totalCases", cases.size());
-        w.field("passedCases", (long) cases.stream().filter(TestCase::passed).count());
         w.objectEnd();
         String content = w.toPretty() + "\n";
         Path reportPath = projectRoot.resolve(QUALIFY_REPORT);
         Files.writeString(reportPath, content);
-        // Compute integrity hash of the report itself
-        appendIntegrity(reportPath);
-    }
-
-    private static void appendIntegrity(Path p) throws IOException {
-        // Embed the SHA-256 of the report body in a sibling field by rewriting
-        String content = Files.readString(p);
-        String hash = Release.sha256file(p);
-        // Append integrity comment (JSON allows no trailing comments, but we add a separate integrity file)
-        Files.writeString(p.resolveSibling("qualify-report.sha256"), hash + "\n");
+        // Write SHA-256 of report to sibling .sha256 file
+        Files.writeString(reportPath.resolveSibling("qualify-report.sha256"),
+                Release.sha256file(reportPath) + "\n");
     }
 
     // ── QUALIFY001 rule ───────────────────────────────────────────────────────

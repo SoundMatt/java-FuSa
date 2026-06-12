@@ -18,12 +18,14 @@ import java.util.stream.Stream;
 
 /**
  * Cyclomatic complexity analysis (DO-178C §6.3.4 / McCabe metric).
- * Threshold: ≤10 per method for DAL-C/D; ≤5 for DAL-A/B.
+ *
+ * <p>DAL-level thresholds (§9.2): A≤4, B≤10 (default), C≤15, D≤20.
+ * Output: {@code comp-report.json}, kind {@code "comp-report"} per spec v1.10 §9.2.
  */
 public final class Comp {
 
     public static final String COMP_JSON = "comp-report.json";
-    static final int THRESHOLD = 10;
+    static final int DEFAULT_THRESHOLD = 10;
 
     private static final Pattern BRANCH = Pattern.compile(
             "\\b(if|else\\s+if|for|while|do|case|catch|&&|\\|\\|)\\b|\\?");
@@ -37,11 +39,23 @@ public final class Comp {
 
     public record MethodComplexity(String file, String method, int complexity, int line) {}
 
+    /** Resolve threshold from DAL string per §9.2. */
+    public static int thresholdForDal(String dal) {
+        if (dal == null) return DEFAULT_THRESHOLD;
+        return switch (dal.toUpperCase()) {
+            case "DAL-A" -> 4;
+            case "DAL-B" -> 10;
+            case "DAL-C" -> 15;
+            case "DAL-D" -> 20;
+            default -> DEFAULT_THRESHOLD;
+        };
+    }
+
     public static List<MethodComplexity> analyze(Path root) throws IOException {
         List<MethodComplexity> results = new ArrayList<>();
         List<Path> files = javaFiles(root);
         for (Path f : files) {
-            String rel = root.relativize(f).toString();
+            String rel = root.relativize(f).toString().replace('\\', '/');
             List<String> lines = Files.readAllLines(f);
             String currentMethod = null;
             int methodLine = 0;
@@ -51,7 +65,6 @@ public final class Comp {
 
             for (int i = 0; i < lines.size(); i++) {
                 String line = lines.get(i).trim();
-                // Detect method declarations
                 if (line.matches(".*\\b(public|private|protected)\\b.*\\(.*\\).*\\{.*")) {
                     if (methodDepth < 0) {
                         currentMethod = extractMethodName(line);
@@ -65,9 +78,8 @@ public final class Comp {
                 braceDepth += line.chars().filter(c -> c == '{').count();
                 braceDepth -= line.chars().filter(c -> c == '}').count();
                 if (methodDepth >= 0 && braceDepth <= methodDepth) {
-                    if (currentMethod != null) {
+                    if (currentMethod != null)
                         results.add(new MethodComplexity(rel, currentMethod, complexity, methodLine));
-                    }
                     currentMethod = null; methodDepth = -1; complexity = 1;
                 }
             }
@@ -80,29 +92,42 @@ public final class Comp {
         return m.find() ? m.group(1) : "unknown";
     }
 
-    public static void generate(Path root) throws IOException {
+    /** Generate comp-report.json with canonical §9.2 / §3.1 shape. */
+    public static void generate(Path root, int threshold, String dal) throws IOException {
         List<MethodComplexity> results = analyze(root);
-        long over = results.stream().filter(r -> r.complexity() > THRESHOLD).count();
+        long violations = results.stream().filter(r -> r.complexity() > threshold).count();
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-comp-1.0");
-        w.field("standard", "DO-178C §6.3.4");
-        w.field("timestamp", Instant.now().toString());
-        w.field("threshold", THRESHOLD);
-        w.field("methodCount", results.size());
-        w.field("overThreshold", over);
-        w.key("methods"); w.arrayStart();
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "comp-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        w.field("threshold", threshold);
+        if (dal != null && !dal.isBlank()) w.field("dal", dal);
+        w.field("totalFunctions", results.size());
+        w.field("violations", violations);
+        w.key("results"); w.arrayStart();
         for (MethodComplexity r : results) {
             w.objectStart();
-            w.field("file", r.file()); w.field("method", r.method());
-            w.field("complexity", r.complexity()); w.field("line", r.line());
-            w.field("status", r.complexity() > THRESHOLD ? "FAIL" : "PASS");
+            w.field("file", r.file());
+            w.field("line", r.line());
+            w.field("name", r.method());
+            w.field("complexity", r.complexity());
+            w.field("exceedsThreshold", r.complexity() > threshold);
             w.objectEnd();
         }
         w.arrayEnd();
         w.objectEnd();
         Files.writeString(root.resolve(COMP_JSON), w.toPretty() + "\n");
-        System.out.printf("Complexity: %d methods, %d over threshold=%d%n", results.size(), over, THRESHOLD);
+        System.out.printf("Complexity: %d functions, %d violation(s) (threshold=%d%s)%n",
+                results.size(), violations, threshold, dal != null && !dal.isBlank() ? " / " + dal : "");
+    }
+
+    /** Overload for backwards-compat calls without DAL. */
+    public static void generate(Path root) throws IOException {
+        generate(root, DEFAULT_THRESHOLD, null);
     }
 
     static List<Path> javaFiles(Path root) throws IOException {
@@ -115,20 +140,21 @@ public final class Comp {
 
     static final class RuleComplexityGate implements Rule {
         public String id() { return "COMP001"; }
-        public String description() { return "Cyclomatic complexity ≤10 per method."; }
+        public String description() { return "Cyclomatic complexity must not exceed threshold per function."; }
 
         public List<Finding> run(Path root, Config cfg) throws IOException {
+            int threshold = DEFAULT_THRESHOLD;
             List<MethodComplexity> results = analyze(root);
             List<Finding> out = new ArrayList<>();
             for (MethodComplexity r : results) {
-                if (r.complexity() > THRESHOLD) {
+                if (r.complexity() > threshold) {
                     out.add(Finding.builder("COMP001", Severity.WARNING,
                             String.format("method '%s' has cyclomatic complexity %d (threshold %d)",
-                                    r.method(), r.complexity(), THRESHOLD),
+                                    r.method(), r.complexity(), threshold),
                             new FuSa.Location(r.file(), r.line()))
                             .category(FuSa.Category.safety)
-                            .standard("DO-178C").clause("§6.3.4")
-                            .remediation("refactor to reduce branching complexity below " + THRESHOLD)
+                            .standard("do178c").clause("6.3.4")
+                            .remediation("refactor to reduce branching complexity below " + threshold)
                             .build());
                 }
             }

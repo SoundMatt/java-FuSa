@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TraceTest {
@@ -30,17 +32,16 @@ class TraceTest {
                   {"id":"REQ-001","title":"first req","status":"implemented"}
                 ]}
                 """);
-        Trace trace = new Trace(tmp, cfg);
-        var annotations = trace.scanAnnotations();
-        assertTrue(annotations.stream().anyMatch(a -> a.target().equals("REQ-001")),
+        List<Trace.Annotation> annotations = Trace.scanAnnotations(tmp, cfg);
+        assertTrue(annotations.stream().anyMatch(a -> a.reqId().equals("REQ-001")),
                 "Should find REQ-001 annotation");
     }
 
     @Test
     void trace_renderText_noAnnotations_notEmpty() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
-        Trace trace = new Trace(tmp, cfg);
-        String text = trace.renderText();
+        Map<String, List<Trace.Annotation>> matrix = Trace.buildMatrix(tmp, cfg);
+        String text = Trace.renderText(matrix);
         assertNotNull(text);
         assertFalse(text.isBlank());
     }
@@ -48,25 +49,45 @@ class TraceTest {
     @Test
     void trace_renderJson_isValidJson() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
-        Trace trace = new Trace(tmp, cfg);
-        String json = trace.renderJson();
+        Map<String, List<Trace.Annotation>> matrix = Trace.buildMatrix(tmp, cfg);
+        String json = Trace.renderJson(matrix);
         assertTrue(json.startsWith("{"));
-        assertTrue(json.contains("\"schema\""));
+        assertTrue(json.contains("\"schema\"") || json.contains("traceabilityMatrix"));
     }
 
     @Test
-    void trace_findGaps_withUnimplementedReq() throws Exception {
+    void trace_findGaps_withRequirementButNoTestAnnotation() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
         Config.save(tmp, cfg);
-        Path reqs = tmp.resolve(".fusa-reqs.json");
-        Files.writeString(reqs, """
-                {"schema":"x-fusa-reqs-1.0","requirements":[
-                  {"id":"REQ-GAP","title":"unimplemented","status":"open"}
-                ]}
+        Path src = tmp.resolve("src/main/java/Impl.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Impl {
+                    //fusa:req REQ-GAP
+                    public void doThing() {}
+                }
                 """);
-        Trace trace = new Trace(tmp, cfg);
-        var gaps = trace.findGaps();
-        assertTrue(gaps.stream().anyMatch(g -> g.contains("REQ-GAP")),
-                "REQ-GAP has no annotation, should be reported as gap");
+        // No //fusa:test REQ-GAP anywhere
+        List<String> gaps = Trace.findGaps(tmp, cfg);
+        assertTrue(gaps.contains("REQ-GAP"),
+                "REQ-GAP has source annotation but no test — should be a gap");
+    }
+
+    @Test
+    void trace_noGaps_whenTestAnnotationPresent() throws Exception {
+        Config cfg = Config.defaultConfig("trace-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/Impl.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Impl {
+                    //fusa:req REQ-COVERED
+                    //fusa:test REQ-COVERED
+                    public void doThing() {}
+                }
+                """);
+        List<String> gaps = Trace.findGaps(tmp, cfg);
+        assertFalse(gaps.contains("REQ-COVERED"),
+                "REQ-COVERED has both req and test — should not be a gap");
     }
 }

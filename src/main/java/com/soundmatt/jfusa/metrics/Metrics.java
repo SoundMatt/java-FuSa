@@ -49,7 +49,12 @@ public final class Metrics {
     static void saveHistory(Path root, List<Map<String, Object>> history) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
-        w.field("schema", "x-fusa-metrics-1.0");
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "metrics-report");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
         w.key("history"); w.arrayStart();
         for (Map<String, Object> e : history) {
             w.objectStart();

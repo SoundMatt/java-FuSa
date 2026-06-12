@@ -1,12 +1,10 @@
 {
-  "schema": "x-fusa-1.9",
+  "configVersion": "1.0",
   "project": {
     "name": "java-FuSa",
-    "version": "0.1.0",
-    "standard": "generic",
-    "description": "Java Functional Safety Tool Suite — x-FuSa spec v1.9",
-    "license": "MPL-2.0"
+    "version": "0.1.0"
   },
+  "standard": "generic",
   "rules": {
     "exclude": [],
     "severity": {

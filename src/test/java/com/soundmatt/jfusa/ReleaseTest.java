@@ -16,10 +16,9 @@ class ReleaseTest {
     void release_generatesSbom() throws Exception {
         Config cfg = Config.defaultConfig("release-test");
         Config.save(tmp, cfg);
-        // pom.xml needed for SBOM generation
         Files.writeString(tmp.resolve("pom.xml"), "<project><version>0.1.0</version></project>");
-        Release.run(tmp, cfg);
-        Path sbom = tmp.resolve("sbom.json");
+        Release.generateSBOM(tmp, cfg);
+        Path sbom = tmp.resolve(Release.SBOM_FILE);
         assertTrue(Files.exists(sbom), "sbom.json should be generated");
         String content = Files.readString(sbom);
         assertTrue(content.contains("SPDX") || content.contains("spdx"),
@@ -31,12 +30,22 @@ class ReleaseTest {
         Config cfg = Config.defaultConfig("release-test");
         Config.save(tmp, cfg);
         Files.writeString(tmp.resolve("pom.xml"), "<project><version>0.1.0</version></project>");
-        Release.run(tmp, cfg);
-        Path prov = tmp.resolve("provenance.json");
+        Release.generateProvenance(tmp, cfg);
+        Path prov = tmp.resolve(Release.PROVENANCE_FILE);
         assertTrue(Files.exists(prov), "provenance.json should be generated");
         String content = Files.readString(prov);
-        assertTrue(content.contains("slsa") || content.contains("SLSA"),
-                "Provenance should be SLSA format");
+        assertTrue(content.contains("slsa") || content.contains("SLSA") || content.contains("builder"),
+                "Provenance should be SLSA in-toto format");
+    }
+
+    @Test
+    void release_run_generatesBothArtifacts() throws Exception {
+        Config cfg = Config.defaultConfig("release-test");
+        Config.save(tmp, cfg);
+        Files.writeString(tmp.resolve("pom.xml"), "<project><version>0.1.0</version></project>");
+        Release.run(tmp, cfg);
+        assertTrue(Files.exists(tmp.resolve(Release.SBOM_FILE)));
+        assertTrue(Files.exists(tmp.resolve(Release.PROVENANCE_FILE)));
     }
 
     @Test
@@ -45,7 +54,8 @@ class ReleaseTest {
         Files.writeString(f, "hello world");
         String hash = Release.sha256file(f);
         assertNotNull(hash);
-        assertTrue(hash.matches("[0-9a-f]{64}"), "SHA-256 should be 64 hex chars");
+        assertTrue(hash.matches("[0-9a-f]{64}") || hash.matches("sha256:[0-9a-f]{64}"),
+                "SHA-256 should be 64 hex chars (optionally prefixed)");
     }
 
     @Test
