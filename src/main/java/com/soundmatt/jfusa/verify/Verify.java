@@ -1,0 +1,73 @@
+package com.soundmatt.jfusa.verify;
+
+import com.soundmatt.jfusa.FuSa;
+import com.soundmatt.jfusa.FuSa.Finding;
+import com.soundmatt.jfusa.FuSa.Severity;
+import com.soundmatt.jfusa.config.Config;
+import com.soundmatt.jfusa.engine.Engine;
+import com.soundmatt.jfusa.engine.Rule;
+import com.soundmatt.jfusa.internal.Json;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * Test evidence collection and verification bundle generation.
+ * Produces {@code .fusa-evidence.json}.
+ */
+public final class Verify {
+
+    public static final String EVIDENCE_FILE = ".fusa-evidence.json";
+
+    static {
+        Engine.DEFAULT.mustRegister(new RuleEvidencePresent());
+    }
+
+    private Verify() {}
+    public static void activate() {}
+
+    // ── Evidence generation ───────────────────────────────────────────────────
+
+    public record Evidence(String project, String timestamp, String testCommand,
+                           int exitCode, String notes) {}
+
+    public static void saveEvidence(Path projectRoot, Config cfg, int testExitCode, String notes)
+            throws IOException {
+        var w = new Json.Writer();
+        w.objectStart();
+        w.field("schema", "x-fusa-evidence-1.0");
+        w.field("tool", "java-FuSa");
+        w.field("specVersion", FuSa.SPEC_VERSION);
+        w.field("project", cfg != null ? cfg.project().name() : "");
+        w.field("timestamp", Instant.now().toString());
+        w.field("testCommand", "mvn test");
+        w.field("testExitCode", testExitCode);
+        w.field("passed", testExitCode == 0);
+        w.field("notes", notes != null ? notes : "");
+        w.objectEnd();
+        Files.writeString(projectRoot.resolve(EVIDENCE_FILE), w.toPretty() + "\n");
+    }
+
+    // ── VERIFY001 rule ────────────────────────────────────────────────────────
+
+    static final class RuleEvidencePresent implements Rule {
+        public String id() { return "VERIFY001"; }
+        public String description() { return "Test evidence bundle (.fusa-evidence.json) must be present."; }
+
+        //fusa:req REQ-VERIFY001
+        public List<Finding> run(Path root, Config cfg) {
+            if (!Files.exists(root.resolve(EVIDENCE_FILE))) {
+                return List.of(Finding.builder("VERIFY001", Severity.WARNING,
+                        "no test evidence bundle found — run 'jfusa verify' to generate",
+                        new FuSa.Location(EVIDENCE_FILE))
+                        .category(FuSa.Category.safety)
+                        .remediation("run 'jfusa verify' after passing tests to record evidence")
+                        .build());
+            }
+            return List.of();
+        }
+    }
+}

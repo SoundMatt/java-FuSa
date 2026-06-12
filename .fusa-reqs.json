@@ -1,0 +1,71 @@
+{
+  "schema": "x-fusa-reqs-1.0",
+  "requirements": [
+    {
+      "id": "REQ-FUSA001",
+      "title": "Project must have .fusa.json configuration",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-FUSA002",
+      "title": "Project must have a Java build file",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-FUSA003",
+      "title": "Project must have a LICENSE file",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-FUSA004",
+      "title": "Project must have a README",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-FUSA005",
+      "title": "Project must have CI configuration",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG001",
+      "title": "Engine must run all registered rules",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG002",
+      "title": "Engine must isolate rule failures so one rule does not prevent others from running",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG003",
+      "title": "Engine must distinguish ERROR, WARNING, INFO severity",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-CFG007",
+      "title": "Engine must honour rule exclusions from config",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG007",
+      "title": "Engine must support filtered rule runs",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-COV001",
+      "title": "Statement coverage must meet configured threshold",
+      "status": "implemented",
+      "file": "coverage/Coverage.java"
+    }
+  ]
+}

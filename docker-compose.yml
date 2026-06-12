@@ -1,0 +1,53 @@
+version: "3.9"
+
+# x-FuSa java-FuSa evidence pipeline
+# Usage:
+#   docker compose run jfusa check
+#   docker compose run pipeline
+#   docker compose run jfusa capabilities
+
+services:
+
+  jfusa:
+    build:
+      context: .
+      target: runtime
+    image: soundmatt/jfusa:latest
+    volumes:
+      - .:/project
+    working_dir: /project
+    environment:
+      - NO_COLOR=${NO_COLOR:-0}
+      - JFUSA_DEBUG=${JFUSA_DEBUG:-}
+    entrypoint: ["/usr/local/bin/jfusa"]
+    profiles: ["tool"]
+
+  pipeline:
+    build:
+      context: .
+      target: runtime
+    image: soundmatt/jfusa:latest
+    volumes:
+      - .:/project
+    working_dir: /project
+    environment:
+      - NO_COLOR=1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "==> [1/6] check"
+        jfusa check --format=json --output=fusa-report.json
+        echo "==> [2/6] trace"
+        jfusa trace --format=json
+        echo "==> [3/6] qualify"
+        jfusa qualify
+        echo "==> [4/6] release"
+        jfusa release
+        echo "==> [5/6] verify"
+        jfusa verify
+        echo "==> [6/6] audit-pack"
+        jfusa audit-pack
+        echo "Pipeline complete. Artifacts:"
+        ls -lh *.json *.zip 2>/dev/null || true
+    profiles: ["pipeline"]

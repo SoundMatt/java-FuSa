@@ -1,0 +1,52 @@
+# Maven build output
+target/
+*.class
+
+# Evidence artifacts (generated — not versioned)
+fusa-report.json
+fusa-report.html
+fusa-report.sarif
+qualify-report.json
+sbom.json
+provenance.json
+.fusa-evidence.json
+tara.json
+tara.md
+fmea.json
+fmea.csv
+safety-case.json
+safety-case.md
+safety-case.mermaid
+.fusa-hara.json
+boundary.mermaid
+boundary.dot
+coupling-report.json
+comp-report.json
+misra-report.json
+vuln.json
+impact-report.json
+do178-gap-report.json
+iso26262-gap-report.json
+iso21434-gap-report.json
+iec61508-gap-report.json
+unece-gap-report.json
+sci.json
+sci.md
+sas.md
+badge.svg
+audit-pack.zip
+.fusa-signing.key
+*.sig
+
+# Claude local settings (personal overrides)
+.claude/settings.local.json
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db

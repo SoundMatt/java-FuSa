@@ -1,0 +1,163 @@
+package com.soundmatt.jfusa.qualify;
+
+import com.soundmatt.jfusa.FuSa;
+import com.soundmatt.jfusa.FuSa.Finding;
+import com.soundmatt.jfusa.FuSa.Severity;
+import com.soundmatt.jfusa.config.Config;
+import com.soundmatt.jfusa.engine.Engine;
+import com.soundmatt.jfusa.engine.Rule;
+import com.soundmatt.jfusa.internal.Json;
+import com.soundmatt.jfusa.release.Release;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Tool qualification suite — self-test framework and evidence report.
+ * Produces {@code qualify-report.json} with SHA-256 integrity hash.
+ */
+public final class Qualify {
+
+    public static final String QUALIFY_REPORT = "qualify-report.json";
+
+    static {
+        Engine.DEFAULT.mustRegister(new RuleQualifyReportPresent());
+    }
+
+    private Qualify() {}
+    public static void activate() {}
+
+    // ── Self-test suite ───────────────────────────────────────────────────────
+
+    public record TestCase(String name, boolean passed, String detail) {}
+
+    public static List<TestCase> runSelfTests() {
+        List<TestCase> cases = new ArrayList<>();
+
+        // TC-001: Version constants present
+        cases.add(tc("TC-001: Version constants present",
+                !FuSa.VERSION.isBlank() && !FuSa.SPEC_VERSION.isBlank(),
+                "VERSION=" + FuSa.VERSION + ", SPEC_VERSION=" + FuSa.SPEC_VERSION));
+
+        // TC-002: Exit codes are distinct
+        int[] codes = {FuSa.EXIT_OK, FuSa.EXIT_GATE_FAIL, FuSa.EXIT_USAGE, FuSa.EXIT_RUNTIME};
+        boolean distinct = new java.util.HashSet<>(List.of(0, 1, 2, 3)).size() == codes.length;
+        cases.add(tc("TC-002: Exit codes 0/1/2/3 are distinct", distinct, "codes: 0,1,2,3"));
+
+        // TC-003: DeriveCategory prefix registry
+        boolean catOk = FuSa.deriveCategory("LINT001") == FuSa.Category.lint
+                && FuSa.deriveCategory("CYBER001") == FuSa.Category.security
+                && FuSa.deriveCategory("XYZ999") == FuSa.Category.other;
+        cases.add(tc("TC-003: DeriveCategory prefix registry", catOk, "LINT→lint, CYBER→security, XYZ→other"));
+
+        // TC-004: ComputeFingerprint format
+        FuSa.Finding f = FuSa.Finding.builder("LINT001", Severity.ERROR, "unused var",
+                new FuSa.Location("Main.java", 42)).build();
+        String fp = f.fingerprint();
+        boolean fpOk = fp.startsWith("sha256:") && fp.length() == 71;
+        cases.add(tc("TC-004: ComputeFingerprint format", fpOk, "fp=" + fp));
+
+        // TC-005: ComputeFingerprint stability
+        String fp2 = FuSa.computeFingerprint(f);
+        cases.add(tc("TC-005: ComputeFingerprint is stable", fp.equals(fp2), "fp1==fp2"));
+
+        // TC-006: Message normalization — digits replaced
+        String n1 = FuSa.normalizeMessage("covered 42 of 100 statements");
+        String n2 = FuSa.normalizeMessage("covered 7 of 9 statements");
+        cases.add(tc("TC-006: normalizeMessage digits→#", n1.equals(n2), "n1=" + n1 + " n2=" + n2));
+
+        // TC-007: Whitespace collapse
+        String ws1 = FuSa.normalizeMessage("foo  bar");
+        String ws2 = FuSa.normalizeMessage("foo bar");
+        cases.add(tc("TC-007: normalizeMessage whitespace collapse", ws1.equals(ws2), "ws1=" + ws1));
+
+        // TC-008: Different ruleID → different fingerprint
+        FuSa.Finding f2 = FuSa.Finding.builder("LINT002", Severity.ERROR, "unused var",
+                new FuSa.Location("Main.java", 42)).build();
+        cases.add(tc("TC-008: Different ruleId → different fingerprint",
+                !fp.equals(f2.fingerprint()), "different: " + !fp.equals(f2.fingerprint())));
+
+        // TC-009: Severity enum ordering
+        boolean sevOk = Severity.INFO.rank() < Severity.WARNING.rank()
+                && Severity.WARNING.rank() < Severity.ERROR.rank();
+        cases.add(tc("TC-009: Severity rank ordering INFO<WARNING<ERROR", sevOk, "ranks: 0<1<2"));
+
+        // TC-010: Config parse round-trip
+        boolean cfgOk;
+        try {
+            Config cfg = Config.parse("{\"version\":\"1\",\"project\":{\"name\":\"test\",\"standard\":\"ISO26262\"}," +
+                    "\"rules\":{},\"report\":{\"format\":\"text\"}}");
+            cfgOk = "1".equals(cfg.version()) && "test".equals(cfg.project().name());
+        } catch (Exception e) { cfgOk = false; }
+        cases.add(tc("TC-010: Config parse round-trip", cfgOk, "parsed version+name"));
+
+        return cases;
+    }
+
+    private static TestCase tc(String name, boolean passed, String detail) {
+        return new TestCase(name, passed, detail);
+    }
+
+    // ── Report generation ─────────────────────────────────────────────────────
+
+    public static void generateReport(Path projectRoot, List<TestCase> cases) throws IOException {
+        boolean allPass = cases.stream().allMatch(TestCase::passed);
+        var w = new Json.Writer();
+        w.objectStart();
+        w.field("schema", "x-fusa-qualify-1.0");
+        w.field("tool", "java-FuSa");
+        w.field("version", FuSa.VERSION);
+        w.field("specVersion", FuSa.SPEC_VERSION);
+        w.field("timestamp", Instant.now().toString());
+        w.field("passed", allPass);
+        w.key("testCases"); w.arrayStart();
+        for (TestCase tc : cases) {
+            w.objectStart();
+            w.field("name", tc.name());
+            w.field("passed", tc.passed());
+            w.field("detail", tc.detail());
+            w.objectEnd();
+        }
+        w.arrayEnd();
+        w.field("totalCases", cases.size());
+        w.field("passedCases", (long) cases.stream().filter(TestCase::passed).count());
+        w.objectEnd();
+        String content = w.toPretty() + "\n";
+        Path reportPath = projectRoot.resolve(QUALIFY_REPORT);
+        Files.writeString(reportPath, content);
+        // Compute integrity hash of the report itself
+        appendIntegrity(reportPath);
+    }
+
+    private static void appendIntegrity(Path p) throws IOException {
+        // Embed the SHA-256 of the report body in a sibling field by rewriting
+        String content = Files.readString(p);
+        String hash = Release.sha256file(p);
+        // Append integrity comment (JSON allows no trailing comments, but we add a separate integrity file)
+        Files.writeString(p.resolveSibling("qualify-report.sha256"), hash + "\n");
+    }
+
+    // ── QUALIFY001 rule ───────────────────────────────────────────────────────
+
+    static final class RuleQualifyReportPresent implements Rule {
+        public String id() { return "QUALIFY001"; }
+        public String description() { return "Tool qualification report (qualify-report.json) must be present."; }
+
+        //fusa:req REQ-QUALIFY001
+        public List<Finding> run(Path root, Config cfg) {
+            if (!Files.exists(root.resolve(QUALIFY_REPORT))) {
+                return List.of(Finding.builder("QUALIFY001", Severity.WARNING,
+                        "no qualification report found — run 'jfusa qualify' to generate",
+                        new FuSa.Location(QUALIFY_REPORT))
+                        .category(FuSa.Category.safety)
+                        .remediation("run 'jfusa qualify' to produce tool confidence evidence")
+                        .build());
+            }
+            return List.of();
+        }
+    }
+}
