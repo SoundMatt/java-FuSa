@@ -10,7 +10,7 @@
   <packaging>jar</packaging>
 
   <name>java-FuSa</name>
-  <description>Functional safety enablement toolkit for Java projects (x-FuSa spec 1.9)</description>
+  <description>Functional safety enablement toolkit for Java projects (x-FuSa spec 1.10)</description>
   <url>https://github.com/SoundMatt/java-FuSa</url>
 
   <licenses>
