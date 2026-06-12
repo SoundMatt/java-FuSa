@@ -26,7 +26,7 @@ public final class AuditPack {
             ".fusa.json", ".fusa-reqs.json", ".fusa-hara.json", ".fusa-evidence.json",
             ".fusa-dispositions.json",
             "sbom.json", "provenance.json", "qualify-report.json",
-            "artifact-manifest.json", "tara.json", "tara.md",
+            "tara.json", "tara.md",
             "fmea.json", "fmea.csv", "safety-case.json", "safety-case.md",
             "safety-case.mermaid", "check-report.json", "cyber-report.json",
             "iso26262-gap-report.json", "iec61508-gap-report.json",

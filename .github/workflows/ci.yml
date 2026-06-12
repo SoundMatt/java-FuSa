@@ -110,9 +110,10 @@ jobs:
         with:
           context: .
           push: false
-          tags: soundmatt/jfusa:latest
+          tags: ghcr.io/soundmatt/java-fusa:latest
           build-args: |
-            VERSION=${{ github.ref_name }}
+            VERSION=0.2.0
+            SPEC_VERSION=1.10
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha
