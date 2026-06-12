@@ -142,18 +142,25 @@ public final class Main {
                 }
             }
         } catch (NoConfigException e) {
-            System.err.println("jfusa: no .fusa.json found — run 'jfusa init' first");
+            emitJsonError("no_config", "no .fusa.json found — run 'jfusa init' first");
             System.exit(EXIT_RUNTIME);
         } catch (InvalidConfigException e) {
-            System.err.println("jfusa: invalid config — " + e.getMessage());
+            emitJsonError("invalid_config", e.getMessage());
             System.exit(EXIT_RUNTIME);
         } catch (CheckFailedException e) {
             System.exit(EXIT_GATE_FAIL);
         } catch (Exception e) {
-            System.err.println("jfusa: runtime error — " + e.getMessage());
+            emitJsonError("internal", e.getMessage() != null ? e.getMessage() : e.getClass().getName());
             if (System.getenv("JFUSA_DEBUG") != null) e.printStackTrace();
             System.exit(EXIT_RUNTIME);
         }
+    }
+
+    // ── §3.2 structured error to stderr ──────────────────────────────────────
+
+    static void emitJsonError(String code, String message) {
+        String safeMsg = message == null ? "" : message.replace("\\", "\\\\").replace("\"", "\\\"");
+        System.err.println("{\"error\":{\"code\":\"" + code + "\",\"message\":\"" + safeMsg + "\"}}");
     }
 
     // -------------------------------------------------------------------------
@@ -216,30 +223,48 @@ public final class Main {
     static void cmdLint(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         String format = flagValue(args, "--format", "text");
-        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
-                r -> r.id().startsWith("LINT"));
+        String output = flagValue(args, "--output", "");
+        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg, r -> r.id().startsWith("LINT"));
         Report report = new Report(result, cfg);
-        System.out.print(report.render(format));
+        String rendered = report.render(format);
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered);
+            System.err.println("Report written to " + output);
+        } else {
+            System.out.print(rendered);
+        }
         if (result.hasErrors()) throw new CheckFailedException("lint check failed");
     }
 
     static void cmdAnalyze(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         String format = flagValue(args, "--format", "text");
-        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
-                r -> r.id().startsWith("ANA"));
+        String output = flagValue(args, "--output", "");
+        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg, r -> r.id().startsWith("ANA"));
         Report report = new Report(result, cfg);
-        System.out.print(report.render(format));
+        String rendered = report.render(format);
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered);
+            System.err.println("Report written to " + output);
+        } else {
+            System.out.print(rendered);
+        }
         if (result.hasErrors()) throw new CheckFailedException("analyze check failed");
     }
 
     static void cmdCyber(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         String format = flagValue(args, "--format", "text");
-        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
-                r -> r.id().startsWith("CYBER"));
+        String output = flagValue(args, "--output", "");
+        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg, r -> r.id().startsWith("CYBER"));
         Report report = new Report(result, cfg);
-        System.out.print(report.render(format));
+        String rendered = report.render(format);
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered);
+            System.err.println("Report written to " + output);
+        } else {
+            System.out.print(rendered);
+        }
         if (result.hasErrors()) throw new CheckFailedException("cyber check failed");
     }
 
@@ -445,11 +470,18 @@ public final class Main {
     }
 
     static void cmdIec62443(Path root, String[] args) throws IOException {
-        Config cfg = Config.load(root);
-        Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
-                r -> r.id().startsWith("IEC62443"));
-        Report report = new Report(result, cfg);
-        System.out.print(report.render("text"));
+        String sl = flagValue(args, "--sl", "SL-2");
+        String format = flagValue(args, "--format", "text");
+        if (!"text".equals(format)) {
+            Iec62443.generate(root, sl);
+            System.out.println("Written: " + Iec62443.GAP_REPORT);
+        } else {
+            Config cfg = Config.load(root);
+            Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
+                    r -> r.id().startsWith("IEC62443"));
+            Report report = new Report(result, cfg);
+            System.out.print(report.render("text"));
+        }
     }
 
     static void cmdUnece(Path root, String[] args) throws IOException {

@@ -12,6 +12,7 @@ import com.soundmatt.jfusa.lint.LintRules;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,7 +45,7 @@ public final class Trace {
             String rel = root.relativize(f).toString();
             for (int i = 0; i < lines.size(); i++) {
                 Matcher rm = REQ_ANNOT.matcher(lines.get(i));
-                while (rm.find()) out.add(new Annotation(rm.group(1), rel, i + 1, "req"));
+                while (rm.find()) out.add(new Annotation(rm.group(1), rel, i + 1, "impl"));
                 Matcher tm = TEST_ANNOT.matcher(lines.get(i));
                 while (tm.find()) out.add(new Annotation(tm.group(1), rel, i + 1, "test"));
             }
@@ -77,36 +78,66 @@ public final class Trace {
         sb.append("-".repeat(60)).append('\n');
         sb.append("Total requirements annotated: ").append(matrix.size()).append('\n');
         long tested = matrix.entrySet().stream()
-                .filter(e -> e.getValue().stream().anyMatch(a -> a.type().equals("test"))).count();
+                .filter(e -> e.getValue().stream().anyMatch(a ->
+                        a.type().equals("test") || a.type().equals("sec-test"))).count();
+        long secTested = matrix.entrySet().stream()
+                .filter(e -> e.getValue().stream().anyMatch(a -> a.type().equals("sec-test"))).count();
         sb.append("Requirements with test coverage: ").append(tested).append('\n');
+        sb.append("Security-tested requirements: ").append(secTested).append('\n');
         if (matrix.size() > 0) {
             sb.append(String.format("Test coverage: %.0f%%\n", 100.0 * tested / matrix.size()));
         }
         return sb.toString();
     }
 
+    /** §5 canonical JSON shape: §3.1 envelope + requirements[] + tags[] + coverage. */
     public static String renderJson(Map<String, List<Annotation>> matrix) {
         var w = new Json.Writer();
         w.objectStart();
-        w.key("traceabilityMatrix"); w.objectStart();
+        // §3.1 common header
+        w.field("schemaVersion", FuSa.SPEC_VERSION);
+        w.field("kind", "trace-matrix");
+        w.field("tool", "java-FuSa");
+        w.field("toolVersion", FuSa.VERSION);
+        w.field("language", "java");
+        w.field("generatedAt", Instant.now().toString());
+        // §5 requirements[] — one entry per unique annotated requirement id
+        w.key("requirements"); w.arrayStart();
+        for (String reqId : matrix.keySet()) {
+            w.objectStart();
+            w.field("id", reqId);
+            w.objectEnd();
+        }
+        w.arrayEnd();
+        // §5 tags[] — flat array; kind MUST be "impl"|"test"|"sec-test"
+        w.key("tags"); w.arrayStart();
         for (var e : matrix.entrySet()) {
-            w.key(e.getKey()); w.arrayStart();
             for (Annotation a : e.getValue()) {
                 w.objectStart();
-                w.field("type", a.type());
+                w.field("requirementId", a.reqId());
                 w.field("file", a.file());
                 w.field("line", a.line());
+                w.field("kind", a.type());
                 w.objectEnd();
             }
-            w.arrayEnd();
         }
-        w.objectEnd();
-        w.field("totalRequirements", matrix.size());
+        w.arrayEnd();
+        // §5 coverage
+        int total = matrix.size();
+        long traced = matrix.entrySet().stream().filter(e -> !e.getValue().isEmpty()).count();
         long tested = matrix.entrySet().stream()
-                .filter(en -> en.getValue().stream().anyMatch(a -> a.type().equals("test"))).count();
+                .filter(e -> e.getValue().stream().anyMatch(a ->
+                        a.type().equals("test") || a.type().equals("sec-test"))).count();
+        long secTested = matrix.entrySet().stream()
+                .filter(e -> e.getValue().stream().anyMatch(a -> a.type().equals("sec-test"))).count();
+        w.key("coverage"); w.objectStart();
+        w.field("totalRequirements", total);
+        w.field("tracedRequirements", traced);
         w.field("testedRequirements", tested);
+        w.field("secTestedRequirements", secTested);
         w.objectEnd();
-        return w.toPretty() + "\n";
+        w.objectEnd();
+        return w.toPretty();
     }
 
     // ── Gaps report ───────────────────────────────────────────────────────────
@@ -115,8 +146,9 @@ public final class Trace {
         Map<String, List<Annotation>> matrix = buildMatrix(root, cfg);
         List<String> gaps = new ArrayList<>();
         for (var e : matrix.entrySet()) {
-            boolean hasSrc  = e.getValue().stream().anyMatch(a -> a.type().equals("req"));
-            boolean hasTest = e.getValue().stream().anyMatch(a -> a.type().equals("test"));
+            boolean hasSrc  = e.getValue().stream().anyMatch(a -> a.type().equals("impl"));
+            boolean hasTest = e.getValue().stream().anyMatch(a ->
+                    a.type().equals("test") || a.type().equals("sec-test"));
             if (hasSrc && !hasTest) gaps.add(e.getKey());
         }
         return gaps;

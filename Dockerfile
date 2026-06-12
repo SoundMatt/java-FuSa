@@ -16,8 +16,8 @@ RUN mvn -q package -DskipTests -B
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
-ARG VERSION=0.1.0
-ARG SPEC_VERSION=1.9
+ARG VERSION=0.2.0
+ARG SPEC_VERSION=1.10
 ARG BUILD_DATE
 ARG GIT_COMMIT=unknown
 
@@ -28,8 +28,9 @@ LABEL org.opencontainers.image.title="jfusa" \
       org.opencontainers.image.revision="${GIT_COMMIT}" \
       org.opencontainers.image.licenses="MPL-2.0" \
       org.opencontainers.image.vendor="SoundMatt" \
-      io.x-fusa.spec="${SPEC_VERSION}" \
-      io.x-fusa.tool="jfusa"
+      io.x-fusa.tool="jfusa" \
+      io.x-fusa.language="java" \
+      io.x-fusa.spec-version="${SPEC_VERSION}"
 
 # Non-root user for security
 RUN addgroup -S jfusa && adduser -S jfusa -G jfusa
