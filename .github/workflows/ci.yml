@@ -11,6 +11,29 @@ permissions:
   security-events: write  # for SARIF upload
 
 jobs:
+  dco:
+    name: DCO Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify Signed-off-by on all PR commits
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          failed=0
+          while IFS= read -r sha; do
+            body=$(git log --format=%B -1 "$sha")
+            if ! printf '%s\n' "$body" | grep -qE '^Signed-off-by: .+ <.+>'; then
+              echo "ERROR: commit $sha missing Signed-off-by trailer"
+              git log --oneline -1 "$sha"
+              failed=1
+            fi
+          done < <(git log --format='%H' "${base}".."${head}")
+          exit $failed
+
   build-and-test:
     name: Build & Test (Java ${{ matrix.java }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
