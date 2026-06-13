@@ -92,6 +92,12 @@ public final class Trace {
 
     /** §5 canonical JSON shape: §3.1 envelope + requirements[] + tags[] + coverage. */
     public static String renderJson(Map<String, List<Annotation>> matrix) {
+        return renderJson(matrix, null);
+    }
+
+    /** §5 canonical JSON shape with title/standard fields populated from .fusa-reqs.json. */
+    public static String renderJson(Map<String, List<Annotation>> matrix, Path root) {
+        Map<String, Map<String, String>> reqMeta = loadReqsMeta(root);
         var w = new Json.Writer();
         w.objectStart();
         // §3.1 common header
@@ -106,6 +112,13 @@ public final class Trace {
         for (String reqId : matrix.keySet()) {
             w.objectStart();
             w.field("id", reqId);
+            Map<String, String> meta = reqMeta.get(reqId);
+            if (meta != null) {
+                String title = meta.get("title");
+                String standard = meta.get("standard");
+                if (title != null && !title.isEmpty()) w.field("title", title);
+                if (standard != null && !standard.isEmpty()) w.field("standard", standard);
+            }
             w.objectEnd();
         }
         w.arrayEnd();
@@ -138,6 +151,72 @@ public final class Trace {
         w.objectEnd();
         w.objectEnd();
         return w.toPretty();
+    }
+
+    // ── Requirements metadata lookup ──────────────────────────────────────────
+
+    /** Reads .fusa-reqs.json and returns a map of reqId → {title, standard}. */
+    private static Map<String, Map<String, String>> loadReqsMeta(Path root) {
+        if (root == null) return Map.of();
+        Path reqs = root.resolve(REQS_FILE);
+        if (!Files.exists(reqs)) return Map.of();
+        try {
+            String json = Files.readString(reqs);
+            Map<String, Map<String, String>> out = new LinkedHashMap<>();
+            // Extract "requirements":[...] array and parse each {id, title, standard}
+            int arrStart = json.indexOf("\"requirements\"");
+            if (arrStart < 0) return out;
+            int bracket = json.indexOf('[', arrStart);
+            if (bracket < 0) return out;
+            int depth = 0; int i = bracket;
+            StringBuilder arr = new StringBuilder();
+            while (i < json.length()) {
+                char c = json.charAt(i);
+                if (c == '[' || c == '{') depth++;
+                if (c == ']' || c == '}') depth--;
+                arr.append(c);
+                if (depth == 0) break;
+                i++;
+            }
+            // Simple per-object parser: extract id, title, standard from each {...}
+            String arrStr = arr.toString();
+            int pos = 0;
+            while (pos < arrStr.length()) {
+                int ob = arrStr.indexOf('{', pos);
+                if (ob < 0) break;
+                int cb = arrStr.indexOf('}', ob);
+                if (cb < 0) break;
+                String obj = arrStr.substring(ob, cb + 1);
+                String id       = extractField(obj, "id");
+                String title    = extractField(obj, "title");
+                String standard = extractField(obj, "standard");
+                if (id != null && !id.isEmpty()) {
+                    Map<String, String> meta = new LinkedHashMap<>();
+                    if (title != null)    meta.put("title",    title);
+                    if (standard != null) meta.put("standard", standard);
+                    out.put(id, meta);
+                }
+                pos = cb + 1;
+            }
+            return out;
+        } catch (IOException e) {
+            return Map.of();
+        }
+    }
+
+    private static String extractField(String obj, String key) {
+        String needle = "\"" + key + "\"";
+        int ki = obj.indexOf(needle);
+        if (ki < 0) return null;
+        int colon = obj.indexOf(':', ki + needle.length());
+        if (colon < 0) return null;
+        int vs = colon + 1;
+        while (vs < obj.length() && (obj.charAt(vs) == ' ' || obj.charAt(vs) == '\t')) vs++;
+        if (vs >= obj.length() || obj.charAt(vs) != '"') return null;
+        int start = vs + 1;
+        int end = obj.indexOf('"', start);
+        if (end < 0) return null;
+        return obj.substring(start, end);
     }
 
     // ── Gaps report ───────────────────────────────────────────────────────────

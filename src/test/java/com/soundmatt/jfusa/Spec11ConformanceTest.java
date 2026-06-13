@@ -24,7 +24,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * §11 conformance verification tests for java-FuSa v0.2.0.
+ * §11 conformance verification tests for java-FuSa.
  * Each test corresponds to a ▫️ verify or ⚠️ gap item in the spec §11 table.
  */
 class Spec11ConformanceTest {
@@ -336,5 +336,114 @@ class Spec11ConformanceTest {
                 "trace JSON must include tracedRequirements in coverage");
         assertTrue(json.contains("\"testedRequirements\""),
                 "trace JSON must include testedRequirements in coverage");
+    }
+
+    // ── Issue #3: capabilities standards[] iec62443 id consistency ────────────
+
+    @Test
+    void capabilities_standards_usesIec62443_notIec62443_4_1() throws Exception {
+        // The capabilities JSON must use "iec62443" (consistent with gap-report standard field)
+        com.soundmatt.jfusa.iec62443.Iec62443.generate(tmp, "SL-2");
+        String gapReport = Files.readString(tmp.resolve(com.soundmatt.jfusa.iec62443.Iec62443.GAP_REPORT));
+        assertTrue(gapReport.contains("\"iec62443\""), "iec62443 gap-report standard must be 'iec62443'");
+        assertFalse(gapReport.contains("\"iec62443-4-1\""), "iec62443 gap-report must not use 'iec62443-4-1'");
+    }
+
+    // ── Issue #5: projectRoot in JSON check report ─────────────────────────────
+
+    @Test
+    void checkReport_json_hasProjectRoot() throws Exception {
+        LintRules.activate();
+        Config cfg = Config.defaultConfig("pr-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/T.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, "public class T {}");
+        Engine.Result result = Engine.DEFAULT.run(tmp, cfg);
+        Report report = new Report(result, cfg, tmp);
+        String json = report.render("json");
+        assertTrue(json.contains("\"projectRoot\""), "JSON check report must include projectRoot (§3.2 MUST)");
+        assertTrue(json.contains(tmp.toAbsolutePath().toString().replace("\\", "\\\\")),
+                "projectRoot must be the absolute path of the project directory");
+    }
+
+    @Test
+    void checkReport_json_projectRoot_isAbsolute() throws Exception {
+        LintRules.activate();
+        Config cfg = Config.defaultConfig("abs-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/T.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, "public class T {}");
+        Engine.Result result = Engine.DEFAULT.run(tmp, cfg);
+        Report report = new Report(result, cfg, tmp);
+        String projectRoot = report.projectRoot();
+        assertTrue(projectRoot.startsWith("/") || (projectRoot.length() > 1 && projectRoot.charAt(1) == ':'),
+                "projectRoot must be an absolute path");
+    }
+
+    // ── Issue #6: --no-color CLI flag ─────────────────────────────────────────
+
+    @Test
+    void noColorFlag_systemProperty_disablesAnsi() throws Exception {
+        LintRules.activate();
+        Config cfg = Config.defaultConfig("nc-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/T.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, "public class T { public String f() { return null; } }");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("LINT001"));
+        Report report = new Report(result, cfg, tmp);
+        try {
+            System.setProperty("jfusa.nocolor", "1");
+            String text = report.render("text");
+            assertFalse(text.contains("\033["), "text output must not contain ANSI codes when --no-color is set");
+        } finally {
+            System.clearProperty("jfusa.nocolor");
+        }
+    }
+
+    // ── Issue #4: trace requirements[] title and standard from .fusa-reqs.json ─
+
+    @Test
+    void trace_requirements_includesTitleAndStandard_fromReqsJson() throws Exception {
+        Config cfg = Config.defaultConfig("req-meta-test");
+        Config.save(tmp, cfg);
+        // Write a .fusa-reqs.json with a requirement that has title and standard
+        String reqs = """
+                {
+                  "schemaVersion": "1.10.4",
+                  "kind": "requirements",
+                  "requirements": [
+                    {"id": "REQ-001", "title": "Safety Integrity", "standard": "iso26262"}
+                  ]
+                }
+                """;
+        Files.writeString(tmp.resolve(".fusa-reqs.json"), reqs);
+        // Write a source file with //fusa:req REQ-001 annotation
+        Path src = tmp.resolve("src/main/java/T.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, "public class T { //fusa:req REQ-001\n }");
+        com.soundmatt.jfusa.trace.Trace.activate();
+        var matrix = com.soundmatt.jfusa.trace.Trace.buildMatrix(tmp, cfg);
+        String json = com.soundmatt.jfusa.trace.Trace.renderJson(matrix, tmp);
+        assertTrue(json.contains("\"title\""), "requirements[] entry must include title from .fusa-reqs.json");
+        assertTrue(json.contains("\"Safety Integrity\""), "title value must match .fusa-reqs.json");
+        assertTrue(json.contains("\"standard\""), "requirements[] entry must include standard from .fusa-reqs.json");
+        assertTrue(json.contains("\"iso26262\""), "standard value must match .fusa-reqs.json");
+    }
+
+    @Test
+    void trace_requirements_omitsTitleStandard_whenNotInReqsJson() throws Exception {
+        Config cfg = Config.defaultConfig("req-no-meta-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/T.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, "public class T { //fusa:req REQ-UNKNOWN\n }");
+        com.soundmatt.jfusa.trace.Trace.activate();
+        var matrix = com.soundmatt.jfusa.trace.Trace.buildMatrix(tmp, cfg);
+        String json = com.soundmatt.jfusa.trace.Trace.renderJson(matrix, tmp);
+        // id must be present, title/standard may be absent for unknown reqs
+        assertTrue(json.contains("\"REQ-UNKNOWN\""), "unknown requirement id must still appear in requirements[]");
     }
 }

@@ -24,6 +24,7 @@ public final class JsonRenderer {
         w.field("language", "java");
         w.field("generatedAt", Instant.ofEpochMilli(r.timestampEpochMs()).toString());
         // §3.2 report extension
+        w.field("projectRoot", r.projectRoot());
         w.fieldIfNonBlank("project", r.projectName());
         w.fieldIfNonBlank("standard", r.standard());
         // §4 findings
