@@ -11,7 +11,7 @@ public final class TextRenderer {
     private TextRenderer() {}
 
     public static String render(Report r) {
-        boolean noColor = System.getenv("NO_COLOR") != null;
+        boolean noColor = System.getenv("NO_COLOR") != null || System.getProperty("jfusa.nocolor") != null;
         StringBuilder sb = new StringBuilder();
         sb.append("java-FuSa Safety Report\n");
         sb.append("=".repeat(60)).append('\n');

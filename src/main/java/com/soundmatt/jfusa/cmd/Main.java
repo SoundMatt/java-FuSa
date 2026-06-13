@@ -80,6 +80,9 @@ public final class Main {
     public static void main(String[] args) {
         if (args.length == 0) { usage(); System.exit(EXIT_USAGE); }
 
+        // §2.6 global --no-color flag — scan all args before dispatch
+        if (hasFlag(args, "--no-color")) System.setProperty("jfusa.nocolor", "1");
+
         String cmd = args[0];
         String[] rest = Arrays.copyOfRange(args, 1, args.length);
         Path root = cwd();
@@ -205,7 +208,7 @@ public final class Main {
         boolean failOnWarn = hasFlag(args, "--fail-on-warn");
 
         Engine.Result result = Engine.DEFAULT.run(root, cfg);
-        Report report = new Report(result, cfg);
+        Report report = new Report(result, cfg, root);
         String rendered = report.render(format);
 
         if (!output.isEmpty()) {
@@ -225,7 +228,7 @@ public final class Main {
         String format = flagValue(args, "--format", "text");
         String output = flagValue(args, "--output", "");
         Engine.Result result = Engine.DEFAULT.runFilter(root, cfg, r -> r.id().startsWith("LINT"));
-        Report report = new Report(result, cfg);
+        Report report = new Report(result, cfg, root);
         String rendered = report.render(format);
         if (!output.isEmpty()) {
             Files.writeString(root.resolve(output), rendered);
@@ -241,7 +244,7 @@ public final class Main {
         String format = flagValue(args, "--format", "text");
         String output = flagValue(args, "--output", "");
         Engine.Result result = Engine.DEFAULT.runFilter(root, cfg, r -> r.id().startsWith("ANA"));
-        Report report = new Report(result, cfg);
+        Report report = new Report(result, cfg, root);
         String rendered = report.render(format);
         if (!output.isEmpty()) {
             Files.writeString(root.resolve(output), rendered);
@@ -257,7 +260,7 @@ public final class Main {
         String format = flagValue(args, "--format", "text");
         String output = flagValue(args, "--output", "");
         Engine.Result result = Engine.DEFAULT.runFilter(root, cfg, r -> r.id().startsWith("CYBER"));
-        Report report = new Report(result, cfg);
+        Report report = new Report(result, cfg, root);
         String rendered = report.render(format);
         if (!output.isEmpty()) {
             Files.writeString(root.resolve(output), rendered);
@@ -293,7 +296,7 @@ public final class Main {
         String format = flagValue(args, "--format", "text");
         String output = flagValue(args, "--output", "");
         var matrix = Trace.buildMatrix(root, cfg);
-        String rendered = "json".equals(format) ? Trace.renderJson(matrix) : Trace.renderText(matrix);
+        String rendered = "json".equals(format) ? Trace.renderJson(matrix, root) : Trace.renderText(matrix);
         if (!output.isEmpty()) {
             Files.writeString(root.resolve(output), rendered + "\n");
             System.err.println("Trace written to " + output);
@@ -479,7 +482,7 @@ public final class Main {
             Config cfg = Config.load(root);
             Engine.Result result = Engine.DEFAULT.runFilter(root, cfg,
                     r -> r.id().startsWith("IEC62443"));
-            Report report = new Report(result, cfg);
+            Report report = new Report(result, cfg, root);
             System.out.print(report.render("text"));
         }
     }
@@ -618,7 +621,7 @@ public final class Main {
             w.key("comp"); w.arrayStart(); w.value("text"); w.value("json"); w.arrayEnd();
             w.objectEnd();
             w.key("standards"); w.arrayStart();
-            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443-4-1","unece-r155","slsa")) w.value(s);
+            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443","unece-r155","slsa")) w.value(s);
             w.arrayEnd();
             w.objectEnd();
             System.out.println(w.toPretty());

@@ -6,6 +6,57 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.0] — 2026-06-13
+
+### Fixed
+
+- **#6 §2.6 MUST**: `--no-color` CLI flag now honoured in addition to `NO_COLOR` env var.
+  The flag is detected globally (before subcommand dispatch) and applies to all text output.
+- **#5 §3.2 MUST**: `projectRoot` field added to JSON check/lint/analyze/cyber reports.
+  Value is the absolute path of the project root (`--dir` value). Required by FuSaOps
+  `fusaops diff --baseline` for path re-rooting in polyglot diffs.
+- **#3 §9.1/§2.4.1**: `capabilities.standards[]` now emits `"iec62443"` (was `"iec62443-4-1"`),
+  consistent with the `iec62443` gap-report `standard` field and all other x-FuSa tool implementations.
+
+### Added
+
+- **#4 §5 SHOULD**: `trace --format json` `requirements[]` entries now include `title` and
+  `standard` fields when available in `.fusa-reqs.json`. Entries without metadata still emit
+  only `id` (backward compatible). Enables FuSaOps requirement-browser enrichment.
+
+### Changed
+
+- Spec version updated to x-FuSa 1.10.4.
+- 6 new §11 conformance tests added (131 total).
+
+---
+
+## [0.2.0] — 2026-06-12
+
+### Fixed
+
+- All §11 conformance gaps from v0.1.0 verified and closed
+- `normalizeMessage` space-before-# bug
+- `hasWarnings()` incorrectly counted ERROR findings
+- LINT007 test-file exclusion matched filenames instead of directories
+- ANA001 regex broadened; ANA005 single-line catch detection added
+- CYBER001 regex extended to cover raw SQL string literal concatenation
+- Audit-pack duplicate `artifact-manifest.json` ZIP entry causing exit 3
+
+### Added
+
+- `Spec11ConformanceTest.java` — 25 new §11 conformance tests (98 → 125 total)
+- Sign command arg order standardised to `(artifact, keyFile)`
+
+### Changed
+
+- Spec version updated to x-FuSa 1.10
+- Dockerfile updated to `eclipse-temurin:21-jre-alpine`, OCI labels corrected
+- `trace --format json` emits canonical §5 shape with `kind:"trace-matrix"`,
+  `tags[].kind` values `impl`/`test`/`sec-test`, and `secTestedRequirements` in coverage
+
+---
+
 ## [0.1.0] — 2026-06-12
 
 ### Added

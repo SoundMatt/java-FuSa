@@ -6,6 +6,7 @@ import com.soundmatt.jfusa.FuSa.Severity;
 import com.soundmatt.jfusa.config.Config;
 import com.soundmatt.jfusa.engine.Engine.Result;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,15 +19,22 @@ public record Report(
         String projectName,
         String standard,
         long timestampEpochMs,
-        Result result
+        Result result,
+        String projectRoot   // §3.2 MUST — absolute path of the --dir root
 ) {
-    /** Convenience constructor from engine result + project config. */
+    /** Convenience constructor — projectRoot set to empty when root is unknown. */
     public Report(Result result, Config cfg) {
+        this(result, cfg, null);
+    }
+
+    /** Preferred constructor — includes projectRoot for §3.2 compliance. */
+    public Report(Result result, Config cfg, Path root) {
         this("java-FuSa", FuSa.VERSION, FuSa.SPEC_VERSION,
                 cfg != null ? cfg.project().name() : "",
                 cfg != null ? cfg.project().standard().name() : "generic",
                 System.currentTimeMillis(),
-                result);
+                result,
+                root != null ? root.toAbsolutePath().toString() : "");
     }
 
     /** Formats this report as text, JSON, HTML, or SARIF. */
