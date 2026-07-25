@@ -6,6 +6,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.3.1 — 2026-07-25
+
+- Add docker-publish.yml — publish ghcr.io/soundmatt/java-fusa on tag push
+- First tagged release
+
+---
+
 ## [0.3.0] — 2026-06-13
 
 ### Fixed
