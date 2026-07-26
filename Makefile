@@ -16,7 +16,7 @@ all: build
 
 build:
 	@echo "==> Building $(BINARY) $(VERSION)"
-	mvn -q package -DskipTests
+	mvn -q clean package -DskipTests
 	@echo "==> Built: $(JAR)"
 
 test:

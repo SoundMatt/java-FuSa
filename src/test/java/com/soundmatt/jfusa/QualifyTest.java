@@ -125,6 +125,7 @@ class QualifyTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY001
     void qualify_generatesReport() throws Exception {
         Config cfg = Config.defaultConfig("qualify-test");
         Config.save(tmp, cfg);
@@ -134,6 +135,7 @@ class QualifyTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY001
     void qualify_reportContainsPassStatus() throws Exception {
         Config cfg = Config.defaultConfig("qualify-test");
         Config.save(tmp, cfg);
@@ -144,6 +146,7 @@ class QualifyTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY001
     void qualify_reportHasIntegrityHash() throws Exception {
         Config cfg = Config.defaultConfig("qualify-test");
         Config.save(tmp, cfg);

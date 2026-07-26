@@ -6,6 +6,42 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.1 — 2026-07-26
+
+### Fixed
+
+- **P1 test-coverage**: Added `VerifyTest.java` with three tests for `Verify.saveEvidence()`
+  and `RuleEvidencePresent` (file-absent WARNING, file-present empty), all annotated
+  `//fusa:test REQ-VERIFY001`. Resolves zero traceability coverage for REQ-VERIFY001.
+
+- **P1 requirements**: Added three missing entries to `.fusa-reqs.json`:
+  `REQ-QUALIFY001` (qualify-report.json must be present), `REQ-VERIFY001`
+  (.fusa-evidence.json must be present), `REQ-TRACE001` (all annotated requirements must
+  have test coverage). All three were referenced by `//fusa:req` annotations but
+  unregistered, causing metadata-less entries in the trace matrix.
+
+- **P2 test-coverage**: Added `//fusa:test REQ-QUALIFY001` annotation before each of the
+  three `@Test` methods in `QualifyTest.java` that exercise the QUALIFY001 rule
+  (`qualify_generatesReport`, `qualify_reportContainsPassStatus`,
+  `qualify_reportHasIntegrityHash`), following the one-ID-per-line convention.
+
+- **P2 correctness**: Changed `Makefile` build target and `.github/workflows/ci.yml` Build
+  step from `mvn -q package -DskipTests` to `mvn -q clean package -DskipTests` to prevent
+  JaCoCo report failure from stale class files after incremental Disposition.java edits.
+
+- **P2 test-coverage**: Added JaCoCo `<check>` execution to `pom.xml` with
+  `INSTRUCTION` minimum `0.70`. Added `MainTest.java` (78 tests) covering CLI dispatch
+  paths for all 45 sub-commands including `--mcdc-file`, `--strict-hlr-llr`,
+  `--qualification-method`, `--independent-reviewer`, and standards adapter commands.
+  Instruction coverage now 81% / line coverage 83% (up from 51%/54%).
+
+### Changed
+
+- Version bumped to `0.4.1` in `FuSa.java` and `pom.xml`.
+- Test suite expanded from 160 to 238 tests across 18 test classes.
+
+---
+
 ## v0.4.0 — 2026-07-26
 
 ### Added
