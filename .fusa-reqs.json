@@ -66,6 +66,36 @@
       "title": "Statement coverage must meet configured threshold",
       "status": "implemented",
       "file": "coverage/Coverage.java"
+    },
+    {
+      "id": "REQ-HLR001",
+      "title": "Trace must support parent_id on requirements to model HLR/LLR hierarchy",
+      "status": "implemented",
+      "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-HLR002",
+      "title": "Trace must validate HLR/LLR hierarchy: orphan LLRs and childless HLRs are violations",
+      "status": "implemented",
+      "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-QUALIFY002",
+      "title": "Qualify must support qualification_method, qualifier_identity, and qualification_record_uri fields",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-QUALIFY003",
+      "title": "Qualify must support V&V independence fields and compute independence status",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-MCDC001",
+      "title": "Coverage must support MC/DC analysis from LLVM coverage JSON export",
+      "status": "implemented",
+      "file": "coverage/Coverage.java"
     }
   ]
 }

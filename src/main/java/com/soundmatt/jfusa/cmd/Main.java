@@ -295,8 +295,41 @@ public final class Main {
         Config cfg = Config.load(root);
         String format = flagValue(args, "--format", "text");
         String output = flagValue(args, "--output", "");
+        boolean strictHlrLlr = hasFlag(args, "--strict-hlr-llr");
+
         var matrix = Trace.buildMatrix(root, cfg);
-        String rendered = "json".equals(format) ? Trace.renderJson(matrix, root) : Trace.renderText(matrix);
+
+        // HLR/LLR hierarchy validation
+        List<Trace.Requirement> reqs = Trace.loadFullRequirements(root);
+        boolean hasHierarchy = reqs.stream().anyMatch(Trace.Requirement::isLlr);
+        Trace.HlrLlrResult hlrResult = null;
+        if (hasHierarchy || strictHlrLlr) {
+            hlrResult = Trace.validateHierarchy(reqs);
+            if (hlrResult.hasViolations()) {
+                String asil = cfg.project().asil();
+                String dal  = cfg.project().dal();
+                boolean isHighIntegrity = "ASIL-D".equalsIgnoreCase(asil) || "DAL-A".equalsIgnoreCase(dal)
+                        || "DAL-B".equalsIgnoreCase(dal);
+                if (strictHlrLlr || isHighIntegrity) {
+                    System.err.println("jfusa trace: HLR/LLR hierarchy violations detected (fatal for " +
+                            (strictHlrLlr ? "--strict-hlr-llr" : asil.isBlank() ? dal : asil) + ")");
+                    for (String id : hlrResult.childlessHlrs())
+                        System.err.println("  HLR " + id + " has no LLR children");
+                    for (String id : hlrResult.orphanLlrs())
+                        System.err.println("  LLR " + id + " references unknown parent");
+                    throw new FuSa.CheckFailedException("HLR/LLR hierarchy validation failed");
+                }
+                // Warn only for lower integrity levels
+                System.err.println("jfusa trace: WARNING — HLR/LLR hierarchy violations (use --strict-hlr-llr to fail)");
+            }
+        }
+
+        String rendered;
+        if ("json".equals(format)) {
+            rendered = hlrResult != null ? Trace.renderJson(matrix, root, hlrResult) : Trace.renderJson(matrix, root);
+        } else {
+            rendered = hlrResult != null ? Trace.renderText(matrix, hlrResult) : Trace.renderText(matrix);
+        }
         if (!output.isEmpty()) {
             Files.writeString(root.resolve(output), rendered + "\n");
             System.err.println("Trace written to " + output);
@@ -318,7 +351,18 @@ public final class Main {
     static void cmdQualify(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         boolean full = hasFlag(args, "--full");
-        Qualify.run(root, cfg, full);
+        // Feature 2: qualification display options
+        String method    = flagValue(args, "--qualification-method", "");
+        String qualifier = flagValue(args, "--qualifier", "");
+        String recordUri = flagValue(args, "--record-uri", "");
+        // Feature 4: V&V independence options
+        String implAuthor     = flagValue(args, "--implementation-author", "");
+        String reviewer       = flagValue(args, "--independent-reviewer", "");
+        String testExecutor   = flagValue(args, "--independent-test-executor", "");
+        String achievableAsil = flagValue(args, "--achievable-asil", "");
+        Qualify.QualifyOptions opts = new Qualify.QualifyOptions(
+                method, qualifier, recordUri, implAuthor, reviewer, testExecutor, achievableAsil);
+        Qualify.run(root, cfg, full, opts);
     }
 
     static void cmdSafetyCase(Path root, String[] args) throws IOException {
@@ -514,6 +558,24 @@ public final class Main {
         Coverage.CoverageReport cov = Coverage.parse(jacoco);
         System.out.printf("Coverage: stmt=%.1f%% branch=%.1f%% method=%.1f%%%n",
                 cov.statementPct(), cov.branchPct(), cov.methodPct());
+
+        // Feature 3: MC/DC coverage
+        boolean mcdc = hasFlag(args, "--mcdc");
+        if (mcdc) {
+            String mcdcFilePath = flagValue(args, "--mcdc-file", "");
+            Path mcdcFile = mcdcFilePath.isEmpty()
+                    ? root.resolve("target/mcdc.json") : root.resolve(mcdcFilePath);
+            Coverage.McdcReport mcdcReport = Coverage.parseMcdc(mcdcFile);
+            System.out.printf("MC/DC: %d/%d functions pass  [%s]%n",
+                    mcdcReport.passingFunctions(), mcdcReport.totalFunctions(),
+                    mcdcReport.gatePass() ? "PASS" : "FAIL");
+            if (!mcdcReport.failingFunctions().isEmpty()) {
+                System.err.println("MC/DC gate failures:");
+                for (String fn : mcdcReport.failingFunctions())
+                    System.err.println("  FAIL  " + fn);
+                throw new FuSa.CheckFailedException("MC/DC coverage gate failed");
+            }
+        }
     }
 
     static void cmdComp(Path root, String[] args) throws IOException {
