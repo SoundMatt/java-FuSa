@@ -55,7 +55,7 @@ jobs:
           cache: maven
 
       - name: Build
-        run: mvn -q package -DskipTests -B
+        run: mvn -q clean package -DskipTests -B
 
       - name: Unit Tests
         run: mvn -q test -B

@@ -96,6 +96,24 @@
       "title": "Coverage must support MC/DC analysis from LLVM coverage JSON export",
       "status": "implemented",
       "file": "coverage/Coverage.java"
+    },
+    {
+      "id": "REQ-QUALIFY001",
+      "title": "Tool qualification report (qualify-report.json) must be present",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-VERIFY001",
+      "title": "Test evidence bundle (.fusa-evidence.json) must be present",
+      "status": "implemented",
+      "file": "verify/Verify.java"
+    },
+    {
+      "id": "REQ-TRACE001",
+      "title": "All annotated requirements must have at least one //fusa:test reference",
+      "status": "implemented",
+      "file": "trace/Trace.java"
     }
   ]
 }
