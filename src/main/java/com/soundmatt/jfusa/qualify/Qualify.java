@@ -19,10 +19,67 @@ import java.util.List;
 /**
  * Tool qualification suite — self-test framework and evidence report.
  * Produces {@code qualify-report.json} with SHA-256 integrity hash.
+ * Supports tool qualification display (Feature 2) and V&V independence (Feature 4).
  */
 public final class Qualify {
 
     public static final String QUALIFY_REPORT = "qualify-report.json";
+
+    // ── Qualification options ─────────────────────────────────────────────────
+
+    /**
+     * Optional metadata for the qualification report.
+     *
+     * @param qualificationMethod    "self", "independent", or ""
+     * @param qualifierIdentity      name/org of the qualifier
+     * @param qualificationRecordUri URI to the qualification dossier
+     * @param implementationAuthor   name/org of the implementation author (V&V)
+     * @param independentReviewer    name/org of the independent reviewer (V&V)
+     * @param independentTestExecutor name/org of the independent test executor (V&V)
+     * @param achievableAsil         achievable ASIL after independence measures
+     */
+    //fusa:req REQ-QUALIFY002
+    //fusa:req REQ-QUALIFY003
+    public record QualifyOptions(
+            String qualificationMethod,
+            String qualifierIdentity,
+            String qualificationRecordUri,
+            String implementationAuthor,
+            String independentReviewer,
+            String independentTestExecutor,
+            String achievableAsil) {
+
+        /** Empty options — all fields blank. */
+        public static QualifyOptions empty() {
+            return new QualifyOptions("", "", "", "", "", "", "");
+        }
+
+        /**
+         * Qualification badge text.
+         * Returns "independently-qualified", "self-qualified", or "unqualified".
+         */
+        public String badge() {
+            if ("independent".equalsIgnoreCase(qualificationMethod)
+                    && qualifierIdentity != null && !qualifierIdentity.isBlank()) {
+                return "independently-qualified";
+            }
+            if ("self".equalsIgnoreCase(qualificationMethod)) return "self-qualified";
+            return "unqualified";
+        }
+
+        /**
+         * V&V independence status.
+         * Returns "independent" when reviewer differs from implementation author, else "not-independent".
+         */
+        public String independenceStatus() {
+            if (independentReviewer != null && !independentReviewer.isBlank()
+                    && implementationAuthor != null && !implementationAuthor.isBlank()
+                    && !independentReviewer.equalsIgnoreCase(implementationAuthor)) {
+                return "independent";
+            }
+            return "not-independent";
+        }
+    }
 
     static {
         Engine.DEFAULT.mustRegister(new RuleQualifyReportPresent());
@@ -33,11 +90,25 @@ public final class Qualify {
 
     // ── Self-test suite ───────────────────────────────────────────────────────
 
+    /** Backward-compatible entry point; uses empty QualifyOptions. */
     public static void run(Path projectRoot, Config cfg, boolean full) throws IOException {
+        run(projectRoot, cfg, full, QualifyOptions.empty());
+    }
+
+    /** Full entry point with qualification metadata. */
+    //fusa:req REQ-QUALIFY002
+    public static void run(Path projectRoot, Config cfg, boolean full, QualifyOptions opts) throws IOException {
         List<TestCase> cases = runSelfTests();
-        generateReport(projectRoot, cases);
+        generateReport(projectRoot, cases, opts);
         long passed = cases.stream().filter(TestCase::passed).count();
-        System.out.printf("Qualification: %d/%d passed%s%n", passed, cases.size(), passed == cases.size() ? " [PASS]" : " [FAIL]");
+        String badge = opts.badge();
+        System.out.printf("Qualification: %d/%d passed%s  [%s]%n",
+                passed, cases.size(), passed == cases.size() ? " [PASS]" : " [FAIL]", badge);
+        String independence = opts.independenceStatus();
+        if (!"not-independent".equals(independence)) {
+            System.out.printf("V&V independence: %s (reviewer: %s)%n",
+                    independence, opts.independentReviewer());
+        }
     }
 
     public record TestCase(String name, boolean passed, String detail) {}
@@ -111,7 +182,16 @@ public final class Qualify {
 
     // ── Report generation ─────────────────────────────────────────────────────
 
+    /** Backward-compatible report generation with no options. */
     public static void generateReport(Path projectRoot, List<TestCase> cases) throws IOException {
+        generateReport(projectRoot, cases, QualifyOptions.empty());
+    }
+
+    /** Full report generation with qualification metadata. */
+    //fusa:req REQ-QUALIFY002
+    //fusa:req REQ-QUALIFY003
+    public static void generateReport(Path projectRoot, List<TestCase> cases, QualifyOptions opts)
+            throws IOException {
         long passedCount = cases.stream().filter(TestCase::passed).count();
         long failedCount = cases.stream().filter(tc -> !tc.passed()).count();
         var w = new Json.Writer();
@@ -123,6 +203,19 @@ public final class Qualify {
         w.field("toolVersion", FuSa.VERSION);
         w.field("language", "java");
         w.field("generatedAt", Instant.now().toString());
+        // Feature 2: qualification method / badge
+        w.field("qualificationMethod",
+                opts.qualificationMethod() != null && !opts.qualificationMethod().isBlank()
+                        ? opts.qualificationMethod() : "self");
+        w.field("qualificationBadge", opts.badge());
+        w.fieldIfNonBlank("qualificationRecordUri", opts.qualificationRecordUri());
+        w.fieldIfNonBlank("qualifierIdentity",      opts.qualifierIdentity());
+        // Feature 4: V&V independence
+        w.fieldIfNonBlank("implementationAuthor",     opts.implementationAuthor());
+        w.fieldIfNonBlank("independentReviewer",      opts.independentReviewer());
+        w.fieldIfNonBlank("independentTestExecutor",  opts.independentTestExecutor());
+        w.fieldIfNonBlank("achievableAsil",           opts.achievableAsil());
+        w.field("independenceStatus", opts.independenceStatus());
         // §6 qualify body
         w.field("total", cases.size());
         w.field("passed", passedCount);

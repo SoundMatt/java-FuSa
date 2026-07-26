@@ -6,6 +6,42 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.0 — 2026-07-26
+
+### Added
+
+- **#11 HLR/LLR Decomposition**: `Trace` now supports `parent_id` on requirements in
+  `.fusa-reqs.json`. `Trace.loadFullRequirements()` reads the full hierarchy.
+  `Trace.validateHierarchy()` checks that every LLR references an existing HLR and
+  every HLR has at least one LLR child. `--strict-hlr-llr` CLI flag forces error
+  regardless of DAL; high-integrity (DAL-A/B, ASIL-D) also fail hard. Text and JSON
+  renderers include a `hierarchy` section with violations listed.
+
+- **#12 Tool Qualification Display**: `Qualify` command now accepts
+  `--qualification-method` (`self`/`independent`), `--qualifier`, and `--record-uri`
+  flags. `qualify-report.json` emits `qualificationMethod`, `qualificationBadge`
+  (`independently-qualified` / `self-qualified` / `unqualified`),
+  `qualificationRecordUri`, and `qualifierIdentity`. Badge is shown in console output.
+
+- **#13 MC/DC Coverage**: `Coverage.parseMcdc()` reads LLVM coverage JSON export
+  (`mcdc_records[].conditions[].covered_true_count` / `covered_false_count`).
+  A condition is MC/DC covered only when both counts are > 0. `coverage --mcdc`
+  `--mcdc-file` flag gates on any function with uncovered conditions (hard fail).
+  Structured `McdcReport` result type exposed for programmatic use.
+
+- **#14 V&V Independence**: `Qualify` command accepts `--implementation-author`,
+  `--independent-reviewer`, `--independent-test-executor`, and `--achievable-asil`
+  flags. `qualify-report.json` emits those fields plus `independenceStatus`
+  (`"independent"` when reviewer differs from author, else `"not-independent"`).
+
+### Changed
+
+- Version constant in `FuSa.java` corrected to `0.4.0` (was `0.3.0`; pom.xml was
+  already tracking patch releases, now both sources are in sync).
+- 26 new tests added (157 total across 17 test classes).
+
+---
+
 ## v0.3.1 — 2026-07-25
 
 - Add docker-publish.yml — publish ghcr.io/soundmatt/java-fusa on tag push
