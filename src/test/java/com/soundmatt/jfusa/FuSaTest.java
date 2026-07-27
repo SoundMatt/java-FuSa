@@ -101,4 +101,12 @@ class FuSaTest {
         long distinct = java.util.Arrays.stream(codes).distinct().count();
         assertEquals(4, distinct);
     }
+
+    //fusa:test REQ-ERR003
+    @Test
+    void checkFailedException_carriesMessage() {
+        FuSa.CheckFailedException e = new FuSa.CheckFailedException("2 ERROR findings");
+        assertTrue(e.getMessage().contains("one or more safety checks failed"));
+        assertTrue(e.getMessage().contains("2 ERROR findings"));
+    }
 }

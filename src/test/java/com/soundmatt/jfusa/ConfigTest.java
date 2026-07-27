@@ -10,6 +10,7 @@ class ConfigTest {
 
     @TempDir Path tmp;
 
+    //fusa:test REQ-CFG005
     @Test
     void defaultConfig_hasName() {
         Config c = Config.defaultConfig("my-project");
@@ -19,6 +20,8 @@ class ConfigTest {
         assertNotNull(c.report());
     }
 
+    //fusa:test REQ-CFG001
+    //fusa:test REQ-CFG002
     @Test
     void saveAndLoad_roundtrip() throws Exception {
         Config original = Config.defaultConfig("roundtrip-test");
@@ -28,6 +31,7 @@ class ConfigTest {
         assertEquals(original.configVersion(), loaded.configVersion());
     }
 
+    //fusa:test REQ-ERR001
     @Test
     void load_throwsNoConfigException_whenMissing() {
         assertThrows(FuSa.NoConfigException.class, () -> Config.load(tmp));
@@ -48,5 +52,22 @@ class ConfigTest {
         String content = java.nio.file.Files.readString(f);
         assertTrue(content.contains("\"name\""));
         assertTrue(content.contains("json-test"));
+    }
+
+    //fusa:test REQ-CFG003
+    @Test
+    void parse_throwsInvalidConfigException_onUnsupportedFormat() {
+        String json = "{\"project\":{\"name\":\"x\"},\"report\":{\"format\":\"yaml\"}}";
+        assertThrows(FuSa.InvalidConfigException.class, () -> Config.parse(json));
+    }
+
+    //fusa:test REQ-NF003
+    @Test
+    void standard_canonicalIdIsLowercase() {
+        assertEquals("iso26262", Config.Standard.ISO26262.canonicalId());
+        assertEquals("do178c", Config.Standard.DO178C.canonicalId());
+        assertEquals(Config.Standard.ISO26262, Config.Standard.of("ISO26262"));
+        assertEquals(Config.Standard.ISO26262, Config.Standard.of("iso26262"));
+        assertEquals(Config.Standard.generic, Config.Standard.of("not-a-real-standard"));
     }
 }

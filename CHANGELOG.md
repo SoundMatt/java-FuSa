@@ -6,6 +6,36 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.4 — 2026-07-27
+
+### Tests
+
+- **Closed all 40 untested requirement gaps** (test coverage 49% → 100%, 79/79
+  requirements now have a matching `//fusa:test` tag). Root causes were a mix
+  of genuinely-missing tests and existing-but-untagged tests:
+  - `REQ-CYBER001/005/007/020`: existing passing tests tagged.
+  - `REQ-CYBER002/003/004/006/008/009/010/012/013/014/015/016/018/019`: 14 new
+    tests added in `CyberRulesTest.java`, each exercising the specific CWE
+    pattern the rule's regex/heuristic actually matches.
+  - `REQ-CFG001/002/005`, `REQ-ERR001`: existing `ConfigTest` tests tagged
+    (`load`/`parse`/`defaultConfig`/`NoConfigException` round-trips already
+    covered these).
+  - `REQ-CFG003` (`validateFormat`), `REQ-NF003` (`Standard.canonicalId`/`of`):
+    new tests added — neither had any prior test.
+  - `REQ-CFG007` (per-rule exclude-list filtering in `Engine.runFilter`): new
+    test — the exclude-list mechanism itself was never directly tested.
+  - `REQ-ERR003` (`CheckFailedException`): new constructor/message test.
+  - `REQ-ANA001/003/004/005`: existing `AnalyzeRulesTest` tests tagged.
+  - `REQ-ANA002` (unclosed resource), `REQ-ANA006` (exception swallowed
+    without cause chaining): new tests — neither rule had a test at all.
+  - `REQ-RT001/002/003`: existing `RuntimeTest` watchdog/heartbeat/
+    safe-state-guard tests tagged.
+  - `REQ-FUSA001`: existing `EngineTest` empty-dir/with-config tests tagged
+    (already exercised `FUSA001`'s fire/silent behavior, just untagged).
+  - `REQ-FUSA002/003/004/005` (pom.xml/LICENSE/README/CI-config presence
+    checks): 8 new tests (fire + silent case for each) — none of these four
+    built-in rules had any test coverage before.
+
 ## v0.4.3 — 2026-07-27
 
 ### Added

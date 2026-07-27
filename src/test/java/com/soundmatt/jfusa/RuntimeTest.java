@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RuntimeTest {
 
+    //fusa:test REQ-RT001
     @Test
     void watchdog_doesNotFire_whenKickedInTime() throws Exception {
         AtomicBoolean fired = new AtomicBoolean(false);
@@ -21,6 +22,7 @@ class RuntimeTest {
         assertFalse(fired.get(), "Watchdog should not fire when kicked");
     }
 
+    //fusa:test REQ-RT001
     @Test
     void watchdog_fires_onTimeout() throws Exception {
         AtomicBoolean fired = new AtomicBoolean(false);
@@ -31,6 +33,7 @@ class RuntimeTest {
         assertTrue(fired.get(), "Watchdog should fire after timeout without kick");
     }
 
+    //fusa:test REQ-RT002
     @Test
     void heartbeat_callsAction() throws Exception {
         AtomicInteger count = new AtomicInteger(0);
@@ -41,6 +44,7 @@ class RuntimeTest {
         assertTrue(count.get() >= 2, "Heartbeat should have fired at least twice");
     }
 
+    //fusa:test REQ-RT003
     @Test
     void safeStateGuard_idempotent() {
         AtomicInteger entered = new AtomicInteger(0);
