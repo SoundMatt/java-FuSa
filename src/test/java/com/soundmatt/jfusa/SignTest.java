@@ -12,6 +12,7 @@ class SignTest {
     @TempDir Path tmp;
 
     @Test
+    //fusa:test REQ-SIGN001
     void generateKey_createsKeyFile() throws Exception {
         Path key = tmp.resolve("test.key");
         Sign.generateKey(key);
@@ -20,6 +21,8 @@ class SignTest {
     }
 
     @Test
+    //fusa:test REQ-SIGN002
+    //fusa:test REQ-SIGN003
     void signAndVerify_roundtrip() throws Exception {
         Path file = tmp.resolve("test.json");
         Path key  = tmp.resolve("test.key");
@@ -31,6 +34,7 @@ class SignTest {
     }
 
     @Test
+    //fusa:test REQ-SIGN003
     void verify_returnsFalse_afterTamper() throws Exception {
         Path file = tmp.resolve("test.json");
         Path key  = tmp.resolve("test.key");
@@ -43,6 +47,7 @@ class SignTest {
     }
 
     @Test
+    //fusa:test REQ-SIGN002
     void sign_producesSigFile() throws Exception {
         Path file = tmp.resolve("report.json");
         Path key  = tmp.resolve("test.key");

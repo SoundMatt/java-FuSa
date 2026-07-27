@@ -296,6 +296,7 @@ public final class Main {
         String format = flagValue(args, "--format", "text");
         String output = flagValue(args, "--output", "");
         boolean strictHlrLlr = hasFlag(args, "--strict-hlr-llr");
+        int funcCoverageThreshold = Integer.parseInt(flagValue(args, "--func-coverage", "0"));
 
         var matrix = Trace.buildMatrix(root, cfg);
 
@@ -335,6 +336,20 @@ public final class Main {
             System.err.println("Trace written to " + output);
         } else {
             System.out.println(rendered);
+        }
+
+        // §1.4.1 / §5 --func-coverage N — percentage 0-100 of public functions carrying a
+        // requirement tag; N=0 disables the gate (mirrors --req-coverage's semantics).
+        if (hasFlag(args, "--func-coverage")) {
+            Trace.FuncCoverageResult funcCov = Trace.computeFuncCoverage(root, cfg);
+            System.err.printf("Function coverage: %d/%d public functions tagged (%.0f%%)%n",
+                    funcCov.taggedFunctions(), funcCov.totalFunctions(), funcCov.percentage());
+            if (funcCoverageThreshold > 0 && funcCov.percentage() < funcCoverageThreshold) {
+                System.err.println("jfusa trace: function coverage " +
+                        String.format("%.0f%%", funcCov.percentage()) +
+                        " is below required --func-coverage " + funcCoverageThreshold + "%");
+                throw new FuSa.CheckFailedException("function coverage gate failed");
+            }
         }
     }
 

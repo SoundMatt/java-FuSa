@@ -15,6 +15,7 @@ class LintRulesTest {
     @TempDir Path tmp;
 
     @Test
+    //fusa:test REQ-LINT001
     void lint001_detectsReturnNull() throws Exception {
         LintRules.activate();
         Path src = tmp.resolve("src/main/java/Test.java");
@@ -34,6 +35,7 @@ class LintRulesTest {
     }
 
     @Test
+    //fusa:test REQ-LINT001
     void lint001_allowsReturnNull_withAnnotation() throws Exception {
         LintRules.activate();
         Path src = tmp.resolve("src/main/java/Test.java");
@@ -53,6 +55,7 @@ class LintRulesTest {
     }
 
     @Test
+    //fusa:test REQ-LINT002
     void lint002_detectsSystemExit() throws Exception {
         LintRules.activate();
         Path src = tmp.resolve("src/main/java/Test.java");
@@ -71,6 +74,7 @@ class LintRulesTest {
     }
 
     @Test
+    //fusa:test REQ-LINT005
     void lint005_detectsFloatEquals() throws Exception {
         LintRules.activate();
         Path src = tmp.resolve("src/main/java/Test.java");
@@ -87,6 +91,7 @@ class LintRulesTest {
     }
 
     @Test
+    //fusa:test REQ-LINT007
     void lint007_detectsSysout() throws Exception {
         LintRules.activate();
         Path src = tmp.resolve("src/main/java/Test.java");
@@ -100,5 +105,113 @@ class LintRulesTest {
         Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
                 r -> r.id().equals("LINT007"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT007")));
+    }
+
+    @Test
+    //fusa:test REQ-LINT003
+    void lint003_detectsRawThreadCreation() throws Exception {
+        LintRules.activate();
+        Path src = tmp.resolve("src/main/java/Test.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Test {
+                    void bad() { new Thread(() -> {}).start(); }
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
+                r -> r.id().equals("LINT003"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT003")));
+    }
+
+    @Test
+    //fusa:test REQ-LINT004
+    void lint004_detectsStaticMutableField() throws Exception {
+        LintRules.activate();
+        Path src = tmp.resolve("src/main/java/Test.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Test {
+                    static String[] data;
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
+                r -> r.id().equals("LINT004"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT004")));
+    }
+
+    @Test
+    //fusa:test REQ-LINT006
+    void lint006_detectsRecursiveMethodWithoutAnnotation() throws Exception {
+        LintRules.activate();
+        Path src = tmp.resolve("src/main/java/Test.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Test {
+                    private void loop(int n) {
+                        if (n > 0) loop(n - 1);
+                    }
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
+                r -> r.id().equals("LINT006"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT006")));
+    }
+
+    @Test
+    //fusa:test REQ-LINT008
+    void lint008_detectsReflectionWithoutAnnotation() throws Exception {
+        LintRules.activate();
+        Path src = tmp.resolve("src/main/java/Test.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Test {
+                    void bad() throws Exception {
+                        Class.forName("java.lang.String");
+                    }
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
+                r -> r.id().equals("LINT008"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT008")));
+    }
+
+    @Test
+    //fusa:test REQ-LINT009
+    void lint009_detectsUncheckedCastSuppression() throws Exception {
+        LintRules.activate();
+        Path src = tmp.resolve("src/main/java/Test.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Test {
+                    @SuppressWarnings("unchecked")
+                    void bad() { java.util.List l = new java.util.ArrayList(); }
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
+                r -> r.id().equals("LINT009"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT009")));
+    }
+
+    @Test
+    //fusa:test REQ-LINT010
+    void lint010_detectsDeprecatedApiUsage() throws Exception {
+        LintRules.activate();
+        Path src = tmp.resolve("src/main/java/Test.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Test {
+                    @Deprecated
+                    void oldMethod() {}
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
+                r -> r.id().equals("LINT010"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT010")));
     }
 }

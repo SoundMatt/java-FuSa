@@ -16,6 +16,7 @@ public final class Sign {
     private Sign() {}
 
     /** Generate a new HMAC-SHA256 key and write to keyFile (hex-encoded). */
+    //fusa:req REQ-SIGN001
     public static void generateKey(Path keyFile) throws IOException {
         byte[] key = new byte[32];
         new SecureRandom().nextBytes(key);
@@ -24,6 +25,7 @@ public final class Sign {
     }
 
     /** Sign artifact; writes <artifact>.sig containing the HMAC-SHA256 hex. */
+    //fusa:req REQ-SIGN002
     public static void sign(Path artifact, Path keyFile) throws IOException {
         byte[] key   = HexFormat.of().parseHex(Files.readString(keyFile).strip());
         byte[] data  = Files.readAllBytes(artifact);
@@ -34,6 +36,7 @@ public final class Sign {
     }
 
     /** Verify artifact against <artifact>.sig. Returns true if valid. */
+    //fusa:req REQ-SIGN003
     public static boolean verify(Path artifact, Path keyFile) throws IOException {
         Path sigFile = artifact.resolveSibling(artifact.getFileName() + ".sig");
         if (!Files.exists(sigFile)) { System.err.println("No .sig file found for " + artifact); return false; }

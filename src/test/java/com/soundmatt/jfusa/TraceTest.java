@@ -1,6 +1,7 @@
 package com.soundmatt.jfusa;
 
 import com.soundmatt.jfusa.config.Config;
+import com.soundmatt.jfusa.engine.Engine;
 import com.soundmatt.jfusa.trace.Trace;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -103,6 +104,7 @@ class TraceTest {
     }
 
     @Test
+    //fusa:test REQ-TRACE004
     void trace_scanAnnotations_findsReqAnnotation() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
         Config.save(tmp, cfg);
@@ -168,6 +170,7 @@ class TraceTest {
     }
 
     @Test
+    //fusa:test REQ-TRACE004
     void trace_renderJson_tagsHaveRequirementId() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
         Config.save(tmp, cfg);
@@ -187,6 +190,7 @@ class TraceTest {
     }
 
     @Test
+    //fusa:test REQ-TRACE001
     void trace_findGaps_withRequirementButNoTestAnnotation() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
         Config.save(tmp, cfg);
@@ -205,6 +209,7 @@ class TraceTest {
     }
 
     @Test
+    //fusa:test REQ-TRACE001
     void trace_noGaps_whenTestAnnotationPresent() throws Exception {
         Config cfg = Config.defaultConfig("trace-test");
         Config.save(tmp, cfg);
@@ -220,5 +225,195 @@ class TraceTest {
         List<String> gaps = Trace.findGaps(tmp, cfg);
         assertFalse(gaps.contains("REQ-COVERED"),
                 "REQ-COVERED has both req and test — should not be a gap");
+    }
+
+    // ── §1.4.1 false-positive filtering: string-literal / text-block matches ──
+
+    @Test
+    void trace_scanAnnotations_ignoresStringLiteralMatches() throws Exception {
+        Config cfg = Config.defaultConfig("trace-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/Fixture.java");
+        Files.createDirectories(src.getParent());
+        // Mirrors this repo's own test-fixture pattern (e.g. Spec11ConformanceTest) of writing
+        // example source as a string literal — the embedded "annotations" must not be scanned.
+        Files.writeString(src, """
+                public class Fixture {
+                    void writeExample() {
+                        String example = "embedded //fusa:req REQ-FAKE-001 example";
+                        String note = "embedded //fusa:test REQ-FAKE-002 example";
+                    }
+                }
+                """);
+        List<Trace.Annotation> annotations = Trace.scanAnnotations(tmp, cfg);
+        assertTrue(annotations.stream().noneMatch(a -> a.reqId().startsWith("REQ-FAKE")),
+                "annotations embedded inside a string literal must be filtered out");
+    }
+
+    @Test
+    void trace_scanAnnotations_ignoresTextBlockMatches() throws Exception {
+        Config cfg = Config.defaultConfig("trace-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/Fixture2.java");
+        Files.createDirectories(src.getParent());
+        // Mirrors this repo's own test-fixture pattern (e.g. TraceTest itself) of writing example
+        // source as a multi-line text block — the embedded "annotation" must not be scanned.
+        String fixtureSource =
+                "public class Fixture2 {\n" +
+                "    void writeExample() {\n" +
+                "        String example = \"\"\"\n" +
+                "                public class Foo {\n" +
+                "                    //fusa:req REQ-FAKE-003\n" +
+                "                    public void method() {}\n" +
+                "                }\n" +
+                "                \"\"\";\n" +
+                "    }\n" +
+                "}\n";
+        Files.writeString(src, fixtureSource);
+        List<Trace.Annotation> annotations = Trace.scanAnnotations(tmp, cfg);
+        assertTrue(annotations.stream().noneMatch(a -> a.reqId().equals("REQ-FAKE-003")),
+                "annotations embedded inside a multi-line text block must be filtered out");
+    }
+
+    // ── §1.4.1 / §5 --func-coverage ───────────────────────────────────────────
+
+    @Test
+    //fusa:test REQ-TRACE002
+    void computeFuncCoverage_allTagged_100Percent() throws Exception {
+        Config cfg = Config.defaultConfig("func-cov-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/Foo.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Foo {
+                    //fusa:req REQ-A
+                    public void doThing() {}
+                }
+                """);
+        Trace.FuncCoverageResult result = Trace.computeFuncCoverage(tmp, cfg);
+        assertEquals(1, result.totalFunctions());
+        assertEquals(1, result.taggedFunctions());
+        assertEquals(100.0, result.percentage(), 0.001);
+    }
+
+    @Test
+    //fusa:test REQ-TRACE002
+    void computeFuncCoverage_untaggedMethod_lowersPercentage() throws Exception {
+        Config cfg = Config.defaultConfig("func-cov-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/Bar.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Bar {
+                    //fusa:req REQ-B
+                    public void tagged() {}
+                    public void untagged() {}
+                }
+                """);
+        Trace.FuncCoverageResult result = Trace.computeFuncCoverage(tmp, cfg);
+        assertEquals(2, result.totalFunctions());
+        assertEquals(1, result.taggedFunctions());
+        assertEquals(50.0, result.percentage(), 0.001);
+    }
+
+    @Test
+    //fusa:test REQ-TRACE002
+    void computeFuncCoverage_exemptsGettersConstructorsAndNoOpShims() throws Exception {
+        Config cfg = Config.defaultConfig("func-cov-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/main/java/Baz.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Baz {
+                    public Baz() {}
+                    public String id() { return "X"; }
+                    public String description() { return "d"; }
+                    public static void activate() {}
+                    public String getName() { return "n"; }
+                    public boolean isReady() { return true; }
+                }
+                """);
+        Trace.FuncCoverageResult result = Trace.computeFuncCoverage(tmp, cfg);
+        assertEquals(0, result.totalFunctions(),
+                "constructors, id()/description()/activate() shims, and getters/setters must be exempt");
+    }
+
+    @Test
+    //fusa:test REQ-TRACE002
+    void computeFuncCoverage_noPublicFunctions_is100Percent() throws Exception {
+        Config cfg = Config.defaultConfig("func-cov-test");
+        Config.save(tmp, cfg);
+        Trace.FuncCoverageResult result = Trace.computeFuncCoverage(tmp, cfg);
+        assertEquals(0, result.totalFunctions());
+        assertEquals(100.0, result.percentage(), 0.001,
+                "no public functions to cover — gate must trivially pass");
+    }
+
+    // ── §1.4.1 dangling test-reference detection (TRACE002 rule) ─────────────
+
+    @Test
+    //fusa:test REQ-TRACE003
+    void danglingTestRef_firesForUnknownId() throws Exception {
+        Trace.activate();
+        Config cfg = Config.defaultConfig("dangling-test");
+        Config.save(tmp, cfg);
+        Files.writeString(tmp.resolve(".fusa-reqs.json"), """
+                {"schema":"x-fusa-reqs-1.0","requirements":[
+                  {"id":"REQ-KNOWN","title":"known req","status":"implemented"}
+                ]}
+                """);
+        Path src = tmp.resolve("src/test/java/FooTest.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                class FooTest {
+                    //fusa:test REQ-GHOST
+                    void test() {}
+                }
+                """);
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("TRACE002"));
+        assertTrue(result.findings().stream().anyMatch(f ->
+                        f.ruleId().equals("TRACE002") && f.message().contains("REQ-GHOST")),
+                "dangling //fusa:test id must produce a TRACE002 WARNING finding");
+    }
+
+    @Test
+    //fusa:test REQ-TRACE003
+    void danglingTestRef_doesNotFireForKnownId() throws Exception {
+        Trace.activate();
+        Config cfg = Config.defaultConfig("dangling-test");
+        Config.save(tmp, cfg);
+        Files.writeString(tmp.resolve(".fusa-reqs.json"), """
+                {"schema":"x-fusa-reqs-1.0","requirements":[
+                  {"id":"REQ-KNOWN","title":"known req","status":"implemented"}
+                ]}
+                """);
+        Path src = tmp.resolve("src/test/java/FooTest.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                class FooTest {
+                    //fusa:test REQ-KNOWN
+                    void test() {}
+                }
+                """);
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("TRACE002"));
+        assertTrue(result.findings().isEmpty(), "known requirement id must not be flagged as dangling");
+    }
+
+    @Test
+    //fusa:test REQ-TRACE003
+    void danglingTestRef_skipsWhenNoReqsFile() throws Exception {
+        Trace.activate();
+        Config cfg = Config.defaultConfig("dangling-test");
+        Config.save(tmp, cfg);
+        Path src = tmp.resolve("src/test/java/FooTest.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                class FooTest {
+                    //fusa:test REQ-ANYTHING
+                    void test() {}
+                }
+                """);
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("TRACE002"));
+        assertTrue(result.findings().isEmpty(), "without .fusa-reqs.json there is nothing to validate against");
     }
 }

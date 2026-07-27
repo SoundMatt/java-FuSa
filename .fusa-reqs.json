@@ -114,6 +114,138 @@
       "title": "All annotated requirements must have at least one //fusa:test reference",
       "status": "implemented",
       "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-TRACE002",
+      "title": "Trace must support --func-coverage N gating on percentage of public functions carrying a //fusa:req tag",
+      "status": "implemented",
+      "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-TRACE003",
+      "title": "Trace must flag //fusa:test tags whose id is not registered in .fusa-reqs.json as a dangling reference (check WARNING, rule TRACE002)",
+      "status": "implemented",
+      "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-TRACE004",
+      "title": "Trace.buildMatrix() must aggregate scanned annotations into a per-requirement traceability matrix",
+      "status": "implemented",
+      "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-ENG004",
+      "title": "Engine registry mustRegister() must wrap registration failures in IllegalStateException",
+      "status": "implemented",
+      "file": "engine/Registry.java"
+    },
+    {
+      "id": "REQ-ENG005",
+      "title": "Engine registry register() must reject null rules and duplicate rule ids",
+      "status": "implemented",
+      "file": "engine/Registry.java"
+    },
+    {
+      "id": "REQ-ENG008",
+      "title": "Engine.run() must execute all registered rules with no filter (default entry point)",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-LINT001",
+      "title": "Detect returning null from non-void methods without //fusa:unsafe",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT002",
+      "title": "System.exit() calls must be annotated //fusa:safe-state",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT003",
+      "title": "Raw Thread creation must be flagged unless annotated //fusa:unsafe",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT004",
+      "title": "Static mutable fields require //fusa:shared annotation",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT005",
+      "title": "Floating-point equality comparison must be flagged unless annotated //fusa:unsafe",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT006",
+      "title": "Recursive methods require //fusa:recursive <max-depth> annotation",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT007",
+      "title": "System.out/err usage in non-test code must be flagged unless annotated //fusa:unsafe",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT008",
+      "title": "Reflection usage requires //fusa:reflect annotation",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT009",
+      "title": "@SuppressWarnings(\"unchecked\") usage must be flagged unless annotated //fusa:unsafe",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-LINT010",
+      "title": "@Deprecated API usage must be tracked for migration before certification",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-RELEASE001",
+      "title": "SBOM (sbom.json) must be present for supply-chain compliance",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-RELEASE002",
+      "title": "Build provenance (provenance.json) must be present for SLSA compliance",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-SIGN001",
+      "title": "Sign.generateKey() must generate and persist a new HMAC-SHA256 key",
+      "status": "implemented",
+      "file": "sign/Sign.java"
+    },
+    {
+      "id": "REQ-SIGN002",
+      "title": "Sign.sign() must compute and persist an HMAC-SHA256 signature for an artifact",
+      "status": "implemented",
+      "file": "sign/Sign.java"
+    },
+    {
+      "id": "REQ-SIGN003",
+      "title": "Sign.verify() must validate an artifact's signature against its stored HMAC-SHA256 value",
+      "status": "implemented",
+      "file": "sign/Sign.java"
+    },
+    {
+      "id": "REQ-HARA001",
+      "title": "Hara.deriveAsil() must derive an ASIL rating from Severity/Exposure/Controllability per ISO 26262-3 Table 4",
+      "status": "implemented",
+      "file": "hara/Hara.java"
     }
   ]
 }

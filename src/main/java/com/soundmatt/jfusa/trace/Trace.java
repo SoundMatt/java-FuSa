@@ -30,6 +30,7 @@ public final class Trace {
 
     static {
         Engine.DEFAULT.mustRegister(new RuleTraceability());
+        Engine.DEFAULT.mustRegister(new RuleDanglingTestRef());
     }
 
     private Trace() {}
@@ -63,16 +64,98 @@ public final class Trace {
 
     public record Annotation(String reqId, String file, int line, String type) {}
 
+    /**
+     * §1.4.1 false-positive filtering: a {@code //fusa:req}/{@code //fusa:test} tag is only a
+     * genuine annotation when the text is a real Java line comment — not merely text that
+     * happens to appear inside a string literal or a text block (both common in this repo's own
+     * test fixtures, which construct example source as literal strings to feed into scanners
+     * under test). Since {@code //} has no meaning inside a string/text block, any match whose
+     * start position sits inside one is a false positive and must be discarded, not counted.
+     *
+     * <p>Returns a boolean mask, one entry per character of {@code line}: {@code true} means
+     * "inside a string literal or text block" (filter out any match starting there). {@code
+     * textBlockState[0]} is mutable, single-element, persistent state carried by the caller
+     * across successive lines of the same file to track multi-line {@code """} text blocks.
+     */
+    static boolean[] lineInsideStringMask(String line, boolean[] textBlockState) {
+        int n = line.length();
+        boolean[] mask = new boolean[n];
+        boolean inRegular = false;
+        int i = 0;
+        while (i < n) {
+            if (textBlockState[0]) {
+                if (i + 2 < n && line.charAt(i) == '"' && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                    mask[i] = mask[i + 1] = mask[i + 2] = true;
+                    textBlockState[0] = false;
+                    i += 3;
+                } else {
+                    mask[i] = true;
+                    i++;
+                }
+                continue;
+            }
+            if (inRegular) {
+                char c = line.charAt(i);
+                if (c == '\\' && i + 1 < n) {
+                    mask[i] = true;
+                    mask[i + 1] = true;
+                    i += 2;
+                    continue;
+                }
+                mask[i] = true;
+                if (c == '"') inRegular = false;
+                i++;
+                continue;
+            }
+            if (i + 2 < n && line.charAt(i) == '"' && line.charAt(i + 1) == '"' && line.charAt(i + 2) == '"') {
+                mask[i] = mask[i + 1] = mask[i + 2] = true;
+                textBlockState[0] = true;
+                i += 3;
+                continue;
+            }
+            if (line.charAt(i) == '"') {
+                mask[i] = true;
+                inRegular = true;
+                i++;
+                continue;
+            }
+            i++; // normal code character; mask[i] stays false
+        }
+        return mask;
+    }
+
+    /**
+     * Finds the start index of the first genuine {@code //} line comment on {@code line} (i.e.
+     * the first {@code //} not sitting inside a string/text block per {@code mask}), or -1 if
+     * the line has no real comment. A tag only counts as a real annotation when it IS that first
+     * comment — this rejects "//fusa:req"/"//fusa:test"-shaped text that merely appears as prose
+     * further inside an unrelated descriptive comment (e.g. "// see //fusa:req REQ-1 for why").
+     */
+    private static int firstRealCommentStart(String line, boolean[] mask) {
+        for (int i = 0; i < line.length() - 1; i++) {
+            if (!mask[i] && line.charAt(i) == '/' && line.charAt(i + 1) == '/') return i;
+        }
+        return -1;
+    }
+
     public static List<Annotation> scanAnnotations(Path root, Config cfg) throws IOException {
         List<Annotation> out = new ArrayList<>();
         for (Path f : LintRules.javaFiles(root, cfg)) {
             List<String> lines = LintRules.readLines(f);
             String rel = root.relativize(f).toString();
+            boolean[] textBlockState = {false};
             for (int i = 0; i < lines.size(); i++) {
-                Matcher rm = REQ_ANNOT.matcher(lines.get(i));
-                while (rm.find()) out.add(new Annotation(rm.group(1), rel, i + 1, "impl"));
-                Matcher tm = TEST_ANNOT.matcher(lines.get(i));
-                while (tm.find()) out.add(new Annotation(tm.group(1), rel, i + 1, "test"));
+                String line = lines.get(i);
+                boolean[] mask = lineInsideStringMask(line, textBlockState);
+                int firstComment = firstRealCommentStart(line, mask);
+                Matcher rm = REQ_ANNOT.matcher(line);
+                while (rm.find()) {
+                    if (rm.start() == firstComment) out.add(new Annotation(rm.group(1), rel, i + 1, "impl"));
+                }
+                Matcher tm = TEST_ANNOT.matcher(line);
+                while (tm.find()) {
+                    if (tm.start() == firstComment) out.add(new Annotation(tm.group(1), rel, i + 1, "test"));
+                }
             }
         }
         return out;
@@ -80,6 +163,8 @@ public final class Trace {
 
     // ── Traceability matrix ───────────────────────────────────────────────────
 
+    /** Aggregates scanned {@code //fusa:req}/{@code //fusa:test} annotations into a per-requirement matrix. */
+    //fusa:req REQ-TRACE004
     public static Map<String, List<Annotation>> buildMatrix(Path root, Config cfg) throws IOException {
         Map<String, List<Annotation>> matrix = new LinkedHashMap<>();
         for (Annotation a : scanAnnotations(root, cfg)) {
@@ -423,6 +508,119 @@ public final class Trace {
                         new FuSa.Location(".fusa-reqs.json"))
                         .category(FuSa.Category.requirement)
                         .remediation("add //fusa:test " + reqId + " in a JUnit test covering this requirement")
+                        .build());
+            }
+            return out;
+        }
+    }
+
+    // ── §1.4.1 / §5 --func-coverage ─────────────────────────────────────────────
+
+    /** A public method/constructor-less declaration considered exempt from the func-coverage gate. */
+    private static final Set<String> EXEMPT_METHOD_NAMES = Set.of("id", "description", "activate");
+
+    /**
+     * Heuristic detector for a concrete {@code public} method declaration header. Requires a
+     * return type token before the method name, which structurally excludes constructors
+     * (a constructor has only its class name before the parameter list, with no separate return
+     * type token) as well as class/interface/enum/record declarations (no parameter list).
+     */
+    private static final Pattern PUBLIC_METHOD = Pattern.compile(
+            "^\\s*public\\s+(?:static\\s+|final\\s+|synchronized\\s+|abstract\\s+|default\\s+)*" +
+            "(?:<[^>]*>\\s*)?" +
+            "[\\w][\\w.\\[\\]<>,\\s]*?\\s+(\\w+)\\s*\\([^)]*\\)\\s*(?:throws\\s+[\\w.,\\s]+)?\\s*\\{");
+
+    /** True when {@code name} is a getter/setter (JavaBean convention) or a known no-op interface shim. */
+    private static boolean isExemptMethodName(String name) {
+        if (EXEMPT_METHOD_NAMES.contains(name)) return true;
+        if (name.length() > 3 && name.startsWith("get") && Character.isUpperCase(name.charAt(3))) return true;
+        if (name.length() > 2 && name.startsWith("is")  && Character.isUpperCase(name.charAt(2))) return true;
+        if (name.length() > 3 && name.startsWith("set") && Character.isUpperCase(name.charAt(3))) return true;
+        return false;
+    }
+
+    /**
+     * @param totalFunctions  number of non-exempt public methods found
+     * @param taggedFunctions how many of those carry a {@code //fusa:req} tag directly above (or
+     *                        within a few lines above, allowing for javadoc/annotations in between)
+     * @param percentage      100.0 when totalFunctions is 0 (nothing to cover, gate trivially passes)
+     */
+    public record FuncCoverageResult(int totalFunctions, int taggedFunctions, double percentage) {}
+
+    /**
+     * Computes the §1.4.1/§5 function-coverage figure: the percentage of public methods (excluding
+     * getters/setters, constructors, and no-op {@code id()}/{@code description()}/{@code activate()}
+     * shims) carrying a {@code //fusa:req} tag directly above them. Reuses {@link #scanAnnotations}
+     * so the same string-literal/text-block false-positive filtering applies here too.
+     */
+    //fusa:req REQ-TRACE002
+    public static FuncCoverageResult computeFuncCoverage(Path root, Config cfg) throws IOException {
+        Map<String, Set<Integer>> implLinesByFile = new HashMap<>();
+        for (Annotation a : scanAnnotations(root, cfg)) {
+            if (a.type().equals("impl")) {
+                implLinesByFile.computeIfAbsent(a.file(), k -> new TreeSet<>()).add(a.line());
+            }
+        }
+
+        int total = 0, tagged = 0;
+        for (Path f : LintRules.javaFiles(root, cfg)) {
+            List<String> lines = LintRules.readLines(f);
+            String rel = root.relativize(f).toString();
+            Set<Integer> implLines = implLinesByFile.getOrDefault(rel, Set.of());
+            boolean[] textBlockState = {false};
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                boolean[] mask = lineInsideStringMask(line, textBlockState);
+                Matcher m = PUBLIC_METHOD.matcher(line);
+                if (!m.find() || mask[m.start()]) continue;
+                String name = m.group(1);
+                if (isExemptMethodName(name)) continue;
+                total++;
+                if (hasReqTagDirectlyAbove(lines, i, implLines)) tagged++;
+            }
+        }
+        double pct = total == 0 ? 100.0 : (100.0 * tagged / total);
+        return new FuncCoverageResult(total, tagged, pct);
+    }
+
+    /**
+     * §1.4.1 item 1 ("directly above, or in the doc comment of"): walks upward from the method
+     * declaration at {@code lines.get(methodLineIdx)}, skipping over blank lines, annotations
+     * (e.g. {@code @Override}), and javadoc/comment lines, and returns true only if an
+     * impl-annotation line is reached before any other real code line — so a tag correctly
+     * covers only the single method it is written directly above, never a sibling method too.
+     */
+    private static boolean hasReqTagDirectlyAbove(List<String> lines, int methodLineIdx, Set<Integer> implLines) {
+        for (int idx = methodLineIdx - 1; idx >= 0; idx--) {
+            if (implLines.contains(idx + 1)) return true;
+            String prev = lines.get(idx).strip();
+            if (prev.isEmpty()) continue;
+            if (prev.startsWith("@")) continue;
+            if (prev.startsWith("*") || prev.startsWith("/**") || prev.startsWith("//") || prev.endsWith("*/")) continue;
+            break; // hit real code — the tag (if any) belongs to a different declaration
+        }
+        return false;
+    }
+
+    // ── §1.4.1 dangling test-reference detection (TRACE002) ────────────────────
+
+    static final class RuleDanglingTestRef implements Rule {
+        public String id() { return "TRACE002"; }
+        public String description() { return "Every //fusa:test tag must reference a requirement id registered in .fusa-reqs.json."; }
+
+        //fusa:req REQ-TRACE003
+        public List<Finding> run(Path root, Config cfg) throws IOException {
+            List<Finding> out = new ArrayList<>();
+            if (root == null || !Files.exists(root.resolve(REQS_FILE))) return out; // nothing to validate against
+            Set<String> knownIds = loadReqsMeta(root).keySet();
+            for (Annotation a : scanAnnotations(root, cfg)) {
+                if (!a.type().equals("test") && !a.type().equals("sec-test")) continue;
+                if (knownIds.contains(a.reqId())) continue;
+                out.add(Finding.builder("TRACE002", Severity.WARNING,
+                        "//fusa:test " + a.reqId() + " references an unknown requirement id (not present in .fusa-reqs.json)",
+                        new FuSa.Location(a.file(), a.line()))
+                        .category(FuSa.Category.requirement)
+                        .remediation("register " + a.reqId() + " in .fusa-reqs.json via 'jfusa req add', or fix the typo")
                         .build());
             }
             return out;

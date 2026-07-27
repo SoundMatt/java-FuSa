@@ -6,6 +6,46 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.3 — 2026-07-27
+
+### Added
+
+- **x-FuSa spec §1.4.1 / §5 `--func-coverage N`**: `Trace.computeFuncCoverage()` measures the
+  percentage of public methods (excluding getters/setters, constructors, and no-op
+  `id()`/`description()`/`activate()` interface shims) carrying a `//fusa:req` tag directly
+  above them. `jfusa trace --func-coverage N` prints the figure and exits `1` when below `N`;
+  `N=0` disables the gate, mirroring `--req-coverage`'s semantics.
+- **x-FuSa spec §1.4.1 dangling `//fusa:test` reference detection**: new rule `TRACE002`
+  (`Trace.RuleDanglingTestRef`) flags any `//fusa:test <ID>` tag whose `<ID>` is not registered
+  in `.fusa-reqs.json` as a `check` WARNING, per the spec's "malformed annotation" treatment.
+  Skipped entirely when the project has no `.fusa-reqs.json` (nothing to validate against).
+
+### Fixed
+
+- **Annotation scanner false positives**: `Trace.scanAnnotations()` previously matched
+  `//fusa:req`/`//fusa:test`-shaped text anywhere in a `.java` file's raw text, including inside
+  string literals, multi-line text blocks, and prose within unrelated `//` comments — all of
+  which this repo's own test fixtures (e.g. `TraceTest`, `Spec11ConformanceTest`) construct
+  routinely when writing example source under test. A self-scan of java-FuSa previously
+  surfaced dozens of garbage "requirement ids" (`REQ-001`, `REQ-KIND`, `must`, `or`, ...) from
+  this. The scanner now tracks string/text-block state per line and only accepts a tag when it
+  is the line's own first genuine `//` comment, eliminating the false positives; `--func-coverage`
+  and the new dangling-reference check reuse the same filtering.
+
+### Requirement retrofit (issue #18)
+
+- Tagged previously-orphan core safety methods: `Engine.run()` (`REQ-ENG008`), `Sign.generateKey()`
+  /`sign()`/`verify()` (`REQ-SIGN001`–`003`), `Hara.deriveAsil()` (`REQ-HARA001`), and
+  `Trace.buildMatrix()` (`REQ-TRACE004`) — plus matching `//fusa:test` tags and new `HaraTest`.
+- Registered and test-tagged the previously-implemented-but-unregistered `REQ-LINT001`–`010`,
+  `REQ-ENG004`/`005`, and `REQ-RELEASE001`/`002` requirements; added six new `LintRulesTest`
+  cases (LINT003/004/006/008/009/010) and an `Engine` rule-isolation test (`REQ-ENG002`) that
+  had no coverage at all before this pass.
+- Added `//fusa:test` tags to a safety-relevant subset of `MainTest`'s CLI smoke tests
+  (`check`, `trace`, `qualify`, `release`), modeled on `GapCoverageTest`/`TraceTest`'s style.
+- Partial progress on issue #18's ~60-requirement list — `REQ-CYBER*`, `REQ-ANA*`, `REQ-CFG*`,
+  and `REQ-RT*` remain untested/unregistered and are left for a future pass.
+
 ## v0.4.2 — 2026-07-27
 
 ### Fixed

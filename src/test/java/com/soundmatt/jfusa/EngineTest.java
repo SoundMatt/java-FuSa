@@ -29,6 +29,7 @@ class EngineTest {
     }
 
     @Test
+    //fusa:test REQ-ENG001
     void registryRulesAreSortedById() {
         LintRules.activate();
         List<Rule> rules = Engine.DEFAULT.rules();
@@ -39,6 +40,7 @@ class EngineTest {
     }
 
     @Test
+    //fusa:test REQ-ENG008
     void engineRun_onEmptyDir_producesFindings() throws Exception {
         Config cfg = Config.defaultConfig("engine-test");
         Engine.Result result = Engine.DEFAULT.run(tmp, cfg);
@@ -47,6 +49,7 @@ class EngineTest {
     }
 
     @Test
+    //fusa:test REQ-ENG008
     void engineRun_withFusaJson_reducesFindings() throws Exception {
         Config cfg = Config.defaultConfig("engine-test");
         Config.save(tmp, cfg);
@@ -58,6 +61,7 @@ class EngineTest {
     }
 
     @Test
+    //fusa:test REQ-ENG007
     void engineRunFilter_filtersByPrefix() throws Exception {
         LintRules.activate();
         Config cfg = Config.defaultConfig("filter-test");
@@ -69,6 +73,7 @@ class EngineTest {
     }
 
     @Test
+    //fusa:test REQ-ENG003
     void resultHasErrors_reflectsSeverity() throws Exception {
         LintRules.activate();
         Config cfg = Config.defaultConfig("err-test");
@@ -89,6 +94,8 @@ class EngineTest {
     }
 
     @Test
+    //fusa:test REQ-ENG004
+    //fusa:test REQ-ENG005
     void duplicateRegister_throws() {
         Registry reg = new Registry();
         Rule r = new Rule() {
@@ -98,5 +105,31 @@ class EngineTest {
         };
         reg.mustRegister(r);
         assertThrows(IllegalStateException.class, () -> reg.mustRegister(r));
+    }
+
+    @Test
+    //fusa:test REQ-ENG002
+    void engineRun_isolatesRuleFailures_soOtherRulesStillProduceFindings() throws Exception {
+        Config cfg = Config.defaultConfig("isolation-test");
+        Registry reg = new Registry();
+        reg.mustRegister(new Rule() {
+            public String id() { return "BOOM001"; }
+            public String description() { return "always throws"; }
+            public List<FuSa.Finding> run(Path r, Config c) { throw new RuntimeException("boom"); }
+        });
+        reg.mustRegister(new Rule() {
+            public String id() { return "OK001"; }
+            public String description() { return "always succeeds"; }
+            public List<FuSa.Finding> run(Path r, Config c) {
+                return List.of(FuSa.Finding.builder("OK001", FuSa.Severity.INFO,
+                        "fine", new FuSa.Location("x.java", 1)).build());
+            }
+        });
+        Engine eng = new Engine(reg);
+        Engine.Result result = eng.run(tmp, cfg);
+        assertTrue(result.errors().stream().anyMatch(e -> e.contains("BOOM001")),
+                "failing rule must be recorded in errors() rather than propagating");
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("OK001")),
+                "a successful rule's findings must still be produced despite another rule's failure");
     }
 }

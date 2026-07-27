@@ -63,6 +63,8 @@ public final class Engine {
 
     // ── Run ───────────────────────────────────────────────────────────────────
 
+    /** Top-level engine entry point: executes every registered rule with no filter applied. */
+    //fusa:req REQ-ENG008
     public Result run(Path projectRoot, Config cfg) {
         return runFilter(projectRoot, cfg, null);
     }

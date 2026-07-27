@@ -153,6 +153,7 @@ class MainTest {
     // ── check / lint / analyze / cyber ───────────────────────────────────────
 
     @Test
+    //fusa:test REQ-ENG008
     void cmdCheck_textFormat_runsAndProducesOutput() throws Exception {
         initProject();
         // Activate all rule packages so Engine.DEFAULT is populated
@@ -174,6 +175,7 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-ENG003
     void cmdCheck_writesToOutputFile() throws Exception {
         initProject();
         try {
@@ -205,6 +207,7 @@ class MainTest {
     // ── trace ─────────────────────────────────────────────────────────────────
 
     @Test
+    //fusa:test REQ-TRACE004
     void cmdTrace_textFormat_runsWithoutError() throws Exception {
         initProject();
         String out = captureOut(() -> Main.cmdTrace(tmp, new String[]{}));
@@ -212,6 +215,7 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-TRACE004
     void cmdTrace_jsonFormat_runsWithoutError() throws Exception {
         initProject();
         String out = captureOut(() -> Main.cmdTrace(tmp, new String[]{"--format", "json"}));
@@ -219,6 +223,7 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-TRACE004
     void cmdTrace_writesToOutputFile() throws Exception {
         initProject();
         Main.cmdTrace(tmp, new String[]{"--output", "trace-out.txt"});
@@ -226,15 +231,48 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-HLR002
     void cmdTrace_strictHlrLlr_noHierarchy_passes() throws Exception {
         initProject();
         // No LLRs in default config — should not throw
         captureOut(() -> Main.cmdTrace(tmp, new String[]{"--strict-hlr-llr"}));
     }
 
+    @Test
+    //fusa:test REQ-TRACE002
+    void cmdTrace_funcCoverage_belowThreshold_throwsCheckFailed() throws Exception {
+        initProject();
+        Path src = tmp.resolve("src/main/java/Untagged.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Untagged {
+                    public void oneMethod() {}
+                    public void anotherMethod() {}
+                }
+                """);
+        assertThrows(FuSa.CheckFailedException.class, () ->
+                captureOut(() -> Main.cmdTrace(tmp, new String[]{"--func-coverage", "100"})));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE002
+    void cmdTrace_funcCoverage_zeroDisablesGate() throws Exception {
+        initProject();
+        Path src = tmp.resolve("src/main/java/Untagged.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Untagged {
+                    public void oneMethod() {}
+                }
+                """);
+        // N=0 disables the gate — must not throw even though coverage is 0%.
+        captureOut(() -> Main.cmdTrace(tmp, new String[]{"--func-coverage", "0"}));
+    }
+
     // ── verify / qualify ──────────────────────────────────────────────────────
 
     @Test
+    //fusa:test REQ-VERIFY001
     void cmdVerify_writesEvidenceFile() throws Exception {
         initProject();
         captureOut(() -> Main.cmdVerify(tmp, new String[]{}));
@@ -242,6 +280,7 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY001
     void cmdQualify_generatesReport() throws Exception {
         initProject();
         captureOut(() -> Main.cmdQualify(tmp, new String[]{}));
@@ -249,6 +288,7 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY002
     void cmdQualify_withQualificationMethodFlag() throws Exception {
         initProject();
         captureOut(() -> Main.cmdQualify(tmp,
@@ -260,6 +300,7 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY003
     void cmdQualify_withIndependenceFlags() throws Exception {
         initProject();
         captureOut(() -> Main.cmdQualify(tmp,
@@ -273,6 +314,8 @@ class MainTest {
     // ── release / audit-pack ──────────────────────────────────────────────────
 
     @Test
+    //fusa:test REQ-RELEASE001
+    //fusa:test REQ-RELEASE002
     void cmdRelease_generatesProvenance() throws Exception {
         initProject();
         captureOut(() -> Main.cmdRelease(tmp, new String[]{}));

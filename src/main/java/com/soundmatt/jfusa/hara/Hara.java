@@ -24,6 +24,7 @@ public final class Hara {
             String severity, int s, int e, int c, String asil, String safetyGoal) {}
 
     /** Derive ASIL from Severity (S), Exposure (E), and Controllability (C) per ISO 26262-3 Table 4. */
+    //fusa:req REQ-HARA001
     public static String deriveAsil(int s, int e, int c) {
         // ISO 26262-3:2018 Table 4 — simplified
         if (s == 0) return "QM";
