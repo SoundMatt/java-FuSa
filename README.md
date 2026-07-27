@@ -1,11 +1,11 @@
 # java-FuSa — Java Functional Safety Tool Suite
 
 [![CI](https://github.com/soundmatt/java-FuSa/actions/workflows/ci.yml/badge.svg)](https://github.com/soundmatt/java-FuSa/actions/workflows/ci.yml)
-[![x-FuSa spec](https://img.shields.io/badge/x--FuSa%20spec-v1.9-blue)](https://github.com/soundmatt/x-FuSa)
+[![x-FuSa spec](https://img.shields.io/badge/x--FuSa%20spec-v1.10-blue)](https://github.com/soundmatt/x-FuSa)
 [![Java 21](https://img.shields.io/badge/java-21-orange)](https://adoptium.net/)
 [![License: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-green)](LICENSE)
 
-**jfusa** is the Java implementation of the [x-FuSa specification v1.9](https://github.com/soundmatt/x-FuSa) — a tool-qualification-grade functional safety CLI for Java projects targeting ISO 26262, IEC 61508, ISO 21434, DO-178C, IEC 62443, UN R.155, and SLSA.
+**jfusa** is the Java implementation of the [x-FuSa specification v1.10](https://github.com/soundmatt/x-FuSa) — a tool-qualification-grade functional safety CLI for Java projects targeting ISO 26262, IEC 61508, ISO 21434, DO-178C, IEC 62443, UN R.155, and SLSA.
 
 It is feature-equivalent to [go-FuSa](https://github.com/soundmatt/go-FuSa) and [cpp-FuSa](https://github.com/soundmatt/cpp-FuSa).
 
@@ -136,7 +136,7 @@ chmod +x ~/bin/jfusa
 
 ```json
 {
-  "schema": "x-fusa-1.9",
+  "schema": "x-fusa-1.10",
   "project": {
     "name": "my-project",
     "version": "1.0.0",
