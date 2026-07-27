@@ -16,8 +16,10 @@ public final class Unece {
 
     private Unece() {}
 
+    //fusa:req REQ-UNECE001
     public record ThreatCategory(String id, String title, String status, String coverage) {}
 
+    //fusa:req REQ-UNECE001
     public static List<ThreatCategory> threatCategories() {
         return List.of(
             tc("TC-1", "Threats to vehicle back-end servers",    "Partially Met", "CYBER001-014 cover injection, auth, XXE"),
@@ -42,6 +44,7 @@ public final class Unece {
         };
     }
 
+    //fusa:req REQ-UNECE001
     public static void generate(Path root) throws IOException {
         List<ThreatCategory> cats = threatCategories();
         var w = new Json.Writer();
@@ -79,6 +82,7 @@ public final class Unece {
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-UNECE001
     public static String renderText() {
         var sb = new StringBuilder();
         sb.append("UN R.155 Annex 5 Threat Category Coverage\n");

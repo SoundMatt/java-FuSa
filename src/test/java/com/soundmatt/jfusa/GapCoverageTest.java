@@ -8,7 +8,10 @@ import com.soundmatt.jfusa.cyber.CyberRules;
 import com.soundmatt.jfusa.engine.Engine;
 import com.soundmatt.jfusa.fmea.Fmea;
 import com.soundmatt.jfusa.hooks.Hooks;
+import com.soundmatt.jfusa.iec62443.Iec62443;
+import com.soundmatt.jfusa.impact.Impact;
 import com.soundmatt.jfusa.internal.Json;
+import com.soundmatt.jfusa.misra.Misra;
 import com.soundmatt.jfusa.template.Template;
 import com.soundmatt.jfusa.verify.Verify;
 import org.junit.jupiter.api.Test;
@@ -51,6 +54,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-COUPLING001
     void couplingEntry_recordAccessors() {
         Coupling.CouplingEntry e = new Coupling.CouplingEntry("Foo.java", "Bar.baz", "control", 42);
         assertEquals("Foo.java", e.from());
@@ -70,6 +74,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-COV001
+    //fusa:test REQ-COV002
     void coverageReport_recordAccessors() {
         Coverage.CoverageReport r = new Coverage.CoverageReport(85.5, 72.0, 90.0);
         assertEquals(85.5, r.statementPct(), 0.001);
@@ -79,6 +84,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-COV001
+    //fusa:test REQ-COV002
     void coverageReport_zeroWhenFileAbsent() throws Exception {
         Coverage.CoverageReport r = Coverage.parse(tmp.resolve("does-not-exist.xml"));
         assertEquals(0.0, r.statementPct(), 0.001);
@@ -88,6 +94,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-COV001
+    //fusa:test REQ-COV002
     void coverageReport_parseJacocoXml() throws Exception {
         Path jacoco = tmp.resolve("jacoco.xml");
         Files.writeString(jacoco, """
@@ -119,6 +126,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-COV001
+    //fusa:test REQ-COV002
     void ruleCoverageGate_firesWhenCoverageBelowThreshold() throws Exception {
         Coverage.activate();
         Path jacocoDir = tmp.resolve("target/site/jacoco");
@@ -140,6 +148,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-COV001
+    //fusa:test REQ-COV002
     void ruleCoverageGate_noFindingWhenCoverageAboveThreshold() throws Exception {
         Coverage.activate();
         Path jacocoDir = tmp.resolve("target/site/jacoco");
@@ -181,6 +190,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-FMEA001
     void fmea_generate_writesFiles() throws Exception {
         Path srcDir = tmp.resolve("src/main/java");
         Files.createDirectories(srcDir);
@@ -204,6 +214,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-FMEA001
     void fmea_derive_classifiesSeverityFromMethodNames() throws Exception {
         Path srcDir = tmp.resolve("src/main/java");
         Files.createDirectories(srcDir);
@@ -228,6 +239,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-FMEA001
     void fmea_derive_rpnMapsFromSeverity() throws Exception {
         Path srcDir = tmp.resolve("src/main/java");
         Files.createDirectories(srcDir);
@@ -298,6 +310,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-TEMPLATE001
     void template_safetyPlan_writesFile() throws Exception {
         Template.generate(tmp, "safety-plan", "MyProject");
         Path out = tmp.resolve("docs/MyProject-safety-plan.md");
@@ -309,6 +322,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-TEMPLATE001
     void template_testEvidence_writesFile() throws Exception {
         Template.generate(tmp, "test-evidence", "MyProject");
         Path out = tmp.resolve("docs/MyProject-test-evidence.md");
@@ -320,6 +334,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-TEMPLATE001
     void template_hara_writesFile() throws Exception {
         Template.generate(tmp, "hara", "MyProject");
         Path out = tmp.resolve("docs/MyProject-hara.md");
@@ -331,6 +346,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-TEMPLATE001
     void template_qualificationPlan_writesFile() throws Exception {
         Template.generate(tmp, "qualification-plan", "MyProject");
         Path out = tmp.resolve("docs/MyProject-qualification-plan.md");
@@ -342,6 +358,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-TEMPLATE001
     void template_safetyPlan_sanitisesSpecialChars() throws Exception {
         Template.generate(tmp, "safety-plan", "My Project/v2");
         // Should not throw and should write a file with sanitized name
@@ -510,6 +527,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-BOUNDARY001
     void boundary_buildDependencyGraph_emptyWhenNoSrcDir() throws Exception {
         Config cfg = Config.defaultConfig("boundary-test");
         Map<String, Set<String>> graph = Boundary.buildDependencyGraph(tmp, cfg);
@@ -538,6 +556,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-BOUNDARY001
     void boundary_generate_writesBothFiles() throws Exception {
         Path srcDir = tmp.resolve("src/main/java/com/test");
         Files.createDirectories(srcDir);
@@ -582,6 +601,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-HOOKS001
     void hooks_install_requiresGitRepo() throws Exception {
         // tmp has no .git directory; should print error and return without throwing
         Hooks.install(tmp);
@@ -591,6 +611,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-HOOKS001
     void hooks_remove_noopWhenNoHookPresent() throws Exception {
         // No .git/hooks/pre-commit — should print message without error
         Hooks.remove(tmp);
@@ -598,6 +619,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-HOOKS001
     void hooks_install_writesHookScript() throws Exception {
         Path hooksDir = tmp.resolve(".git/hooks");
         Files.createDirectories(hooksDir);
@@ -613,6 +635,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-HOOKS001
     void hooks_remove_deletesJfusaManagedHook() throws Exception {
         Path hooksDir = tmp.resolve(".git/hooks");
         Files.createDirectories(hooksDir);
@@ -638,6 +661,7 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-COUPLING001
     void coupling_analyze_detectsMethodCalls() throws Exception {
         Path srcDir = tmp.resolve("src/main/java");
         Files.createDirectories(srcDir);
@@ -657,8 +681,75 @@ class GapCoverageTest {
 
     @Test
     //fusa:test REQ-NF001
+    //fusa:test REQ-COUPLING001
     void coupling_analyze_emptyWhenNoSrcDir() throws Exception {
         List<Coupling.CouplingEntry> entries = Coupling.analyze(tmp);
         assertTrue(entries.isEmpty(), "analyze should return empty list when no src/main/java");
+    }
+
+    // ── Iec62443.RuleIncidentResponsePresent ─────────────────────────────────
+
+    //fusa:test REQ-IEC62443002
+    @Test
+    void iec62443001_firesWhenNoIncidentResponse_silentWhenPresent() throws Exception {
+        Iec62443.activate();
+        Config cfg = Config.defaultConfig("iec62443-rule-test");
+        Engine.Result before = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("IEC62443-001"));
+        assertTrue(before.findings().stream().anyMatch(f -> f.ruleId().equals("IEC62443-001")));
+
+        Files.writeString(tmp.resolve("INCIDENT-RESPONSE.md"), "# Incident Response Plan");
+        Engine.Result after = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("IEC62443-001"));
+        assertTrue(after.findings().stream().noneMatch(f -> f.ruleId().equals("IEC62443-001")));
+    }
+
+    // ── Impact.analyze/generate ───────────────────────────────────────────────
+
+    //fusa:test REQ-IMPACT001
+    @Test
+    void impact_analyze_detectsAffectedRequirementsAndTests() throws Exception {
+        Files.writeString(tmp.resolve(".fusa-reqs.json"), """
+                {"schema":"x-fusa-reqs-1.0","requirements":[
+                  {"id":"REQ-FOO001","title":"t","status":"implemented","file":"foo/Foo.java"}
+                ]}
+                """);
+        Path testDir = tmp.resolve("src/test/java/foo");
+        Files.createDirectories(testDir);
+        Files.writeString(testDir.resolve("FooTest.java"), "class FooTest {}");
+
+        List<String> changed = List.of("src/main/java/foo/Foo.java");
+        Impact.ImpactResult result = Impact.analyze(tmp, changed);
+        assertTrue(result.affectedReqs().contains("REQ-FOO001"));
+        assertTrue(result.affectedTests().stream().anyMatch(t -> t.endsWith("FooTest.java")));
+        assertFalse(result.summary().isEmpty());
+    }
+
+    //fusa:test REQ-IMPACT001
+    @Test
+    void impact_generate_writesReport() throws Exception {
+        Impact.generate(tmp, List.of("src/main/java/foo/Foo.java"));
+        assertTrue(Files.exists(tmp.resolve(Impact.IMPACT_JSON)));
+        String content = Files.readString(tmp.resolve(Impact.IMPACT_JSON));
+        assertTrue(content.contains("\"impact-report\""));
+    }
+
+    // ── Misra.RuleMisra ───────────────────────────────────────────────────────
+
+    //fusa:test REQ-MISRA002
+    @Test
+    void misra001_firesOnDetectedViolation() throws Exception {
+        Misra.activate();
+        Path src = tmp.resolve("src/main/java/Bad.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Bad {
+                    void f() {
+                        System.exit(1);
+                    }
+                }
+                """);
+        Config cfg = Config.defaultConfig("misra-rule-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("MISRA001"));
+        assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("MISRA001")),
+                "MISRA001 should fire on a detected MISRA violation");
     }
 }

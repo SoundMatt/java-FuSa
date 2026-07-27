@@ -26,8 +26,10 @@ public final class Coupling {
 
     private Coupling() {}
 
+    //fusa:req REQ-COUPLING001
     public record CouplingEntry(String from, String to, String type, int line) {}
 
+    //fusa:req REQ-COUPLING001
     public static List<CouplingEntry> analyze(Path root) throws IOException {
         List<CouplingEntry> couplings = new ArrayList<>();
         List<Path> javaFiles = findJavaFiles(root);
@@ -50,6 +52,7 @@ public final class Coupling {
         return couplings;
     }
 
+    //fusa:req REQ-COUPLING001
     public static void generate(Path root) throws IOException {
         List<CouplingEntry> couplings = analyze(root);
         var w = new Json.Writer();

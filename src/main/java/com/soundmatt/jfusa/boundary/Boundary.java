@@ -23,6 +23,7 @@ public final class Boundary {
 
     private Boundary() {}
 
+    //fusa:req REQ-BOUNDARY001
     public static Map<String, Set<String>> buildDependencyGraph(Path root, Config cfg) throws IOException {
         Map<String, Set<String>> graph = new LinkedHashMap<>();
         for (Path f : LintRules.javaFiles(root, cfg)) {
@@ -48,6 +49,7 @@ public final class Boundary {
         return graph;
     }
 
+    //fusa:req REQ-BOUNDARY001
     public static void generate(Path root, Config cfg) throws IOException {
         Map<String, Set<String>> graph = buildDependencyGraph(root, cfg);
         writeMermaid(root, graph);

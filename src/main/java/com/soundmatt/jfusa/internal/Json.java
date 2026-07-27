@@ -24,13 +24,19 @@ public final class Json {
 
         public Writer() { this.sb = new StringBuilder(); }
 
+        //fusa:req REQ-JSON001
         public Writer objectStart() { comma(); sb.append('{'); needsComma = false; return this; }
+        //fusa:req REQ-JSON001
         public Writer objectEnd()   { sb.append('}'); needsComma = true; return this; }
+        //fusa:req REQ-JSON001
         public Writer arrayStart()  { comma(); sb.append('['); needsComma = false; return this; }
+        //fusa:req REQ-JSON001
         public Writer arrayEnd()    { sb.append(']'); needsComma = true; return this; }
 
+        //fusa:req REQ-JSON001
         public Writer key(String k) { comma(); quoted(k); sb.append(':'); needsComma = false; return this; }
 
+        //fusa:req REQ-JSON002
         public Writer value(String v) {
             comma();
             if (v == null) sb.append("null");
@@ -39,15 +45,23 @@ public final class Json {
             return this;
         }
 
+        //fusa:req REQ-JSON002
         public Writer value(long v)    { comma(); sb.append(v); needsComma = true; return this; }
+        //fusa:req REQ-JSON002
         public Writer value(double v)  { comma(); sb.append(v); needsComma = true; return this; }
+        //fusa:req REQ-JSON002
         public Writer value(boolean v) { comma(); sb.append(v); needsComma = true; return this; }
+        //fusa:req REQ-JSON002
         public Writer nullValue()      { comma(); sb.append("null"); needsComma = true; return this; }
 
+        //fusa:req REQ-JSON003
         public Writer field(String k, String v)  { return key(k).value(v); }
+        //fusa:req REQ-JSON003
         public Writer field(String k, long v)    { return key(k).value(v); }
+        //fusa:req REQ-JSON003
         public Writer field(String k, boolean v) { return key(k).value(v); }
 
+        //fusa:req REQ-JSON003
         public Writer fieldIfNonBlank(String k, String v) {
             if (v != null && !v.isBlank()) field(k, v);
             return this;
@@ -76,12 +90,15 @@ public final class Json {
             sb.append('"');
         }
 
+        //fusa:req REQ-JSON004
         public String toString() { return sb.toString(); }
 
+        //fusa:req REQ-JSON004
         public String toPretty() { return prettify(sb.toString()); }
     }
 
     /** Minimal pretty-printer (indent = 2 spaces). */
+    //fusa:req REQ-JSON004
     public static String prettify(String compact) {
         StringBuilder out = new StringBuilder();
         int indent = 0;
@@ -129,12 +146,14 @@ public final class Json {
     // ── Parser ────────────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-JSON005
     public static Map<String, Object> parseObject(String json) {
         Object v = parse(json);
         if (v instanceof Map<?,?> m) return (Map<String, Object>) m;
         throw new JsonParseException("expected JSON object, got " + (v == null ? "null" : v.getClass().getSimpleName()));
     }
 
+    //fusa:req REQ-JSON005
     public static Object parse(String json) {
         if (json == null) throw new JsonParseException("null input");
         return new Parser(json.strip()).parseValue();
@@ -259,6 +278,7 @@ public final class Json {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-JSON006
     public static String str(Map<String, Object> map, String key, String def) {
         Object v = map.get(key);
         if (v instanceof String s) return s;
@@ -267,6 +287,7 @@ public final class Json {
     }
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-JSON006
     public static Map<String, Object> obj(Map<String, Object> map, String key) {
         Object v = map.get(key);
         if (v instanceof Map<?,?> m) return (Map<String, Object>) m;
@@ -274,6 +295,7 @@ public final class Json {
     }
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-JSON006
     public static List<Object> arr(Map<String, Object> map, String key) {
         Object v = map.get(key);
         if (v instanceof List<?> l) return (List<Object>) l;

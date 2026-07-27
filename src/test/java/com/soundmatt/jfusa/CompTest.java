@@ -14,6 +14,7 @@ class CompTest {
 
     @TempDir Path tmp;
 
+    //fusa:test REQ-COMP004
     @Test
     void comp_generate_writesReport() throws Exception {
         Path src = tmp.resolve("src/main/java/Test.java");
@@ -29,6 +30,31 @@ class CompTest {
         assertTrue(Files.exists(tmp.resolve(Comp.COMP_JSON)));
     }
 
+    //fusa:test REQ-COMP002
+    //fusa:test REQ-COMP004
+    @Test
+    void comp_generate_withDalThreshold_writesReport() throws Exception {
+        Path src = tmp.resolve("src/main/java/Dal.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Dal {
+                    public int simple(int x) {
+                        return x + 1;
+                    }
+                }
+                """);
+        assertEquals(4, Comp.thresholdForDal("DAL-A"));
+        assertEquals(20, Comp.thresholdForDal("DAL-D"));
+        assertEquals(Comp.DEFAULT_THRESHOLD, Comp.thresholdForDal("not-a-dal"));
+
+        Comp.generate(tmp, Comp.thresholdForDal("DAL-A"), "DAL-A");
+        String content = Files.readString(tmp.resolve(Comp.COMP_JSON));
+        assertTrue(content.contains("\"dal\""));
+        assertTrue(content.contains("DAL-A"));
+    }
+
+    //fusa:test REQ-COMP001
+    //fusa:test REQ-COMP003
     @Test
     void comp_analyze_detectsLowComplexity() throws Exception {
         Path src = tmp.resolve("src/main/java/Simple.java");
@@ -45,6 +71,7 @@ class CompTest {
                 .forEach(r -> assertTrue(r.complexity() <= 2));
     }
 
+    //fusa:test REQ-COMP005
     @Test
     void comp001_rule_firesOnHighComplexity() throws Exception {
         Comp.activate();

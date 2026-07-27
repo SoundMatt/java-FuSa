@@ -39,12 +39,14 @@ public final class Heartbeat {
         });
     }
 
+    //fusa:req REQ-RT002
     public synchronized void start() {
         if (running.compareAndSet(false, true)) {
             task = scheduler.scheduleAtFixedRate(beat, periodMs, periodMs, TimeUnit.MILLISECONDS);
         }
     }
 
+    //fusa:req REQ-RT002
     public synchronized void stop() {
         if (running.compareAndSet(true, false)) {
             if (task != null) task.cancel(false);

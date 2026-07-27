@@ -10,6 +10,7 @@ public final class TextRenderer {
 
     private TextRenderer() {}
 
+    //fusa:req REQ-REPORT005
     public static String render(Report r) {
         boolean noColor = System.getenv("NO_COLOR") != null || System.getProperty("jfusa.nocolor") != null;
         StringBuilder sb = new StringBuilder();

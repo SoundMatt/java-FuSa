@@ -34,6 +34,8 @@ class ReportTest {
         return new Engine(reg);
     }
 
+    //fusa:test REQ-REPORT001
+    //fusa:test REQ-REPORT005
     @Test
     void textRender_containsFindingMessages() throws Exception {
         Engine eng = engineWithFindings();
@@ -44,6 +46,8 @@ class ReportTest {
         assertTrue(text.contains("a warning finding"));
     }
 
+    //fusa:test REQ-REPORT001
+    //fusa:test REQ-REPORT005
     @Test
     void jsonRender_isValidJson() throws Exception {
         Engine eng = engineWithFindings();
@@ -55,6 +59,8 @@ class ReportTest {
         assertTrue(json.startsWith("{"));
     }
 
+    //fusa:test REQ-REPORT001
+    //fusa:test REQ-REPORT005
     @Test
     void htmlRender_containsHtmlStructure() throws Exception {
         Engine eng = engineWithFindings();
@@ -65,6 +71,8 @@ class ReportTest {
         assertTrue(html.contains("an error finding"));
     }
 
+    //fusa:test REQ-REPORT001
+    //fusa:test REQ-REPORT005
     @Test
     void sarifRender_hasRequiredFields() throws Exception {
         Engine eng = engineWithFindings();
@@ -76,6 +84,7 @@ class ReportTest {
         assertTrue(sarif.contains("\"runs\""));
     }
 
+    //fusa:test REQ-REPORT002
     @Test
     void reportCounts_matchFindings() throws Exception {
         Engine eng = engineWithFindings();
@@ -86,6 +95,7 @@ class ReportTest {
         assertEquals(1, report.infos().size());
     }
 
+    //fusa:test REQ-REPORT003
     @Test
     void summary_containsCounts() throws Exception {
         Engine eng = engineWithFindings();
@@ -94,5 +104,16 @@ class ReportTest {
         String summary = report.summary();
         assertTrue(summary.contains("1 error"));
         assertTrue(summary.contains("1 warning"));
+    }
+
+    //fusa:test REQ-REPORT004
+    @Test
+    void categoryBreakdown_countsFindingsPerCategory() throws Exception {
+        Engine eng = engineWithFindings();
+        Engine.Result result = eng.run(tmp, Config.defaultConfig("rpt-test"));
+        Report report = new Report(result, Config.defaultConfig("rpt-test"));
+        var breakdown = report.categoryBreakdown();
+        long total = breakdown.values().stream().mapToLong(Long::longValue).sum();
+        assertEquals(3, total);
     }
 }

@@ -18,9 +18,11 @@ public final class ProblemReport {
 
     private ProblemReport() {}
 
+    //fusa:req REQ-PR001
     public record Entry(String id, String title, String severity, String status,
                         String resolution, String timestamp) {}
 
+    //fusa:req REQ-PR001
     public static void init(Path root) throws IOException {
         if (Files.exists(root.resolve(PR_FILE))) { System.out.println("Problem report log already exists."); return; }
         var w = new Json.Writer();
@@ -38,6 +40,7 @@ public final class ProblemReport {
         System.out.println("Problem report log created: " + PR_FILE);
     }
 
+    //fusa:req REQ-PR002
     public static void add(Path root, String id, String title, String severity) throws IOException {
         List<Entry> entries = load(root);
         entries.add(new Entry(id, title, severity, "open", "", Instant.now().toString()));
@@ -45,6 +48,7 @@ public final class ProblemReport {
         System.out.println("Problem report " + id + " added.");
     }
 
+    //fusa:req REQ-PR003
     public static void close(Path root, String id, String resolution) throws IOException {
         List<Entry> entries = load(root);
         List<Entry> updated = new ArrayList<>();
@@ -57,6 +61,7 @@ public final class ProblemReport {
     }
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-PR004
     public static List<Entry> load(Path root) throws IOException {
         Path f = root.resolve(PR_FILE);
         if (!Files.exists(f)) return new ArrayList<>();
@@ -76,6 +81,7 @@ public final class ProblemReport {
         } catch (Exception e) { return new ArrayList<>(); }
     }
 
+    //fusa:req REQ-PR004
     public static void save(Path root, List<Entry> entries) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
@@ -99,6 +105,7 @@ public final class ProblemReport {
         Files.writeString(root.resolve(PR_FILE), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-PR005
     public static String list(Path root) throws IOException {
         List<Entry> entries = load(root);
         if (entries.isEmpty()) return "No problem reports.\n";

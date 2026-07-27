@@ -39,6 +39,7 @@ public final class Sas {
 
     private Sas() {}
 
+    //fusa:req REQ-SAS001
     public static void generate(Path root) throws IOException {
         var sb = new StringBuilder();
         sb.append("# Software Accomplishment Summary\n\n");

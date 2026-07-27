@@ -17,6 +17,8 @@ class EngineTest {
 
     @TempDir Path tmp;
 
+    //fusa:test REQ-ENG009
+    //fusa:test REQ-ENG010
     @Test
     void defaultRegistry_hasBuiltinRules() {
         // Trigger class loading
@@ -26,6 +28,30 @@ class EngineTest {
         assertTrue(rules.stream().anyMatch(r -> r.id().equals("FUSA001")));
         assertTrue(rules.stream().anyMatch(r -> r.id().equals("FUSA002")));
         assertTrue(rules.stream().anyMatch(r -> r.id().startsWith("LINT")));
+    }
+
+    //fusa:test REQ-ENG011
+    @Test
+    void resultEmpty_hasNoFindingsOrErrors() {
+        Engine.Result result = Engine.Result.empty();
+        assertTrue(result.findings().isEmpty());
+        assertTrue(result.errors().isEmpty());
+        assertFalse(result.hasErrors());
+        assertFalse(result.hasWarnings());
+    }
+
+    //fusa:test REQ-ENG012
+    @Test
+    void registryGet_returnsRegisteredRuleById_orNullWhenAbsent() {
+        Registry reg = new Registry();
+        Rule r = new Rule() {
+            public String id() { return "GET001"; }
+            public String description() { return "get test"; }
+            public List<FuSa.Finding> run(Path root, Config cfg) { return List.of(); }
+        };
+        reg.mustRegister(r);
+        assertSame(r, reg.get("GET001"));
+        assertNull(reg.get("MISSING001"));
     }
 
     @Test

@@ -246,6 +246,474 @@
       "title": "Hara.deriveAsil() must derive an ASIL rating from Severity/Exposure/Controllability per ISO 26262-3 Table 4",
       "status": "implemented",
       "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-NF002",
+      "title": "Severity.rank() must order INFO < WARNING < ERROR for gate comparisons",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-NF003",
+      "title": "Category.jsonValue() must serialize enum constants to their §4 JSON string form",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-NF004",
+      "title": "Finding.Builder must support fluent construction of category/standard/clause/remediation before build()",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-NF005",
+      "title": "Finding.Builder must support overriding disposition and fingerprint before build()",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-NF006",
+      "title": "normalizeMessage() must collapse digit runs and whitespace for stable fingerprinting",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-JSON001",
+      "title": "Json.Writer must emit well-formed object/array/key structural tokens with correct comma placement",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-JSON002",
+      "title": "Json.Writer must encode String/long/double/boolean/null scalar values with correct escaping",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-JSON003",
+      "title": "Json.Writer field()/fieldIfNonBlank() convenience methods must combine key+value and skip blank values",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-JSON004",
+      "title": "Json.Writer toString()/toPretty()/prettify() must render compact and indented JSON output",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-JSON005",
+      "title": "Json.parse()/parseObject() must decode a JSON document into plain Java objects",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-JSON006",
+      "title": "Json.str()/obj()/arr() helpers must extract typed values from a parsed map with safe defaults",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-CFG010",
+      "title": "Config accessor methods must expose configVersion/version/project/rules/report, with version() aliasing configVersion()",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-CFG011",
+      "title": "RulesConfig/ReportConfig sub-schemas must support a zero-arg default constructor",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-CFG012",
+      "title": "Config.save() must persist the §1.2.1 v1.10 schema to .fusa.json",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-ENG009",
+      "title": "Engine.mustRegister() must delegate registration to the underlying Registry",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG010",
+      "title": "Engine.rules() must delegate to the underlying Registry and return the sorted rule list",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG011",
+      "title": "Engine.Result.empty() must return a Result with no findings and no errors",
+      "status": "implemented",
+      "file": "engine/Engine.java"
+    },
+    {
+      "id": "REQ-ENG012",
+      "title": "Registry.get() must return the registered rule for a known id, or null when absent",
+      "status": "implemented",
+      "file": "engine/Registry.java"
+    },
+    {
+      "id": "REQ-REPORT001",
+      "title": "Report.render() must dispatch to the text/json/html/sarif renderer for the requested format",
+      "status": "implemented",
+      "file": "report/Report.java"
+    },
+    {
+      "id": "REQ-REPORT002",
+      "title": "Report.errors()/warnings()/infos() must partition findings by severity",
+      "status": "implemented",
+      "file": "report/Report.java"
+    },
+    {
+      "id": "REQ-REPORT003",
+      "title": "Report.summary() must produce a one-line error/warning/info count summary",
+      "status": "implemented",
+      "file": "report/Report.java"
+    },
+    {
+      "id": "REQ-REPORT004",
+      "title": "Report.categoryBreakdown() must count findings grouped by category",
+      "status": "implemented",
+      "file": "report/Report.java"
+    },
+    {
+      "id": "REQ-REPORT005",
+      "title": "Each format renderer (Text/Json/Html/Sarif) must render a Report into its target format",
+      "status": "implemented",
+      "file": "report/TextRenderer.java"
+    },
+    {
+      "id": "REQ-QUALIFY004",
+      "title": "Qualify.runSelfTests() must produce a fixed suite of TC-* self-test cases with pass/fail results",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-QUALIFY005",
+      "title": "Qualify.generateReport() 2-arg overload must write qualify-report.json with default (empty) options",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-VULN001",
+      "title": "Dependency/VulnEntry value types must model a parsed pom.xml dependency and a matched CVE finding",
+      "status": "implemented",
+      "file": "vuln/Vuln.java"
+    },
+    {
+      "id": "REQ-VULN002",
+      "title": "Vuln.parsePom() must extract groupId/artifactId/version from pom.xml <dependency> blocks",
+      "status": "implemented",
+      "file": "vuln/Vuln.java"
+    },
+    {
+      "id": "REQ-VULN003",
+      "title": "Vuln.scan() must parse pom.xml, check known CVEs, and write vuln.json",
+      "status": "implemented",
+      "file": "vuln/Vuln.java"
+    },
+    {
+      "id": "REQ-VULN004",
+      "title": "Vuln.checkKnownVulns() must match dependencies against the known-CVE table by artifactId+version",
+      "status": "implemented",
+      "file": "vuln/Vuln.java"
+    },
+    {
+      "id": "REQ-VULN005",
+      "title": "VULN001 rule must fire when vuln.json is absent and be silent once it is present",
+      "status": "implemented",
+      "file": "vuln/Vuln.java"
+    },
+    {
+      "id": "REQ-PR001",
+      "title": "ProblemReport.init() must create an empty problem-report log (DO-178C §11.17)",
+      "status": "implemented",
+      "file": "pr/ProblemReport.java"
+    },
+    {
+      "id": "REQ-PR002",
+      "title": "ProblemReport.add() must append a new open problem-report entry",
+      "status": "implemented",
+      "file": "pr/ProblemReport.java"
+    },
+    {
+      "id": "REQ-PR003",
+      "title": "ProblemReport.close() must mark a matching entry closed with its resolution",
+      "status": "implemented",
+      "file": "pr/ProblemReport.java"
+    },
+    {
+      "id": "REQ-PR004",
+      "title": "ProblemReport.load()/save() must round-trip problem-report entries through .fusa-problems.json",
+      "status": "implemented",
+      "file": "pr/ProblemReport.java"
+    },
+    {
+      "id": "REQ-PR005",
+      "title": "ProblemReport.list() must render a tabular summary of logged problem reports",
+      "status": "implemented",
+      "file": "pr/ProblemReport.java"
+    },
+    {
+      "id": "REQ-COMP001",
+      "title": "MethodComplexity must record a per-method McCabe cyclomatic complexity measurement",
+      "status": "implemented",
+      "file": "comp/Comp.java"
+    },
+    {
+      "id": "REQ-COMP002",
+      "title": "Comp.thresholdForDal() must map DAL-A/B/C/D to their §9.2 complexity thresholds",
+      "status": "implemented",
+      "file": "comp/Comp.java"
+    },
+    {
+      "id": "REQ-COMP003",
+      "title": "Comp.analyze() must compute cyclomatic complexity for each method in the project's Java sources",
+      "status": "implemented",
+      "file": "comp/Comp.java"
+    },
+    {
+      "id": "REQ-COMP004",
+      "title": "Comp.generate() must write comp-report.json with the §9.2/§3.1 canonical shape, with or without a DAL",
+      "status": "implemented",
+      "file": "comp/Comp.java"
+    },
+    {
+      "id": "REQ-COMP005",
+      "title": "COMP001 rule must flag methods whose complexity exceeds the configured threshold",
+      "status": "implemented",
+      "file": "comp/Comp.java"
+    },
+    {
+      "id": "REQ-SLSA001",
+      "title": "Slsa.buildObjectives() must derive per-level SLSA objective satisfaction status from project evidence",
+      "status": "implemented",
+      "file": "slsa/Slsa.java"
+    },
+    {
+      "id": "REQ-SLSA002",
+      "title": "Slsa.generateGapReport() must emit standard='slsa' kind='gap-report' in text or json format",
+      "status": "implemented",
+      "file": "slsa/Slsa.java"
+    },
+    {
+      "id": "REQ-SLSA003",
+      "title": "SLSA001 rule must fire when provenance.json is absent and be silent once present",
+      "status": "implemented",
+      "file": "slsa/Slsa.java"
+    },
+    {
+      "id": "REQ-SLSA004",
+      "title": "SLSA002 rule must fire when no CODEOWNERS file is present and be silent once present",
+      "status": "implemented",
+      "file": "slsa/Slsa.java"
+    },
+    {
+      "id": "REQ-SLSA005",
+      "title": "SLSA003 rule must fire when sbom.json is absent and be silent once present",
+      "status": "implemented",
+      "file": "slsa/Slsa.java"
+    },
+    {
+      "id": "REQ-RT004",
+      "title": "SafeStateGuard must expose systemId/reason/enteredAt for post-incident diagnosis",
+      "status": "implemented",
+      "file": "runtime/SafeStateGuard.java"
+    },
+    {
+      "id": "REQ-RELEASE003",
+      "title": "Release.generateSBOM() must write sbom.json in x-FuSa SBOM v1 format",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-RELEASE004",
+      "title": "Release.generateProvenance() must write provenance.json in x-FuSa provenance v1 format",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-RELEASE005",
+      "title": "Release.run()/generateManifest() must produce SBOM+provenance and a SHA-256 artifact manifest",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-RELEASE006",
+      "title": "Release.sha256file() must compute a deterministic SHA-256 digest of a file's contents",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-ISO26262001",
+      "title": "Iso26262 gap-report command must build, render (text), and write (json) ISO 26262 Part 6 objective status",
+      "status": "implemented",
+      "file": "iso26262/Iso26262.java"
+    },
+    {
+      "id": "REQ-IEC61508001",
+      "title": "Iec61508 gap-report command must build, render (text), and write (json) IEC 61508 objective status",
+      "status": "implemented",
+      "file": "iec61508/Iec61508.java"
+    },
+    {
+      "id": "REQ-ISO21434001",
+      "title": "Iso21434 gap-report command must build, render (text), and write (json) ISO 21434 objective status",
+      "status": "implemented",
+      "file": "iso21434/Iso21434.java"
+    },
+    {
+      "id": "REQ-DO178001",
+      "title": "Do178 gap-report command must build, render (text), and write (json) DO-178C table objective status",
+      "status": "implemented",
+      "file": "do178/Do178.java"
+    },
+    {
+      "id": "REQ-UNECE001",
+      "title": "Unece gap-report command must build, render (text), and write (json) UN R155 threat category coverage",
+      "status": "implemented",
+      "file": "unece/Unece.java"
+    },
+    {
+      "id": "REQ-LINTUTIL001",
+      "title": "LintRules shared scanner utilities (javaFiles/readLines/loc/hasAnnotation) must underpin every lint rule",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-COV002",
+      "title": "Coverage.parse()/CoverageReport must extract statement/branch/method percentages from JaCoCo XML",
+      "status": "implemented",
+      "file": "coverage/Coverage.java"
+    },
+    {
+      "id": "REQ-BADGE001",
+      "title": "Badge.generate()/writeToFile() must render a Shields.io-style SVG status badge from a Report",
+      "status": "implemented",
+      "file": "badge/Badge.java"
+    },
+    {
+      "id": "REQ-BOUNDARY001",
+      "title": "Boundary.buildDependencyGraph()/generate() must derive and render a package dependency graph",
+      "status": "implemented",
+      "file": "boundary/Boundary.java"
+    },
+    {
+      "id": "REQ-COUPLING001",
+      "title": "Coupling.analyze()/generate() must detect data/control coupling and write coupling-report.json",
+      "status": "implemented",
+      "file": "coupling/Coupling.java"
+    },
+    {
+      "id": "REQ-HOOKS001",
+      "title": "Hooks.install()/remove() must manage the jfusa-managed git pre-commit hook",
+      "status": "implemented",
+      "file": "hooks/Hooks.java"
+    },
+    {
+      "id": "REQ-DISPOSITION001",
+      "title": "Disposition.load()/save()/list() must round-trip and render finding waiver decisions",
+      "status": "implemented",
+      "file": "disposition/Disposition.java"
+    },
+    {
+      "id": "REQ-FMEA001",
+      "title": "Fmea.derive()/generate() must derive failure modes from public methods and write fmea.json/csv",
+      "status": "implemented",
+      "file": "fmea/Fmea.java"
+    },
+    {
+      "id": "REQ-TEMPLATE001",
+      "title": "Template.generate() must dispatch to the safety-plan/test-evidence/hara/qualification-plan generators",
+      "status": "implemented",
+      "file": "template/Template.java"
+    },
+    {
+      "id": "REQ-VERIFY002",
+      "title": "Verify.run() must record default test evidence via saveEvidence()",
+      "status": "implemented",
+      "file": "verify/Verify.java"
+    },
+    {
+      "id": "REQ-AUDITPACK001",
+      "title": "AuditPack.generate() must bundle evidence artifacts into a hashed audit-pack.zip",
+      "status": "implemented",
+      "file": "auditpack/AuditPack.java"
+    },
+    {
+      "id": "REQ-DIFF001",
+      "title": "Diff.compare()/renderText()/DiffResult.hasIntroduced() must classify findings as introduced/resolved/unchanged between two reports",
+      "status": "implemented",
+      "file": "diff/Diff.java"
+    },
+    {
+      "id": "REQ-HARA002",
+      "title": "Hara.defaults()/init()/show() must seed, persist, and render the .fusa-hara.json hazard log",
+      "status": "implemented",
+      "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-IEC62443001",
+      "title": "Iec62443.generate() must emit the IEC 62443-4-1 gap-report at a given Security Level",
+      "status": "implemented",
+      "file": "iec62443/Iec62443.java"
+    },
+    {
+      "id": "REQ-IEC62443002",
+      "title": "IEC62443-001 rule must fire when INCIDENT-RESPONSE.md is absent and be silent once present",
+      "status": "implemented",
+      "file": "iec62443/Iec62443.java"
+    },
+    {
+      "id": "REQ-IMPACT001",
+      "title": "Impact.analyze()/generate() must identify requirements/tests affected by a set of changed files",
+      "status": "implemented",
+      "file": "impact/Impact.java"
+    },
+    {
+      "id": "REQ-METRICS001",
+      "title": "Metrics.record()/show() must append and render safety-metric history over time",
+      "status": "implemented",
+      "file": "metrics/Metrics.java"
+    },
+    {
+      "id": "REQ-MISRA001",
+      "title": "Misra.generate()/scan() must scan Java sources against the MISRA Java 2023 rule subset and write misra-report.json",
+      "status": "implemented",
+      "file": "misra/Misra.java"
+    },
+    {
+      "id": "REQ-MISRA002",
+      "title": "MISRA001 rule must flag detected MISRA violations as engine findings",
+      "status": "implemented",
+      "file": "misra/Misra.java"
+    },
+    {
+      "id": "REQ-TARA001",
+      "title": "Tara.defaultThreats()/generate() must seed and write threat analysis and risk assessment artefacts",
+      "status": "implemented",
+      "file": "tara/Tara.java"
+    },
+    {
+      "id": "REQ-SAFETYCASE001",
+      "title": "SafetyCase.generate() must write the structured safety-case argument (md/json/mermaid)",
+      "status": "implemented",
+      "file": "safetycase/SafetyCase.java"
+    },
+    {
+      "id": "REQ-SCI001",
+      "title": "Sci.generate() must write the Software Configuration Index in json or markdown format",
+      "status": "implemented",
+      "file": "sci/Sci.java"
+    },
+    {
+      "id": "REQ-SAS001",
+      "title": "Sas.generate() must write the Software Accomplishment Summary markdown document",
+      "status": "implemented",
+      "file": "sas/Sas.java"
     }
   ]
 }

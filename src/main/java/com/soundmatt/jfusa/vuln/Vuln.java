@@ -37,9 +37,12 @@ public final class Vuln {
     private Vuln() {}
     public static void activate() {}
 
+    //fusa:req REQ-VULN001
     public record Dependency(String groupId, String artifactId, String version) {}
+    //fusa:req REQ-VULN001
     public record VulnEntry(Dependency dep, String cveId, String severity, String description) {}
 
+    //fusa:req REQ-VULN002
     public static List<Dependency> parsePom(Path root) throws IOException {
         Path pom = root.resolve("pom.xml");
         if (!Files.exists(pom)) return List.of();
@@ -58,6 +61,7 @@ public final class Vuln {
         return deps;
     }
 
+    //fusa:req REQ-VULN003
     public static void scan(Path root) throws IOException {
         List<Dependency> deps = parsePom(root);
         // Offline scan against a minimal known-bad list
@@ -70,6 +74,7 @@ public final class Vuln {
         }
     }
 
+    //fusa:req REQ-VULN004
     public static List<VulnEntry> checkKnownVulns(List<Dependency> deps) {
         Map<String, String> knownBad = Map.of(
             "log4j-core:2.14", "CVE-2021-44228:CRITICAL:Log4Shell — RCE via JNDI lookup in log messages",
@@ -119,6 +124,7 @@ public final class Vuln {
         public String id() { return "VULN001"; }
         public String description() { return "Vulnerability scan report (vuln.json) should be present."; }
 
+        //fusa:req REQ-VULN005
         public List<Finding> run(Path root, Config cfg) {
             if (!Files.exists(root.resolve(VULN_JSON))) {
                 return List.of(Finding.builder("VULN001", Severity.INFO,

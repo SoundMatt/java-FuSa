@@ -46,6 +46,7 @@ public final class Watchdog {
     }
 
     /** Start the watchdog timer. */
+    //fusa:req REQ-RT001
     public synchronized void start() {
         lastKickMs.set(System.currentTimeMillis());
         long checkIntervalMs = Math.max(timeoutMs / 4, 50);
@@ -53,11 +54,13 @@ public final class Watchdog {
     }
 
     /** Reset the watchdog timer. Call this from the monitored processing loop. */
+    //fusa:req REQ-RT001
     public void kick() {
         lastKickMs.set(System.currentTimeMillis());
     }
 
     /** Stop the watchdog. */
+    //fusa:req REQ-RT001
     public synchronized void stop() {
         if (task != null) task.cancel(false);
         scheduler.shutdown();

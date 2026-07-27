@@ -20,6 +20,7 @@ public final class Disposition {
                         String addedBy, String timestamp) {}
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-DISPOSITION001
     public static List<Entry> load(Path root) throws IOException {
         Path f = root.resolve(DISPOSITIONS_FILE);
         if (!Files.exists(f)) return new ArrayList<>();
@@ -46,6 +47,7 @@ public final class Disposition {
         System.out.println("Disposition added for " + ruleId);
     }
 
+    //fusa:req REQ-DISPOSITION001
     public static void save(Path root, List<Entry> entries) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
@@ -68,6 +70,7 @@ public final class Disposition {
         Files.writeString(root.resolve(DISPOSITIONS_FILE), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-DISPOSITION001
     public static String list(Path root) throws IOException {
         List<Entry> entries = load(root);
         if (entries.isEmpty()) return "No dispositions recorded.\n";

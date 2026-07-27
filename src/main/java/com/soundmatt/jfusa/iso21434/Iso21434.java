@@ -16,8 +16,10 @@ public final class Iso21434 {
 
     private Iso21434() {}
 
+    //fusa:req REQ-ISO21434001
     public record GapItem(String clause, String title, String status, String notes) {}
 
+    //fusa:req REQ-ISO21434001
     public static List<GapItem> buildGapReport(String cal) {
         return List.of(
             gap("5",   "Cybersecurity governance",             "Partially Met", "SECURITY.md provides policy; formal governance framework not enforced"),
@@ -56,6 +58,7 @@ public final class Iso21434 {
                 "TARA + cyber rules; additional pen-test required for CAL-3/4");
     }
 
+    //fusa:req REQ-ISO21434001
     public static void generate(Path root, String cal) throws IOException {
         List<GapItem> items = buildGapReport(cal);
         var w = new Json.Writer();
@@ -94,6 +97,7 @@ public final class Iso21434 {
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-ISO21434001
     public static String renderText(String cal) {
         var sb = new StringBuilder();
         sb.append("ISO 21434 Gap Report — ").append(cal).append('\n');

@@ -19,9 +19,11 @@ public final class Impact {
 
     private Impact() {}
 
+    //fusa:req REQ-IMPACT001
     public record ImpactResult(List<String> changedFiles, List<String> affectedReqs,
                                List<String> affectedTests, List<String> summary) {}
 
+    //fusa:req REQ-IMPACT001
     public static ImpactResult analyze(Path root, List<String> changedFiles) throws IOException {
         List<String> affectedReqs = new ArrayList<>();
         List<String> affectedTests = new ArrayList<>();
@@ -60,6 +62,7 @@ public final class Impact {
         return new ImpactResult(changedFiles, affectedReqs, affectedTests, summary);
     }
 
+    //fusa:req REQ-IMPACT001
     public static void generate(Path root, List<String> changedFiles) throws IOException {
         ImpactResult r = analyze(root, changedFiles);
         var w = new Json.Writer();

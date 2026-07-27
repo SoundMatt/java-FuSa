@@ -40,15 +40,19 @@ public final class Engine {
     public Engine() { this(new Registry()); }
 
     /** Delegate registration so rule packages can call Engine.DEFAULT.mustRegister(). */
+    //fusa:req REQ-ENG009
     public void mustRegister(Rule r) { registry.mustRegister(r); }
 
     /** Return sorted rule list from the underlying registry. */
+    //fusa:req REQ-ENG010
     public List<Rule> rules() { return registry.rules(); }
 
     // ── Result ────────────────────────────────────────────────────────────────
 
+    //fusa:req REQ-ENG003
     public record Result(List<Finding> findings, List<String> errors) {
 
+        //fusa:req REQ-ENG011
         public static Result empty() { return new Result(List.of(), List.of()); }
 
         //fusa:req REQ-ENG003
@@ -56,6 +60,7 @@ public final class Engine {
             return findings.stream().anyMatch(f -> f.severity() == Severity.ERROR);
         }
 
+        //fusa:req REQ-ENG003
         public boolean hasWarnings() {
             return findings.stream().anyMatch(f -> f.severity() == Severity.WARNING);
         }

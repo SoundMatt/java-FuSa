@@ -36,6 +36,7 @@ public final class AuditPack {
 
     private AuditPack() {}
 
+    //fusa:req REQ-AUDITPACK001
     public static void generate(Path root) throws IOException {
         List<String> included = new ArrayList<>();
         List<Path> toBundle = new ArrayList<>();

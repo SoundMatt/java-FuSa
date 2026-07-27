@@ -10,6 +10,7 @@ public final class HtmlRenderer {
 
     private HtmlRenderer() {}
 
+    //fusa:req REQ-REPORT005
     public static String render(Report r) {
         var sb = new StringBuilder();
         sb.append("""

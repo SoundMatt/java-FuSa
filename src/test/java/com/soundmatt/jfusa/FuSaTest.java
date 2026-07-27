@@ -5,12 +5,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FuSaTest {
 
+    //fusa:test REQ-NF002
     @Test
     void severityRank() {
         assertTrue(FuSa.Severity.ERROR.rank() > FuSa.Severity.WARNING.rank());
         assertTrue(FuSa.Severity.WARNING.rank() > FuSa.Severity.INFO.rank());
     }
 
+    //fusa:test REQ-NF003
     @Test
     void categoryJsonValue() {
         assertEquals("supply-chain", FuSa.Category.SUPPLY_CHAIN.jsonValue());
@@ -26,6 +28,7 @@ class FuSaTest {
         assertEquals(FuSa.Category.other,     FuSa.deriveCategory("UNKNOWN42"));
     }
 
+    //fusa:test REQ-NF006
     @Test
     void normalizeMessage() {
         assertEquals("line # has # items",
@@ -67,6 +70,7 @@ class FuSaTest {
         assertEquals(a.fingerprint(), b.fingerprint());
     }
 
+    //fusa:test REQ-NF004
     @Test
     void findingBuilder_setsFields() {
         FuSa.Finding f = FuSa.Finding.builder("ANA001", FuSa.Severity.ERROR,
@@ -85,6 +89,19 @@ class FuSaTest {
         assertEquals("7.4.3", f.clause());
         assertEquals("add null guard", f.remediation());
         assertFalse(f.fingerprint().isBlank());
+    }
+
+    //fusa:test REQ-NF005
+    @Test
+    void findingBuilder_setsDispositionAndFingerprint() {
+        FuSa.Finding f = FuSa.Finding.builder("ANA001", FuSa.Severity.ERROR,
+                "chained call without null check",
+                new FuSa.Location("Bar.java", 5))
+                .disposition(FuSa.Disposition.accepted)
+                .fingerprint("custom-fingerprint")
+                .build();
+        assertEquals(FuSa.Disposition.accepted, f.disposition());
+        assertEquals("custom-fingerprint", f.fingerprint());
     }
 
     @Test

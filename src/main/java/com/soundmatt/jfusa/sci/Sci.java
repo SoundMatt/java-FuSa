@@ -27,6 +27,7 @@ public final class Sci {
 
     private Sci() {}
 
+    //fusa:req REQ-SCI001
     public static void generate(Path root, String format) throws IOException {
         if ("markdown".equals(format)) generateMarkdown(root);
         else generateJson(root);

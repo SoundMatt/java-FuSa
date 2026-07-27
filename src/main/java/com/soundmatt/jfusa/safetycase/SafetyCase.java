@@ -21,6 +21,7 @@ public final class SafetyCase {
 
     private SafetyCase() {}
 
+    //fusa:req REQ-SAFETYCASE001
     public static void generate(Path root, Config cfg) throws IOException {
         String project = cfg != null ? cfg.project().name() : "unknown";
         String standard = cfg != null ? cfg.project().standard().name() : "generic";

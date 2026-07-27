@@ -30,6 +30,7 @@ public final class Fmea {
             String id, String component, String method, String failureMode,
             String effect, String severity, String occurrence, String detection, String rpn) {}
 
+    //fusa:req REQ-FMEA001
     public static List<FmeaEntry> derive(Path root, com.soundmatt.jfusa.config.Config cfg) throws IOException {
         List<FmeaEntry> entries = new ArrayList<>();
         int id = 1;
@@ -72,6 +73,7 @@ public final class Fmea {
         };
     }
 
+    //fusa:req REQ-FMEA001
     public static void generate(Path root, com.soundmatt.jfusa.config.Config cfg) throws IOException {
         List<FmeaEntry> entries = derive(root, cfg);
         writeJson(root, entries);
