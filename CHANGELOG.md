@@ -6,6 +6,29 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.6 — 2026-07-27
+
+### Fixed
+
+- **Orphan release cleanup** (#21): a no-prefix `0.4.3` release existed while
+  tag `v0.4.3` (same commit, `7652feb`) had no corresponding GitHub release.
+  Created a proper `v0.4.3` release reusing the original body, deleted the
+  stray `0.4.3` release, and removed the redundant bare `0.4.3` tag (`v0.4.3`
+  remains as the canonical tag).
+- **`SPEC_VERSION` build-arg never actually reached published images** (#21):
+  `.github/workflows/docker-publish.yml`'s `build-args` only passed `VERSION`,
+  `GIT_COMMIT`, and `BUILD_DATE` — `SPEC_VERSION` was silently defaulted by
+  the `Dockerfile`, so every published image's OCI labels were stamped with a
+  stale spec version regardless of the actual release. Added
+  `SPEC_VERSION=1.10.12` to the workflow's build-args, and bumped the
+  `Dockerfile`'s own stale `ARG` defaults (`VERSION=0.3.0` → `0.4.6`,
+  `SPEC_VERSION=1.10.4` → `1.10.12`) so a local `docker build .` per the
+  README's Quick Start also gets correct values.
+- **README had 3 stale "v1.9" spec references** (#21) while `FuSa.SPEC_VERSION`
+  has been `1.10.12` since v0.4.2 and `Config.java` already targets "x-FuSa
+  spec v1.10 §1.2.1": the spec badge, the intro prose, and the example
+  `.fusa.json`'s `"schema"` field all now read v1.10.
+
 ## v0.4.5 — 2026-07-27
 
 ### Tests / Requirements
