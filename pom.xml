@@ -6,11 +6,11 @@
 
   <groupId>com.soundmatt</groupId>
   <artifactId>java-fusa</artifactId>
-  <version>0.4.1</version>
+  <version>0.4.2</version>
   <packaging>jar</packaging>
 
   <name>java-FuSa</name>
-  <description>Functional safety enablement toolkit for Java projects (x-FuSa spec 1.10.4)</description>
+  <description>Functional safety enablement toolkit for Java projects (x-FuSa spec 1.10.12)</description>
   <url>https://github.com/SoundMatt/java-FuSa</url>
 
   <licenses>

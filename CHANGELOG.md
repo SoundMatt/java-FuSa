@@ -6,6 +6,25 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.2 — 2026-07-27
+
+### Fixed
+
+- **SPEC_VERSION**: Updated `FuSa.SPEC_VERSION` from `"1.10.4"` to `"1.10.12"` to match the
+  current x-FuSa spec; also updated `pom.xml` description accordingly.
+
+- **P1 test-coverage (0% inner classes)**: Added `GapCoverageTest.java` with 47 tests
+  targeting previously uncovered types: `FuSa.InvalidConfigException`, `Coupling.CouplingEntry`,
+  `Coverage.CoverageReport`, `Fmea.FmeaEntry`, `Json.JsonParseException`, `Verify.Evidence`.
+
+- **P2 test-coverage (low-coverage classes)**: Expanded coverage for `Coverage.RuleCoverageGate`
+  (gate-fires/no-fires scenarios), `Template` (all four template kinds), `CyberRules.RuleCWE352CSRF`
+  (Servlet/Controller with and without CSRF token), `CyberRules.RuleCWE611XXE` (XXE present/absent/
+  fusa:unsafe annotation), `Boundary` (dependency graph, Mermaid/DOT output, stdlib exclusion),
+  and `Hooks` (install/remove lifecycle).
+
+---
+
 ## v0.4.1 — 2026-07-26
 
 ### Fixed
