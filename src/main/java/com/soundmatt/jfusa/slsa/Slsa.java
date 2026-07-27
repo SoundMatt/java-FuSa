@@ -37,9 +37,11 @@ public final class Slsa {
 
     // ── Gap-report command (§9.3 canonical) ─────────────────────────────────
 
+    //fusa:req REQ-SLSA001
     public record SlsaObjective(String id, String title, String clause,
                                  String status, List<String> evidence, List<String> findings) {}
 
+    //fusa:req REQ-SLSA001
     public static List<SlsaObjective> buildObjectives(Path root, String level) {
         List<SlsaObjective> objs = new ArrayList<>();
         int levelNum = levelNum(level);
@@ -94,6 +96,7 @@ public final class Slsa {
         };
     }
 
+    //fusa:req REQ-SLSA002
     public static void generateGapReport(Path root, String level, String format) throws IOException {
         List<SlsaObjective> objs = buildObjectives(root, level);
         long satisfied = objs.stream().filter(o -> "satisfied".equals(o.status())).count();
@@ -145,6 +148,7 @@ public final class Slsa {
         public String id() { return "SLSA001"; }
         public String description() { return "Build provenance must be present (SLSA L2)."; }
 
+        //fusa:req REQ-SLSA003
         public List<Finding> run(Path root, Config cfg) {
             if (!Files.exists(root.resolve(com.soundmatt.jfusa.release.Release.PROVENANCE_FILE))) {
                 return List.of(Finding.builder("SLSA001", Severity.WARNING,
@@ -162,6 +166,7 @@ public final class Slsa {
         public String id() { return "SLSA002"; }
         public String description() { return "CODEOWNERS file should be present (SLSA L3 review requirement)."; }
 
+        //fusa:req REQ-SLSA004
         public List<Finding> run(Path root, Config cfg) {
             for (String p : List.of("CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS")) {
                 if (Files.exists(root.resolve(p))) return List.of();
@@ -179,6 +184,7 @@ public final class Slsa {
         public String id() { return "SLSA003"; }
         public String description() { return "SBOM must be present (SLSA L2 + ISO 21434 supply chain)."; }
 
+        //fusa:req REQ-SLSA005
         public List<Finding> run(Path root, Config cfg) {
             if (!Files.exists(root.resolve(com.soundmatt.jfusa.release.Release.SBOM_FILE))) {
                 return List.of(Finding.builder("SLSA003", Severity.WARNING,

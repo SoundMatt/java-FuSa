@@ -12,6 +12,7 @@ class DiffTest {
 
     @TempDir Path tmp;
 
+    //fusa:test REQ-DIFF001
     @Test
     void diff_identical_reports_noChanges() throws Exception {
         String json = buildReport("LINT001", "return null without annotation", "Foo.java");
@@ -23,6 +24,7 @@ class DiffTest {
         assertFalse(r.unchanged().isEmpty(), "Unchanged should contain the finding");
     }
 
+    //fusa:test REQ-DIFF001
     @Test
     void diff_detects_introduced_finding() throws Exception {
         String empty = "{\"schema\":\"x-fusa-1.9\",\"findings\":[]}";
@@ -34,6 +36,7 @@ class DiffTest {
         assertTrue(r.resolved().isEmpty());
     }
 
+    //fusa:test REQ-DIFF001
     @Test
     void diff_detects_resolved_finding() throws Exception {
         String withFinding = buildReport("LINT001", "return null", "Foo.java");
@@ -45,6 +48,7 @@ class DiffTest {
         assertFalse(r.resolved().isEmpty(), "Should detect resolved finding");
     }
 
+    //fusa:test REQ-DIFF001
     @Test
     void diff_renderText_containsSummary() throws Exception {
         String empty = "{\"schema\":\"x-fusa-1.9\",\"findings\":[]}";
@@ -57,6 +61,7 @@ class DiffTest {
         assertTrue(text.contains("Resolved"));
     }
 
+    //fusa:test REQ-DIFF001
     @Test
     void diff_hasIntroduced_false_whenEmpty() throws Exception {
         String empty = "{\"schema\":\"x-fusa-1.9\",\"findings\":[]}";

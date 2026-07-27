@@ -50,6 +50,7 @@ public final class Misra {
 
     record MisraRule(String id, String description, Pattern pattern) {}
 
+    //fusa:req REQ-MISRA001
     public static void generate(Path root) throws IOException {
         List<Object[]> hits = scan(root);
         var w = new Json.Writer();
@@ -75,6 +76,7 @@ public final class Misra {
         System.out.println("MISRA report: " + hits.size() + " finding(s) written to " + MISRA_JSON);
     }
 
+    //fusa:req REQ-MISRA001
     public static List<Object[]> scan(Path root) throws IOException {
         List<Path> files = javaFiles(root);
         List<Object[]> hits = new ArrayList<>();
@@ -105,6 +107,7 @@ public final class Misra {
         public String id() { return "MISRA001"; }
         public String description() { return "MISRA Java alignment check."; }
 
+        //fusa:req REQ-MISRA002
         public List<Finding> run(Path root, Config cfg) throws IOException {
             List<Object[]> hits = scan(root);
             List<Finding> out = new ArrayList<>();

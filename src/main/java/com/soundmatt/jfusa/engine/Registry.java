@@ -40,5 +40,7 @@ public final class Registry {
         return Collections.unmodifiableList(out);
     }
 
+    /** Returns the registered rule with the given id, or {@code null} if none is registered. */
+    //fusa:req REQ-ENG012
     public Rule get(String id) { return index.get(id); }
 }

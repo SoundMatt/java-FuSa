@@ -213,6 +213,7 @@ class Spec11ConformanceTest {
 
     // ── Gap-report kind for all 7 standards ───────────────────────────────────
 
+    //fusa:test REQ-ISO26262001
     @Test
     void iso26262_gapReport_kindIsGapReport() throws Exception {
         Iso26262.generate(tmp, "ASIL-B");
@@ -221,6 +222,7 @@ class Spec11ConformanceTest {
         assertTrue(content.contains("\"iso26262\""), "iso26262 must have standard='iso26262'");
     }
 
+    //fusa:test REQ-IEC61508001
     @Test
     void iec61508_gapReport_kindIsGapReport() throws Exception {
         Iec61508.generate(tmp, "SIL-2");
@@ -228,6 +230,7 @@ class Spec11ConformanceTest {
         assertTrue(content.contains("\"gap-report\""), "iec61508 must emit kind='gap-report'");
     }
 
+    //fusa:test REQ-ISO21434001
     @Test
     void iso21434_gapReport_kindIsGapReport() throws Exception {
         Iso21434.generate(tmp, "CAL-2");
@@ -235,6 +238,7 @@ class Spec11ConformanceTest {
         assertTrue(content.contains("\"gap-report\""), "iso21434 must emit kind='gap-report'");
     }
 
+    //fusa:test REQ-DO178001
     @Test
     void do178_gapReport_kindIsGapReport() throws Exception {
         Do178.generate(tmp, "DAL-B");
@@ -242,6 +246,7 @@ class Spec11ConformanceTest {
         assertTrue(content.contains("\"gap-report\""), "do178 must emit kind='gap-report'");
     }
 
+    //fusa:test REQ-IEC62443001
     @Test
     void iec62443_gapReport_kindIsGapReport() throws Exception {
         Iec62443.generate(tmp, "SL-2");
@@ -250,6 +255,7 @@ class Spec11ConformanceTest {
         assertTrue(content.contains("\"iec62443\""), "iec62443 must have standard='iec62443'");
     }
 
+    //fusa:test REQ-UNECE001
     @Test
     void unece_gapReport_kindIsGapReport() throws Exception {
         Unece.generate(tmp);
@@ -257,6 +263,8 @@ class Spec11ConformanceTest {
         assertTrue(content.contains("\"gap-report\""), "unece must emit kind='gap-report'");
     }
 
+    //fusa:test REQ-SLSA001
+    //fusa:test REQ-SLSA002
     @Test
     void slsa_gapReport_standardIdIsSlsa() throws Exception {
         Slsa.generateGapReport(tmp, "L2", "json");

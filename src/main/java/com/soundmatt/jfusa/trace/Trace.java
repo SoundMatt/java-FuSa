@@ -62,6 +62,7 @@ public final class Trace {
 
     // ── Annotation scanning ───────────────────────────────────────────────────
 
+    //fusa:req REQ-TRACE004
     public record Annotation(String reqId, String file, int line, String type) {}
 
     /**

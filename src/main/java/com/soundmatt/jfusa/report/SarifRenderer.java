@@ -9,6 +9,7 @@ public final class SarifRenderer {
 
     private SarifRenderer() {}
 
+    //fusa:req REQ-REPORT005
     public static String render(Report r) {
         var w = new Json.Writer();
         w.objectStart();

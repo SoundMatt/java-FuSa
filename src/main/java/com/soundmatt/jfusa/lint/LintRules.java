@@ -41,6 +41,7 @@ public final class LintRules {
 
     // ── Shared scanner utilities ──────────────────────────────────────────────
 
+    //fusa:req REQ-LINTUTIL001
     public static List<Path> javaFiles(Path root, Config cfg) throws IOException {
         List<Path> out = new ArrayList<>();
         if (!Files.isDirectory(root)) return out;
@@ -57,14 +58,17 @@ public final class LintRules {
         return false; // honour cfg.rules().exclude patterns if needed
     }
 
+    //fusa:req REQ-LINTUTIL001
     public static List<String> readLines(Path f) throws IOException {
         return Files.readAllLines(f, java.nio.charset.StandardCharsets.UTF_8);
     }
 
+    //fusa:req REQ-LINTUTIL001
     public static FuSa.Location loc(Path root, Path file, int line) {
         return new FuSa.Location(root.relativize(file).toString(), line);
     }
 
+    //fusa:req REQ-LINTUTIL001
     public static boolean hasAnnotation(List<String> lines, int lineIdx, String ann) {
         // Check the line itself and a small look-back window for fusa annotations
         for (int i = Math.max(0, lineIdx - 3); i <= lineIdx && i < lines.size(); i++) {

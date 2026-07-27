@@ -17,8 +17,10 @@ public final class Do178 {
 
     private Do178() {}
 
+    //fusa:req REQ-DO178001
     public record TableObjective(String table, String objective, String description, String status, String notes) {}
 
+    //fusa:req REQ-DO178001
     public static List<TableObjective> buildGapReport(String dal) {
         var items = new ArrayList<TableObjective>();
         // Table A-1: Software Planning Process
@@ -77,6 +79,7 @@ public final class Do178 {
         };
     }
 
+    //fusa:req REQ-DO178001
     public static void generate(Path root, String dal) throws IOException {
         List<TableObjective> items = buildGapReport(dal);
         var w = new Json.Writer();
@@ -115,6 +118,7 @@ public final class Do178 {
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-DO178001
     public static String renderText(String dal) {
         var sb = new StringBuilder();
         sb.append("DO-178C Gap Report — ").append(dal).append('\n');

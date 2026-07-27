@@ -51,12 +51,14 @@ class HaraTest {
 
     // ── init() / show() / defaults() ──────────────────────────────────────────
 
+    //fusa:test REQ-HARA002
     @Test
     void init_writesHaraFile() throws Exception {
         Hara.init(tmp, "hara-test");
         assertTrue(Files.exists(tmp.resolve(Hara.HARA_FILE)));
     }
 
+    //fusa:test REQ-HARA002
     @Test
     void init_doesNotOverwriteExisting() throws Exception {
         Hara.init(tmp, "hara-test");
@@ -66,12 +68,14 @@ class HaraTest {
         assertEquals(before, after, "init() must not overwrite an existing .fusa-hara.json");
     }
 
+    //fusa:test REQ-HARA002
     @Test
     void show_withoutFile_returnsPlaceholderMessage() throws Exception {
         String out = Hara.show(tmp);
         assertTrue(out.contains("No .fusa-hara.json found"));
     }
 
+    //fusa:test REQ-HARA002
     @Test
     void show_afterInit_listsHazards() throws Exception {
         Hara.init(tmp, "hara-test");
@@ -80,6 +84,7 @@ class HaraTest {
         assertTrue(out.contains("HARA"));
     }
 
+    //fusa:test REQ-HARA002
     @Test
     void defaults_returnsThreeHazards() {
         assertEquals(3, Hara.defaults("proj").size());

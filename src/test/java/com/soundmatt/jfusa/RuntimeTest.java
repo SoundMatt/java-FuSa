@@ -73,4 +73,17 @@ class RuntimeTest {
         guard.enter("multi-test");
         assertEquals(7, sum.get(), "All registered handlers should be called");
     }
+
+    //fusa:test REQ-RT004
+    @Test
+    void safeStateGuard_exposesReasonEnteredAtAndSystemId() {
+        SafeStateGuard guard = new SafeStateGuard("rt004-guard");
+        assertEquals("rt004-guard", guard.systemId());
+        assertNull(guard.reason());
+        assertNull(guard.enteredAt());
+
+        guard.enter("overheat detected");
+        assertEquals("overheat detected", guard.reason());
+        assertNotNull(guard.enteredAt());
+    }
 }

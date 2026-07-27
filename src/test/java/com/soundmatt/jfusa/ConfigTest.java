@@ -11,17 +11,21 @@ class ConfigTest {
     @TempDir Path tmp;
 
     //fusa:test REQ-CFG005
+    //fusa:test REQ-CFG010
     @Test
     void defaultConfig_hasName() {
         Config c = Config.defaultConfig("my-project");
         assertEquals("my-project", c.project().name());
         assertEquals("1.0", c.configVersion());
+        assertEquals(c.configVersion(), c.version()); // version() is a legacy alias
         assertNotNull(c.rules());
         assertNotNull(c.report());
     }
 
     //fusa:test REQ-CFG001
     //fusa:test REQ-CFG002
+    //fusa:test REQ-CFG011
+    //fusa:test REQ-CFG012
     @Test
     void saveAndLoad_roundtrip() throws Exception {
         Config original = Config.defaultConfig("roundtrip-test");
@@ -29,6 +33,8 @@ class ConfigTest {
         Config loaded = Config.load(tmp);
         assertEquals(original.project().name(), loaded.project().name());
         assertEquals(original.configVersion(), loaded.configVersion());
+        assertEquals(original.rules().exclude(), loaded.rules().exclude());
+        assertEquals(original.report().format(), loaded.report().format());
     }
 
     //fusa:test REQ-ERR001

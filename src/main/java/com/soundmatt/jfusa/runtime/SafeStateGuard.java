@@ -40,6 +40,7 @@ public final class SafeStateGuard {
     }
 
     /** Register an action to run when safe state is entered. */
+    //fusa:req REQ-RT003
     public synchronized SafeStateGuard onEnter(Runnable action) {
         onEnterHandlers.add(action);
         return this;
@@ -49,6 +50,7 @@ public final class SafeStateGuard {
      * Transition to safe state. Idempotent — subsequent calls are no-ops.
      * Must be called from a site annotated {@code //fusa:safe-state}.
      */
+    //fusa:req REQ-RT003
     //fusa:safe-state this is the canonical entry point
     public void enter(String reason) {
         if (inSafeState.compareAndSet(false, true)) {
@@ -63,7 +65,10 @@ public final class SafeStateGuard {
     }
 
     public boolean isInSafeState() { return inSafeState.get(); }
+    //fusa:req REQ-RT004
     public String reason()         { return reason; }
+    //fusa:req REQ-RT004
     public Instant enteredAt()     { return enteredAt; }
+    //fusa:req REQ-RT004
     public String systemId()       { return systemId; }
 }

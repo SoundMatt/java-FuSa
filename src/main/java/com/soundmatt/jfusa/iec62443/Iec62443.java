@@ -27,6 +27,7 @@ public final class Iec62443 {
     public static void activate() {}
 
     /** §9.3 canonical gap-report for IEC 62443-4-1 at a given Security Level. */
+    //fusa:req REQ-IEC62443001
     public static void generate(Path root, String sl) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
@@ -76,6 +77,7 @@ public final class Iec62443 {
         public String id() { return "IEC62443-001"; }
         public String description() { return "INCIDENT-RESPONSE.md must be present (IEC 62443-4-1 SR 6.2)."; }
 
+        //fusa:req REQ-IEC62443002
         public List<Finding> run(Path root, Config cfg) {
             if (!Files.exists(root.resolve("INCIDENT-RESPONSE.md"))) {
                 return List.of(Finding.builder("IEC62443-001", Severity.WARNING,

@@ -273,6 +273,7 @@ class MainTest {
 
     @Test
     //fusa:test REQ-VERIFY001
+    //fusa:test REQ-VERIFY002
     void cmdVerify_writesEvidenceFile() throws Exception {
         initProject();
         captureOut(() -> Main.cmdVerify(tmp, new String[]{}));
@@ -323,6 +324,7 @@ class MainTest {
                    Files.exists(tmp.resolve("provenance.json")));
     }
 
+    //fusa:test REQ-AUDITPACK001
     @Test
     void cmdAuditPack_generatesZip() throws Exception {
         initProject();
@@ -332,6 +334,7 @@ class MainTest {
 
     // ── standards adapters ────────────────────────────────────────────────────
 
+    //fusa:test REQ-DO178001
     @Test
     void cmdDo178_textFormat() throws Exception {
         initProject();
@@ -346,6 +349,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("do178-gap-report.json")));
     }
 
+    //fusa:test REQ-ISO26262001
     @Test
     void cmdIso26262_textFormat() throws Exception {
         initProject();
@@ -360,6 +364,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("iso26262-gap-report.json")));
     }
 
+    //fusa:test REQ-ISO21434001
     @Test
     void cmdIso21434_textFormat() throws Exception {
         initProject();
@@ -374,6 +379,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("iso21434-gap-report.json")));
     }
 
+    //fusa:test REQ-IEC61508001
     @Test
     void cmdIec61508_textFormat() throws Exception {
         initProject();
@@ -401,6 +407,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("iec62443-gap-report.json")));
     }
 
+    //fusa:test REQ-UNECE001
     @Test
     void cmdUnece_textFormat() throws Exception {
         initProject();
@@ -428,6 +435,7 @@ class MainTest {
 
     // ── compliance / analysis ─────────────────────────────────────────────────
 
+    //fusa:test REQ-SAS001
     @Test
     void cmdSas_generatesMd() throws Exception {
         initProject();
@@ -435,6 +443,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("sas.md")));
     }
 
+    //fusa:test REQ-SCI001
     @Test
     void cmdSci_generatesJson() throws Exception {
         initProject();
@@ -442,6 +451,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("sci.json")));
     }
 
+    //fusa:test REQ-SCI001
     @Test
     void cmdSci_markdownFormat() throws Exception {
         initProject();
@@ -468,6 +478,7 @@ class MainTest {
         captureOut(() -> Main.cmdComp(tmp, new String[]{"--dal", "DAL-A"}));
     }
 
+    //fusa:test REQ-MISRA001
     @Test
     void cmdMisra_jsonFormat() throws Exception {
         initProject();
@@ -475,6 +486,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("misra-report.json")));
     }
 
+    //fusa:test REQ-MISRA001
     @Test
     void cmdMisra_textFormat() throws Exception {
         initProject();
@@ -483,6 +495,7 @@ class MainTest {
 
     // ── safety artefacts ──────────────────────────────────────────────────────
 
+    //fusa:test REQ-SAFETYCASE001
     @Test
     void cmdSafetyCase_generatesJson() throws Exception {
         initProject();
@@ -497,6 +510,7 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("fmea.json")));
     }
 
+    //fusa:test REQ-TARA001
     @Test
     void cmdTara_generatesJson() throws Exception {
         initProject();
@@ -554,12 +568,15 @@ class MainTest {
         assertTrue(out.contains("REQ-LIST001"));
     }
 
+    //fusa:test REQ-PR001
     @Test
     void cmdPr_init_createsFile() throws Exception {
         captureOut(() -> Main.cmdPr(tmp, new String[]{"init"}));
         assertTrue(Files.exists(tmp.resolve(".fusa-problems.json")));
     }
 
+    //fusa:test REQ-PR002
+    //fusa:test REQ-PR004
     @Test
     void cmdPr_add_appendsEntry() throws Exception {
         Main.cmdPr(tmp, new String[]{"init"});
@@ -568,6 +585,7 @@ class MainTest {
         assertTrue(content.contains("PR-001"));
     }
 
+    //fusa:test REQ-PR005
     @Test
     void cmdPr_list_showsEntries() throws Exception {
         Main.cmdPr(tmp, new String[]{"init"});
@@ -576,6 +594,7 @@ class MainTest {
         assertTrue(out.contains("PR-002") || out.length() >= 0);
     }
 
+    //fusa:test REQ-PR003
     @Test
     void cmdPr_close_updatesEntry() throws Exception {
         Main.cmdPr(tmp, new String[]{"init"});
@@ -585,6 +604,7 @@ class MainTest {
         assertTrue(content.contains("PR-003"));
     }
 
+    //fusa:test REQ-DISPOSITION001
     @Test
     void cmdDisposition_add_createsEntry() throws Exception {
         Main.cmdDisposition(tmp, new String[]{"add", "LINT001", "Main.java", "accepted", "low risk"});
@@ -593,6 +613,7 @@ class MainTest {
         assertTrue(content.contains("LINT001"));
     }
 
+    //fusa:test REQ-DISPOSITION001
     @Test
     void cmdDisposition_list_showsEntries() throws Exception {
         Main.cmdDisposition(tmp, new String[]{"add", "LINT002", "Foo.java", "deferred", "revisit"});
@@ -600,12 +621,14 @@ class MainTest {
         assertTrue(out.contains("LINT002") || out.length() >= 0);
     }
 
+    //fusa:test REQ-METRICS001
     @Test
     void cmdMetrics_show_handlesAbsentFile() throws Exception {
         String out = captureOut(() -> Main.cmdMetrics(tmp, new String[]{}));
         assertNotNull(out);
     }
 
+    //fusa:test REQ-METRICS001
     @Test
     void cmdMetrics_record_writesHistory() throws Exception {
         initProject();
@@ -660,6 +683,7 @@ class MainTest {
                 new String[]{"src/main/java/com/soundmatt/jfusa/FuSa.java"}));
     }
 
+    //fusa:test REQ-BADGE001
     @Test
     void cmdBadge_generatesSvg() throws Exception {
         initProject();

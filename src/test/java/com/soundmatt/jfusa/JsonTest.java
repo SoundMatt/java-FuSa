@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JsonTest {
 
+    //fusa:test REQ-JSON001
     @Test
     void writer_producesValidJson_emptyObject() {
         var w = new Json.Writer();
@@ -15,6 +16,7 @@ class JsonTest {
         assertEquals("{}", w.toString());
     }
 
+    //fusa:test REQ-JSON003
     @Test
     void writer_producesStringField() {
         var w = new Json.Writer();
@@ -24,6 +26,7 @@ class JsonTest {
         assertTrue(w.toString().contains("\"key\":\"value\""));
     }
 
+    //fusa:test REQ-JSON003
     @Test
     void writer_producesLongField() {
         var w = new Json.Writer();
@@ -33,6 +36,7 @@ class JsonTest {
         assertTrue(w.toString().contains("\"n\":42"));
     }
 
+    //fusa:test REQ-JSON003
     @Test
     void writer_producesBooleanField() {
         var w = new Json.Writer();
@@ -42,6 +46,41 @@ class JsonTest {
         assertTrue(w.toString().contains("\"flag\":true"));
     }
 
+    //fusa:test REQ-JSON003
+    @Test
+    void writer_fieldIfNonBlank_skipsBlankAndWritesNonBlank() {
+        var w = new Json.Writer();
+        w.objectStart();
+        w.fieldIfNonBlank("skip", "");
+        w.fieldIfNonBlank("skip2", null);
+        w.fieldIfNonBlank("keep", "value");
+        w.objectEnd();
+        String s = w.toString();
+        assertFalse(s.contains("skip"));
+        assertTrue(s.contains("\"keep\":\"value\""));
+    }
+
+    //fusa:test REQ-JSON002
+    @Test
+    void writer_producesDoubleValue() {
+        var w = new Json.Writer();
+        w.arrayStart();
+        w.value(3.5);
+        w.arrayEnd();
+        assertEquals("[3.5]", w.toString());
+    }
+
+    //fusa:test REQ-JSON002
+    @Test
+    void writer_nullValue_emitsNullLiteral() {
+        var w = new Json.Writer();
+        w.arrayStart();
+        w.nullValue();
+        w.arrayEnd();
+        assertEquals("[null]", w.toString());
+    }
+
+    //fusa:test REQ-JSON001
     @Test
     void writer_producesArray() {
         var w = new Json.Writer();
@@ -51,6 +90,7 @@ class JsonTest {
         assertEquals("[\"a\",\"b\"]", w.toString());
     }
 
+    //fusa:test REQ-JSON002
     @Test
     void writer_escapeSpecialChars() {
         var w = new Json.Writer();
@@ -63,6 +103,7 @@ class JsonTest {
         assertTrue(s.contains("\\\""));
     }
 
+    //fusa:test REQ-JSON001
     @Test
     void writer_nestedObjects() {
         var w = new Json.Writer();
@@ -75,6 +116,7 @@ class JsonTest {
         assertTrue(s.contains("\"inner\":{\"x\":1}"));
     }
 
+    //fusa:test REQ-JSON005
     @Test
     void parser_parsesSimpleObject() {
         Map<String, Object> m = Json.parseObject("{\"a\":\"hello\",\"b\":42}");
@@ -113,6 +155,7 @@ class JsonTest {
         assertEquals(Boolean.FALSE, m.get("f"));
     }
 
+    //fusa:test REQ-JSON004
     @Test
     void writer_toPretty_hasNewlines() {
         var w = new Json.Writer();
@@ -120,6 +163,7 @@ class JsonTest {
         assertTrue(w.toPretty().contains("\n"));
     }
 
+    //fusa:test REQ-JSON006
     @Test
     void helper_str_returnsDefault_whenMissing() {
         Map<String, Object> m = Map.of("key", "val");
@@ -127,6 +171,22 @@ class JsonTest {
         assertEquals("def", Json.str(m, "missing", "def"));
     }
 
+    //fusa:test REQ-JSON006
+    @Test
+    void helper_obj_and_arr_extractNestedValuesOrDefaults() {
+        Map<String, Object> parsed = Json.parseObject(
+                "{\"nested\":{\"a\":1},\"list\":[1,2],\"other\":\"x\"}");
+        Map<String, Object> nested = Json.obj(parsed, "nested");
+        assertEquals(1L, ((Number) nested.get("a")).longValue());
+        assertTrue(Json.obj(parsed, "missing").isEmpty());
+
+        List<Object> list = Json.arr(parsed, "list");
+        assertEquals(2, list.size());
+        assertTrue(Json.arr(parsed, "missing").isEmpty());
+        assertTrue(Json.arr(parsed, "other").isEmpty()); // wrong type falls back to empty list
+    }
+
+    //fusa:test REQ-JSON005
     @Test
     void roundtrip_complexDocument() {
         var w = new Json.Writer();

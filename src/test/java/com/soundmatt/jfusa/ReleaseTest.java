@@ -12,6 +12,7 @@ class ReleaseTest {
 
     @TempDir Path tmp;
 
+    //fusa:test REQ-RELEASE003
     @Test
     void release_generatesSbom() throws Exception {
         Config cfg = Config.defaultConfig("release-test");
@@ -25,6 +26,7 @@ class ReleaseTest {
                 "SBOM should be x-FuSa SBOM format");
     }
 
+    //fusa:test REQ-RELEASE004
     @Test
     void release_generatesProvenance() throws Exception {
         Config cfg = Config.defaultConfig("release-test");
@@ -38,6 +40,7 @@ class ReleaseTest {
                 "Provenance should be SLSA in-toto format");
     }
 
+    //fusa:test REQ-RELEASE005
     @Test
     void release_run_generatesBothArtifacts() throws Exception {
         Config cfg = Config.defaultConfig("release-test");
@@ -48,6 +51,20 @@ class ReleaseTest {
         assertTrue(Files.exists(tmp.resolve(Release.PROVENANCE_FILE)));
     }
 
+    //fusa:test REQ-RELEASE005
+    @Test
+    void release_generateManifest_hashesListedArtifacts() throws Exception {
+        Path artifact = tmp.resolve("dummy.jar");
+        Files.writeString(artifact, "fake jar contents");
+        Release.generateManifest(tmp, java.util.List.of("dummy.jar"));
+        Path manifest = tmp.resolve(Release.MANIFEST_FILE);
+        assertTrue(Files.exists(manifest));
+        String content = Files.readString(manifest);
+        assertTrue(content.contains("dummy.jar"));
+        assertTrue(content.contains("\"sha256\""));
+    }
+
+    //fusa:test REQ-RELEASE006
     @Test
     void sha256file_isHexString() throws Exception {
         Path f = tmp.resolve("test.txt");
@@ -58,6 +75,7 @@ class ReleaseTest {
                 "SHA-256 should be 64 hex chars (optionally prefixed)");
     }
 
+    //fusa:test REQ-RELEASE006
     @Test
     void sha256file_different_for_different_content() throws Exception {
         Path a = tmp.resolve("a.txt"); Path b = tmp.resolve("b.txt");

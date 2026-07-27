@@ -35,6 +35,7 @@ public final class Release {
 
     // ── SBOM (x-FuSa SBOM v1) ────────────────────────────────────────────────
 
+    //fusa:req REQ-RELEASE003
     public static void generateSBOM(Path projectRoot, Config cfg) throws IOException {
         String name = cfg != null ? cfg.project().name() : "unknown";
         String module = "com.soundmatt:" + name.toLowerCase() + ":" + FuSa.VERSION;
@@ -59,6 +60,7 @@ public final class Release {
 
     // ── Build provenance ──────────────────────────────────────────────────────
 
+    //fusa:req REQ-RELEASE004
     public static void generateProvenance(Path projectRoot, Config cfg) throws IOException {
         String name = cfg != null ? cfg.project().name() : "unknown";
         String module = "com.soundmatt:" + name.toLowerCase() + ":" + FuSa.VERSION;
@@ -81,6 +83,7 @@ public final class Release {
 
     // ── Artifact manifest ─────────────────────────────────────────────────────
 
+    //fusa:req REQ-RELEASE005
     public static void generateManifest(Path projectRoot, List<String> artifacts) throws IOException {
         var w = new Json.Writer();
         w.objectStart();
@@ -110,6 +113,7 @@ public final class Release {
         Files.writeString(projectRoot.resolve(MANIFEST_FILE), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-RELEASE005
     public static void run(Path projectRoot, Config cfg) throws IOException {
         generateSBOM(projectRoot, cfg);
         generateProvenance(projectRoot, cfg);
@@ -117,6 +121,7 @@ public final class Release {
         System.out.println("Release artifacts generated: " + SBOM_FILE + ", " + PROVENANCE_FILE);
     }
 
+    //fusa:req REQ-RELEASE006
     public static String sha256file(Path p) throws IOException {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");

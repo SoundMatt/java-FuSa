@@ -37,9 +37,11 @@ public final class Comp {
     private Comp() {}
     public static void activate() {}
 
+    //fusa:req REQ-COMP001
     public record MethodComplexity(String file, String method, int complexity, int line) {}
 
     /** Resolve threshold from DAL string per §9.2. */
+    //fusa:req REQ-COMP002
     public static int thresholdForDal(String dal) {
         if (dal == null) return DEFAULT_THRESHOLD;
         return switch (dal.toUpperCase()) {
@@ -51,6 +53,7 @@ public final class Comp {
         };
     }
 
+    //fusa:req REQ-COMP003
     public static List<MethodComplexity> analyze(Path root) throws IOException {
         List<MethodComplexity> results = new ArrayList<>();
         List<Path> files = javaFiles(root);
@@ -93,6 +96,7 @@ public final class Comp {
     }
 
     /** Generate comp-report.json with canonical §9.2 / §3.1 shape. */
+    //fusa:req REQ-COMP004
     public static void generate(Path root, int threshold, String dal) throws IOException {
         List<MethodComplexity> results = analyze(root);
         long violations = results.stream().filter(r -> r.complexity() > threshold).count();
@@ -126,6 +130,7 @@ public final class Comp {
     }
 
     /** Overload for backwards-compat calls without DAL. */
+    //fusa:req REQ-COMP004
     public static void generate(Path root) throws IOException {
         generate(root, DEFAULT_THRESHOLD, null);
     }
@@ -142,6 +147,7 @@ public final class Comp {
         public String id() { return "COMP001"; }
         public String description() { return "Cyclomatic complexity must not exceed threshold per function."; }
 
+        //fusa:req REQ-COMP005
         public List<Finding> run(Path root, Config cfg) throws IOException {
             int threshold = DEFAULT_THRESHOLD;
             List<MethodComplexity> results = analyze(root);

@@ -50,6 +50,7 @@ public final class Qualify {
             String achievableAsil) {
 
         /** Empty options — all fields blank. */
+        //fusa:req REQ-QUALIFY002
         public static QualifyOptions empty() {
             return new QualifyOptions("", "", "", "", "", "", "");
         }
@@ -58,6 +59,7 @@ public final class Qualify {
          * Qualification badge text.
          * Returns "independently-qualified", "self-qualified", or "unqualified".
          */
+        //fusa:req REQ-QUALIFY002
         public String badge() {
             if ("independent".equalsIgnoreCase(qualificationMethod)
                     && qualifierIdentity != null && !qualifierIdentity.isBlank()) {
@@ -71,6 +73,7 @@ public final class Qualify {
          * V&V independence status.
          * Returns "independent" when reviewer differs from implementation author, else "not-independent".
          */
+        //fusa:req REQ-QUALIFY003
         public String independenceStatus() {
             if (independentReviewer != null && !independentReviewer.isBlank()
                     && implementationAuthor != null && !implementationAuthor.isBlank()
@@ -91,6 +94,7 @@ public final class Qualify {
     // ── Self-test suite ───────────────────────────────────────────────────────
 
     /** Backward-compatible entry point; uses empty QualifyOptions. */
+    //fusa:req REQ-QUALIFY001
     public static void run(Path projectRoot, Config cfg, boolean full) throws IOException {
         run(projectRoot, cfg, full, QualifyOptions.empty());
     }
@@ -111,8 +115,10 @@ public final class Qualify {
         }
     }
 
+    //fusa:req REQ-QUALIFY004
     public record TestCase(String name, boolean passed, String detail) {}
 
+    //fusa:req REQ-QUALIFY004
     public static List<TestCase> runSelfTests() {
         List<TestCase> cases = new ArrayList<>();
 
@@ -183,6 +189,7 @@ public final class Qualify {
     // ── Report generation ─────────────────────────────────────────────────────
 
     /** Backward-compatible report generation with no options. */
+    //fusa:req REQ-QUALIFY005
     public static void generateReport(Path projectRoot, List<TestCase> cases) throws IOException {
         generateReport(projectRoot, cases, QualifyOptions.empty());
     }

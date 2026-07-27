@@ -38,6 +38,7 @@ public record Report(
     }
 
     /** Formats this report as text, JSON, HTML, or SARIF. */
+    //fusa:req REQ-REPORT001
     public String render(String format) {
         return switch (format.toLowerCase()) {
             case "json"  -> JsonRenderer.render(this);
@@ -47,23 +48,28 @@ public record Report(
         };
     }
 
+    //fusa:req REQ-REPORT002
     public List<Finding> errors()   {
         return result().findings().stream().filter(f -> f.severity() == Severity.ERROR).toList();
     }
+    //fusa:req REQ-REPORT002
     public List<Finding> warnings() {
         return result().findings().stream().filter(f -> f.severity() == Severity.WARNING).toList();
     }
+    //fusa:req REQ-REPORT002
     public List<Finding> infos()    {
         return result().findings().stream().filter(f -> f.severity() == Severity.INFO).toList();
     }
 
     /** Brief summary line (e.g. "3 error(s), 2 warning(s), 0 info(s)"). */
+    //fusa:req REQ-REPORT003
     public String summary() {
         long e = errors().size(), w = warnings().size(), i = infos().size();
         return e + " error(s), " + w + " warning(s), " + i + " info(s)";
     }
 
     /** Category breakdown map (category-name → count). */
+    //fusa:req REQ-REPORT004
     public Map<String, Long> categoryBreakdown() {
         return result().findings().stream()
                 .collect(Collectors.groupingBy(f -> f.category().toString(), Collectors.counting()));

@@ -25,6 +25,7 @@ public final class Tara {
             String attackFeasibility, String impactRating, String riskLevel,
             String cweId, String mitigation) {}
 
+    //fusa:req REQ-TARA001
     public static List<ThreatEntry> defaultThreats(String projectName) {
         return List.of(
             new ThreatEntry("T-001", projectName + " build artifacts",
@@ -58,6 +59,7 @@ public final class Tara {
         );
     }
 
+    //fusa:req REQ-TARA001
     public static void generate(Path projectRoot, String projectName) throws IOException {
         List<ThreatEntry> threats = defaultThreats(projectName);
         writeJson(projectRoot, threats, projectName);

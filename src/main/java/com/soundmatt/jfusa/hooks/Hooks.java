@@ -24,6 +24,7 @@ public final class Hooks {
             fi
             """;
 
+    //fusa:req REQ-HOOKS001
     public static void install(Path projectRoot) throws IOException {
         Path hooksDir = projectRoot.resolve(".git/hooks");
         if (!Files.isDirectory(hooksDir)) {
@@ -38,6 +39,7 @@ public final class Hooks {
         System.out.println("Pre-commit hook installed: " + hookFile);
     }
 
+    //fusa:req REQ-HOOKS001
     public static void remove(Path projectRoot) throws IOException {
         Path hookFile = projectRoot.resolve(".git/hooks/pre-commit");
         if (!Files.exists(hookFile)) { System.out.println("No pre-commit hook found."); return; }

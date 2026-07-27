@@ -214,4 +214,31 @@ class LintRulesTest {
                 r -> r.id().equals("LINT010"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT010")));
     }
+
+    //fusa:test REQ-LINTUTIL001
+    @Test
+    void sharedScannerUtilities_workDirectly() throws Exception {
+        Path src = tmp.resolve("src/main/java/Util.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Util {
+                    //fusa:unsafe intentional
+                    void foo() {}
+                }
+                """);
+        Config cfg = Config.defaultConfig("lint-util-test");
+
+        List<Path> files = LintRules.javaFiles(tmp, cfg);
+        assertTrue(files.stream().anyMatch(p -> p.equals(src)));
+
+        List<String> lines = LintRules.readLines(src);
+        assertTrue(lines.get(0).contains("public class Util"));
+
+        FuSa.Location location = LintRules.loc(tmp, src, 2);
+        assertEquals("src/main/java/Util.java", location.file());
+        assertEquals(2, location.line());
+
+        assertTrue(LintRules.hasAnnotation(lines, 2, "//fusa:unsafe"));
+        assertFalse(LintRules.hasAnnotation(lines, 0, "//fusa:unsafe"));
+    }
 }

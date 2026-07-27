@@ -29,8 +29,10 @@ public final class Config {
         Standard(String id) { this.canonicalId = id; }
 
         /** Lowercase canonical id for JSON output per §2.4.1. */
+        //fusa:req REQ-NF003
         public String canonicalId() { return canonicalId; }
 
+        //fusa:req REQ-NF003
         public static Standard of(String s) {
             if (s == null || s.isBlank()) return generic;
             // Accept canonical lowercase id (iso26262) or enum name (ISO26262)
@@ -60,10 +62,12 @@ public final class Config {
         }
     }
 
+    //fusa:req REQ-CFG011
     public record RulesConfig(List<String> exclude, Map<String, String> severity) {
         public RulesConfig() { this(List.of(), Map.of()); }
     }
 
+    //fusa:req REQ-CFG011
     public record ReportConfig(String format, String output) {
         public ReportConfig() { this("text", ""); }
     }
@@ -83,13 +87,18 @@ public final class Config {
     }
 
     /** Config-format version (own series, "1.0" per §2.8). */
+    //fusa:req REQ-CFG010
     public String configVersion() { return configVersion; }
 
     /** Legacy accessor — returns the configVersion field for backwards compatibility. */
+    //fusa:req REQ-CFG010
     public String version() { return configVersion; }
 
+    //fusa:req REQ-CFG010
     public ProjectConfig project() { return project; }
+    //fusa:req REQ-CFG010
     public RulesConfig rules() { return rules; }
+    //fusa:req REQ-CFG010
     public ReportConfig report() { return report; }
 
     // ── Factory methods ───────────────────────────────────────────────────────
@@ -196,6 +205,7 @@ public final class Config {
     }
 
     /** Write §1.2.1 v1.10 schema format. */
+    //fusa:req REQ-CFG012
     public static void save(Path projectRoot, Config cfg) throws IOException {
         Path path = projectRoot.resolve(CONFIG_FILE);
         var w = new Json.Writer();

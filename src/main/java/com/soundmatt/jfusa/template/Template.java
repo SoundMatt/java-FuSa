@@ -15,6 +15,7 @@ public final class Template {
 
     private Template() {}
 
+    //fusa:req REQ-TEMPLATE001
     public static void generate(Path root, String kind, String name) throws IOException {
         switch (kind) {
             case "safety-plan"     -> safetyPlan(root, name);

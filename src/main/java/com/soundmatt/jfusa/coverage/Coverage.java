@@ -35,6 +35,7 @@ public final class Coverage {
     private static final Pattern COUNTER = Pattern.compile(
             "<counter type=\"(\\w+)\" missed=\"(\\d+)\" covered=\"(\\d+)\"");
 
+    //fusa:req REQ-COV002
     public record CoverageReport(double statementPct, double branchPct, double methodPct) {}
 
     // ── MC/DC types ───────────────────────────────────────────────────────────
@@ -50,10 +51,12 @@ public final class Coverage {
     //fusa:req REQ-MCDC001
     public record McdcFunctionRecord(String function, List<McdcCondition> conditions) {
         /** Returns true only when all conditions are MC/DC covered. */
+        //fusa:req REQ-MCDC001
         public boolean allCovered() {
             return conditions.stream().allMatch(McdcCondition::isCovered);
         }
         /** Count of uncovered conditions. */
+        //fusa:req REQ-MCDC001
         public long uncoveredCount() {
             return conditions.stream().filter(c -> !c.isCovered()).count();
         }
@@ -68,6 +71,7 @@ public final class Coverage {
             List<String> failingFunctions,
             boolean gatePass) {}
 
+    //fusa:req REQ-COV002
     public static CoverageReport parse(Path jacocoXml) throws IOException {
         if (!Files.exists(jacocoXml)) return new CoverageReport(0, 0, 0);
         String content = Files.readString(jacocoXml);

@@ -18,10 +18,12 @@ public final class Diff {
 
     public record DiffResult(
             List<String> introduced, List<String> resolved, List<String> unchanged) {
+        //fusa:req REQ-DIFF001
         public boolean hasIntroduced() { return !introduced.isEmpty(); }
     }
 
     @SuppressWarnings("unchecked")
+    //fusa:req REQ-DIFF001
     public static DiffResult compare(Path baselineReport, Path currentReport) throws IOException {
         Set<String> baselineFp = extractFingerprints(Files.readString(baselineReport));
         Set<String> currentFp  = extractFingerprints(Files.readString(currentReport));
@@ -65,6 +67,7 @@ public final class Diff {
         }
     }
 
+    //fusa:req REQ-DIFF001
     public static String renderText(DiffResult diff, String baseline, String current) {
         var sb = new StringBuilder();
         sb.append("Report Diff: ").append(baseline).append(" → ").append(current).append('\n');

@@ -16,8 +16,10 @@ public final class Iso26262 {
 
     private Iso26262() {}
 
+    //fusa:req REQ-ISO26262001
     public record GapItem(String clause, String title, String status, String notes) {}
 
+    //fusa:req REQ-ISO26262001
     public static List<GapItem> buildGapReport(String asil) {
         return List.of(
             gap("6.4.1",  "Design principles",             "Partially Met", "FUSA rules enforce basic design constraints; full ASIL-" + asil + " review needed"),
@@ -47,6 +49,7 @@ public final class Iso26262 {
         };
     }
 
+    //fusa:req REQ-ISO26262001
     public static void generate(Path root, String asil) throws IOException {
         List<GapItem> items = buildGapReport(asil);
         var w = new Json.Writer();
@@ -87,6 +90,7 @@ public final class Iso26262 {
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-ISO26262001
     public static String renderText(String asil) {
         List<GapItem> items = buildGapReport(asil);
         var sb = new StringBuilder();

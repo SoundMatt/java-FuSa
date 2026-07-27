@@ -46,6 +46,7 @@ public final class Hara {
         return c <= 1 ? "C" : (c == 2 ? "D" : "D");
     }
 
+    //fusa:req REQ-HARA002
     public static List<HazardEntry> defaults(String project) {
         return List.of(
             new HazardEntry("H-001", "Incorrect safety-critical output", "System operating under load",
@@ -57,6 +58,7 @@ public final class Hara {
         );
     }
 
+    //fusa:req REQ-HARA002
     public static void init(Path root, String project) throws IOException {
         if (Files.exists(root.resolve(HARA_FILE))) return;
         var w = new Json.Writer();
@@ -84,6 +86,7 @@ public final class Hara {
         Files.writeString(root.resolve(HARA_FILE), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-HARA002
     public static String show(Path root) throws IOException {
         if (!Files.exists(root.resolve(HARA_FILE))) return "No .fusa-hara.json found. Run 'jfusa hara init'\n";
         Map<String, Object> doc = Json.parseObject(Files.readString(root.resolve(HARA_FILE)));

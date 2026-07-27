@@ -12,6 +12,7 @@ public final class Badge {
 
     private Badge() {}
 
+    //fusa:req REQ-BADGE001
     public static String generate(Report report) {
         boolean pass = !report.result().hasErrors();
         String label = "java-FuSa";
@@ -56,6 +57,7 @@ public final class Badge {
                 (labelW + statusW / 2) * 10, (message.length() * 60), message);
     }
 
+    //fusa:req REQ-BADGE001
     public static void writeToFile(Path root, Report report, String outputName) throws IOException {
         String svg = generate(report);
         Path out = outputName != null ? root.resolve(outputName) : root.resolve("fusa-badge.svg");

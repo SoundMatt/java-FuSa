@@ -15,7 +15,7 @@ import java.util.HexFormat;
 public final class FuSa {
 
     /** Current release of java-FuSa. */
-    public static final String VERSION = "0.4.4";
+    public static final String VERSION = "0.4.5";
 
     /** x-FuSa spec version this release implements. */
     public static final String SPEC_VERSION = "1.10.12";
@@ -56,6 +56,7 @@ public final class FuSa {
     public enum Severity {
         INFO, WARNING, ERROR;
 
+        //fusa:req REQ-NF002
         public int rank() {
             return switch (this) {
                 case INFO -> 0;
@@ -77,6 +78,7 @@ public final class FuSa {
         Category() { this.jsonValue = name().toLowerCase(); }
         Category(String jsonValue) { this.jsonValue = jsonValue; }
 
+        //fusa:req REQ-NF003
         public String jsonValue() { return jsonValue; }
 
         @Override public String toString() { return jsonValue; }
@@ -127,6 +129,7 @@ public final class FuSa {
             if (location == null) throw new IllegalArgumentException("location must not be null");
         }
 
+        //fusa:req REQ-NF004
         public static Builder builder(String ruleId, Severity severity, String message, Location location) {
             return new Builder(ruleId, severity, message, location);
         }
@@ -148,13 +151,20 @@ public final class FuSa {
                 this.message = message; this.location = location;
             }
 
+            //fusa:req REQ-NF004
             public Builder category(Category c) { this.category = c; return this; }
+            //fusa:req REQ-NF004
             public Builder standard(String s) { this.standard = s; return this; }
+            //fusa:req REQ-NF004
             public Builder clause(String c) { this.clause = c; return this; }
+            //fusa:req REQ-NF004
             public Builder remediation(String r) { this.remediation = r; return this; }
+            //fusa:req REQ-NF005
             public Builder disposition(Disposition d) { this.disposition = d; return this; }
+            //fusa:req REQ-NF005
             public Builder fingerprint(String fp) { this.fingerprint = fp; return this; }
 
+            //fusa:req REQ-NF004
             public Finding build() {
                 Finding f = new Finding(ruleId, severity, message, location, category,
                         standard, clause, remediation, disposition, fingerprint);
@@ -223,6 +233,7 @@ public final class FuSa {
      * NFC normalisation for non-ASCII is left to the caller (ASCII-only tools need
      * no Unicode dependency per §4.2).
      */
+    //fusa:req REQ-NF006
     public static String normalizeMessage(String msg) {
         if (msg == null || msg.isEmpty()) return "";
         StringBuilder sb = new StringBuilder(msg.length());

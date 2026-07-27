@@ -6,6 +6,45 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## v0.4.5 — 2026-07-27
+
+### Tests / Requirements
+
+- **Boosted function-tag coverage from 27% to 96%** (66/244 → 236/245 public
+  functions now carry a `//fusa:req` tag directly above them, measured via
+  `jfusa trace --dir . --func-coverage 100`). Tagged essentially every
+  previously-untagged public method across the codebase, registering ~70 new
+  requirement IDs in `.fusa-reqs.json` (following the existing
+  `REQ-<AREA><NNN>` scheme) and adding a matching `//fusa:test` tag for each —
+  reusing an existing test wherever one already genuinely exercised the
+  method, and writing a new one (18 new test methods, incl. a new
+  `SlsaTest.java`) where none existed.
+  - Core value types (`FuSa.java`, `internal/Json.java`, `config/Config.java`):
+    `REQ-NF002..006`, `REQ-JSON001..006`, `REQ-CFG010..012`.
+  - Engine/report plumbing: `REQ-ENG009..012`, `REQ-REPORT001..005`.
+  - Feature commands (`qualify`, `vuln`, `pr`, `comp`, `slsa`, `release`,
+    `runtime`, gap-report family for `iso26262`/`iec61508`/`iso21434`/`do178`/
+    `unece`, `lint` shared scanner utilities, `coverage`): one or a small
+    cluster of new IDs per class, grouping tightly-related methods under a
+    shared ID rather than minting one per method.
+  - Remaining low-traffic commands (`badge`, `boundary`, `coupling`, `hooks`,
+    `disposition`, `fmea`, `template`, `verify`, `auditpack`, `diff`, `hara`,
+    `iec62443`, `impact`, `metrics`, `misra`, `safetycase`, `sas`, `sci`,
+    `tara`, `trace` `Annotation`): one new ID per file.
+  - New genuine tests were added for previously wholly-untested behavior,
+    e.g. `Registry.get()`, `Engine.Result.empty()`, `Json.obj()/arr()`,
+    `Qualify.generateReport()` 2-arg overload, `Release.generateManifest()`,
+    `Vuln`/`SLSA001-3`/`IEC62443-001`/`MISRA001` rule fire/silent behavior,
+    `Impact.analyze()/generate()`.
+  - Left deliberately untagged (not gameable without fabricating tests):
+    `cmd.Main.main()` (calls `System.exit()`, unsafe to unit-test directly)
+    and 8 anonymous `Rule` test fixtures in `EngineTest`/`ReportTest`/
+    `ConformanceTest` used to exercise engine isolation/failure-handling —
+    these are test-only scaffolding, not production requirements.
+  - Zero regressions: all pre-existing tests still pass; 18 new tests added
+    (339 → 357 total), `//fusa:test` coverage of registered requirements
+    remains 100%.
+
 ## v0.4.4 — 2026-07-27
 
 ### Tests

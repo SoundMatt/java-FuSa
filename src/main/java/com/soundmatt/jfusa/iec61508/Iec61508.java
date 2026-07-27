@@ -16,8 +16,10 @@ public final class Iec61508 {
 
     private Iec61508() {}
 
+    //fusa:req REQ-IEC61508001
     public record GapItem(String clause, String title, String sil, String status, String notes) {}
 
+    //fusa:req REQ-IEC61508001
     public static List<GapItem> buildGapReport(String sil) {
         return List.of(
             gap("7.4.2",  "Structured programming",      sil, "Met",           "Java enforces structured programming; LINT rules prevent unsafe idioms"),
@@ -57,6 +59,7 @@ public final class Iec61508 {
         };
     }
 
+    //fusa:req REQ-IEC61508001
     public static void generate(Path root, String sil) throws IOException {
         List<GapItem> items = buildGapReport(sil);
         var w = new Json.Writer();
@@ -95,6 +98,7 @@ public final class Iec61508 {
         Files.writeString(root.resolve(GAP_REPORT), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-IEC61508001
     public static String renderText(String sil) {
         var sb = new StringBuilder();
         sb.append("IEC 61508 Gap Report — ").append(sil).append('\n');

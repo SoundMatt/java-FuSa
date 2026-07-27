@@ -17,6 +17,7 @@ public final class Metrics {
 
     private Metrics() {}
 
+    //fusa:req REQ-METRICS001
     public static void record(Path root, Report report) throws IOException {
         List<Map<String, Object>> history = loadHistory(root);
         var entry = new LinkedHashMap<String, Object>();
@@ -69,6 +70,7 @@ public final class Metrics {
         Files.writeString(root.resolve(METRICS_FILE), w.toPretty() + "\n");
     }
 
+    //fusa:req REQ-METRICS001
     public static String show(Path root) throws IOException {
         List<Map<String, Object>> history = loadHistory(root);
         if (history.isEmpty()) return "No metrics recorded yet. Run 'jfusa metrics record'\n";
