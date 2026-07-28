@@ -360,12 +360,16 @@ public final class Main {
 
     static void cmdRelease(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        Release.run(root, cfg);
+        String outputDir = flagValue(args, "--output-dir", "");
+        Path target = outputDir.isEmpty() ? root : root.resolve(outputDir);
+        Release.run(root, cfg, target);
     }
 
     static void cmdQualify(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         boolean full = hasFlag(args, "--full");
+        String output = flagValue(args, "--output", Qualify.QUALIFY_REPORT);
+        String format = flagValue(args, "--format", "text");
         // Feature 2: qualification display options
         String method    = flagValue(args, "--qualification-method", "");
         String qualifier = flagValue(args, "--qualifier", "");
@@ -377,7 +381,7 @@ public final class Main {
         String achievableAsil = flagValue(args, "--achievable-asil", "");
         Qualify.QualifyOptions opts = new Qualify.QualifyOptions(
                 method, qualifier, recordUri, implAuthor, reviewer, testExecutor, achievableAsil);
-        Qualify.run(root, cfg, full, opts);
+        Qualify.run(root, cfg, full, opts, output, format);
     }
 
     static void cmdSafetyCase(Path root, String[] args) throws IOException {
@@ -415,7 +419,8 @@ public final class Main {
     }
 
     static void cmdAuditPack(Path root, String[] args) throws IOException {
-        AuditPack.generate(root);
+        String output = flagValue(args, "--output", AuditPack.AUDIT_PACK_FILE);
+        AuditPack.generate(root, output);
     }
 
     static void cmdDiff(Path root, String[] args) throws IOException {

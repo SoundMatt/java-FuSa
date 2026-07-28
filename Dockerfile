@@ -16,7 +16,7 @@ RUN mvn -q package -DskipTests -B
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
-ARG VERSION=0.4.6
+ARG VERSION=0.4.7
 ARG SPEC_VERSION=1.10.12
 ARG BUILD_DATE
 ARG GIT_COMMIT=unknown

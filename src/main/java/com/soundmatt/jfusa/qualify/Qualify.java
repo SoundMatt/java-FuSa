@@ -99,11 +99,27 @@ public final class Qualify {
         run(projectRoot, cfg, full, QualifyOptions.empty());
     }
 
-    /** Full entry point with qualification metadata. */
+    /** Full entry point with qualification metadata; writes the default report path in text mode. */
     //fusa:req REQ-QUALIFY002
     public static void run(Path projectRoot, Config cfg, boolean full, QualifyOptions opts) throws IOException {
+        run(projectRoot, cfg, full, opts, QUALIFY_REPORT, "text");
+    }
+
+    /**
+     * Full entry point honoring {@code --output} (report write target, default
+     * {@link #QUALIFY_REPORT}) and {@code --format} ("text" prints the pass/fail
+     * summary line, "json" prints the generated report body to stdout).
+     */
+    //fusa:req REQ-QUALIFY006
+    public static void run(Path projectRoot, Config cfg, boolean full, QualifyOptions opts,
+                            String output, String format) throws IOException {
         List<TestCase> cases = runSelfTests();
-        generateReport(projectRoot, cases, opts);
+        String content = generateReport(projectRoot, cases, opts,
+                output == null || output.isBlank() ? QUALIFY_REPORT : output);
+        if ("json".equalsIgnoreCase(format)) {
+            System.out.println(content);
+            return;
+        }
         long passed = cases.stream().filter(TestCase::passed).count();
         String badge = opts.badge();
         System.out.printf("Qualification: %d/%d passed%s  [%s]%n",
@@ -194,11 +210,22 @@ public final class Qualify {
         generateReport(projectRoot, cases, QualifyOptions.empty());
     }
 
-    /** Full report generation with qualification metadata. */
+    /** Report generation with qualification metadata, writing to the default {@link #QUALIFY_REPORT} path. */
     //fusa:req REQ-QUALIFY002
     //fusa:req REQ-QUALIFY003
     public static void generateReport(Path projectRoot, List<TestCase> cases, QualifyOptions opts)
             throws IOException {
+        generateReport(projectRoot, cases, opts, QUALIFY_REPORT);
+    }
+
+    /**
+     * Full report generation with qualification metadata, honoring an explicit
+     * {@code output} path (relative to {@code projectRoot}) for the JSON report
+     * and its sibling {@code .sha256} hash file. Returns the generated JSON body.
+     */
+    //fusa:req REQ-QUALIFY006
+    public static String generateReport(Path projectRoot, List<TestCase> cases, QualifyOptions opts,
+            String output) throws IOException {
         long passedCount = cases.stream().filter(TestCase::passed).count();
         long failedCount = cases.stream().filter(tc -> !tc.passed()).count();
         var w = new Json.Writer();
@@ -237,11 +264,18 @@ public final class Qualify {
         w.arrayEnd();
         w.objectEnd();
         String content = w.toPretty() + "\n";
-        Path reportPath = projectRoot.resolve(QUALIFY_REPORT);
+        Path reportPath = projectRoot.resolve(output);
+        if (reportPath.getParent() != null) Files.createDirectories(reportPath.getParent());
         Files.writeString(reportPath, content);
-        // Write SHA-256 of report to sibling .sha256 file
-        Files.writeString(reportPath.resolveSibling("qualify-report.sha256"),
+        // Write SHA-256 of report to a sibling .sha256 file, named after the
+        // actual output filename (not the hardcoded default).
+        String outName = reportPath.getFileName().toString();
+        String hashName = outName.endsWith(".json")
+                ? outName.substring(0, outName.length() - ".json".length()) + ".sha256"
+                : outName + ".sha256";
+        Files.writeString(reportPath.resolveSibling(hashName),
                 Release.sha256file(reportPath) + "\n");
+        return content;
     }
 
     // ── QUALIFY001 rule ───────────────────────────────────────────────────────

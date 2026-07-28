@@ -82,4 +82,19 @@ class ReleaseTest {
         Files.writeString(a, "content A"); Files.writeString(b, "content B");
         assertNotEquals(Release.sha256file(a), Release.sha256file(b));
     }
+
+    //fusa:test REQ-RELEASE007
+    @Test
+    void release_run_honorsExplicitOutputDir_createsItAndDoesNotWriteRoot() throws Exception {
+        Config cfg = Config.defaultConfig("release-test");
+        Config.save(tmp, cfg);
+        Path outputDir = tmp.resolve("dist"); // does not exist yet
+        Release.run(tmp, cfg, outputDir);
+        assertTrue(Files.exists(outputDir.resolve(Release.SBOM_FILE)),
+                "sbom.json should be written into the (auto-created) output dir");
+        assertTrue(Files.exists(outputDir.resolve(Release.PROVENANCE_FILE)));
+        assertTrue(Files.exists(outputDir.resolve(Release.MANIFEST_FILE)));
+        assertFalse(Files.exists(tmp.resolve(Release.SBOM_FILE)),
+                "sbom.json must not also be written to the project root when --output-dir is given");
+    }
 }

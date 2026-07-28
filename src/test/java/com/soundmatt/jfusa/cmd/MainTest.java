@@ -332,6 +332,50 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("audit-pack.zip")));
     }
 
+    // ── regression: --output / --output-dir / --format threading (#24, #25, #26) ──
+
+    @Test
+    //fusa:test REQ-QUALIFY006
+    void cmdQualify_honorsOutputFlag() throws Exception {
+        initProject();
+        captureOut(() -> Main.cmdQualify(tmp, new String[]{"--output", "q.json"}));
+        assertTrue(Files.exists(tmp.resolve("q.json")),
+                "--output should redirect the qualify report");
+        assertFalse(Files.exists(tmp.resolve(Qualify.QUALIFY_REPORT)),
+                "the default qualify-report.json must not also be written when --output is given");
+    }
+
+    @Test
+    //fusa:test REQ-QUALIFY006
+    void cmdQualify_honorsFormatJsonFlag() throws Exception {
+        initProject();
+        String out = captureOut(() -> Main.cmdQualify(tmp, new String[]{"--format", "json"}));
+        assertTrue(out.contains("\"schemaVersion\"") && out.contains("\"results\""),
+                "--format json should print the JSON report body to stdout, not the text summary");
+    }
+
+    @Test
+    //fusa:test REQ-RELEASE007
+    void cmdRelease_honorsOutputDirFlag() throws Exception {
+        initProject();
+        captureOut(() -> Main.cmdRelease(tmp, new String[]{"--output-dir", "out"}));
+        assertTrue(Files.exists(tmp.resolve("out").resolve(Release.SBOM_FILE)),
+                "--output-dir should redirect sbom.json into the requested (auto-created) directory");
+        assertFalse(Files.exists(tmp.resolve(Release.SBOM_FILE)),
+                "sbom.json must not also be written to the project root when --output-dir is given");
+    }
+
+    @Test
+    //fusa:test REQ-AUDITPACK002
+    void cmdAuditPack_honorsOutputFlag() throws Exception {
+        initProject();
+        captureOut(() -> Main.cmdAuditPack(tmp, new String[]{"--output", "ap.zip"}));
+        assertTrue(Files.exists(tmp.resolve("ap.zip")),
+                "--output should redirect the audit-pack ZIP");
+        assertFalse(Files.exists(tmp.resolve("audit-pack.zip")),
+                "the default audit-pack.zip must not also be written when --output is given");
+    }
+
     // ── standards adapters ────────────────────────────────────────────────────
 
     //fusa:test REQ-DO178001

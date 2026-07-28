@@ -8,12 +8,49 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## v0.4.7 — 2026-07-27
+
 ### Added
 - `docker-publish.yml` now notifies `SoundMatt/FuSaOps` via `repository_dispatch`
   (`xfusa-released`) after a successful image push, so FuSaOps rebuilds its
   bundled image promptly instead of waiting for its weekly cron. Requires a
   `FUSAOPS_DISPATCH_TOKEN` secret in this repo; falls back silently
   (`continue-on-error`) to the weekly rebuild if it's not set.
+
+### Fixed
+
+- **`qualify` ignored `--output`/`--format`** (#24): always wrote
+  `qualify-report.json` to the project root and always printed the
+  plain-text summary, regardless of flags. `cmdQualify` now threads
+  `--output`/`--format` through to `Qualify.run()`/`generateReport()`;
+  `--format json` prints the report body to stdout instead of the summary
+  line, and the sibling `.sha256` hash file is named after the actual
+  output filename.
+- **`release` ignored `--output-dir`** (#25): always wrote `sbom.json`,
+  `provenance.json`, and `artifact-manifest.json` to the project root.
+  `cmdRelease` now parses `--output-dir` (defaulting to the project root)
+  and `Release.run()` creates it if missing before writing there.
+- **`audit-pack` ignored `--output`** (#26): always wrote `audit-pack.zip`
+  to the project root. `cmdAuditPack` now threads `--output` through to
+  `AuditPack.generate()`.
+- **`audit-pack`'s ZIP had no `manifest.json`** (#27): it bundled release's
+  `artifact-manifest.json` under the wrong entry name as a stand-in for its
+  own manifest, instead of the spec-required top-level `manifest.json`
+  (`kind: "audit-manifest"`, `files[]` with `path`/`size`/`sha256`).
+  `AuditPack` now generates its own manifest with the correct shape;
+  `artifact-manifest.json` is still bundled as an ordinary evidence file
+  when present, just no longer misnamed as the pack's manifest.
+
+### Tests / Requirements
+
+- **Closed all 37 orphan requirement-tag gaps** found by running
+  `jfusa trace` against this repo: `REQ-CYBER001`-`REQ-CYBER020`,
+  `REQ-ANA001`-`REQ-ANA006`, `REQ-RT001`-`REQ-RT003`, `REQ-CFG001`/`002`/
+  `003`/`005`, `REQ-ERR001`-`REQ-ERR003`, and `REQ-NF001` were tagged
+  in real production source with an existing `//fusa:test` on each, but
+  were never registered in `.fusa-reqs.json`. Registered all 37 with
+  titles derived from each rule's own description/doc comment. Orphan-tag
+  count: 37 → 0; untested-requirement count: unchanged at 0.
 
 ## v0.4.6 — 2026-07-27
 

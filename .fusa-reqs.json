@@ -714,6 +714,252 @@
       "title": "Sas.generate() must write the Software Accomplishment Summary markdown document",
       "status": "implemented",
       "file": "sas/Sas.java"
+    },
+    {
+      "id": "REQ-QUALIFY006",
+      "title": "Qualify.run()/generateReport() must honor an explicit --output report path and a text/json --format for stdout",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-RELEASE007",
+      "title": "Release.run() must honor an explicit --output-dir for sbom.json/provenance.json/artifact-manifest.json, creating it if missing",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-AUDITPACK002",
+      "title": "AuditPack.generate() must honor an explicit --output ZIP path, creating parent directories if missing",
+      "status": "implemented",
+      "file": "auditpack/AuditPack.java"
+    },
+    {
+      "id": "REQ-AUDITPACK003",
+      "title": "AuditPack.generate() must write its own top-level manifest.json (kind: audit-manifest, files[] with path/size/sha256) into the ZIP, distinct from release's artifact-manifest.json",
+      "status": "implemented",
+      "file": "auditpack/AuditPack.java"
+    },
+    {
+      "id": "REQ-ERR001",
+      "title": "NoConfigException must signal that no .fusa.json configuration file was found",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-ERR002",
+      "title": "InvalidConfigException must signal that .fusa.json failed to parse or validate",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-ERR003",
+      "title": "CheckFailedException must signal that one or more safety checks failed (drives EXIT_GATE_FAIL)",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-NF001",
+      "title": "Location/Finding records and deriveCategory()/computeFingerprint() must model the §4 finding schema with a prefix-derived category and stable SHA-256 fingerprint",
+      "status": "implemented",
+      "file": "FuSa.java"
+    },
+    {
+      "id": "REQ-CFG001",
+      "title": "Config.load() must read .fusa.json from the project root, throwing NoConfigException when missing/unreadable and InvalidConfigException on parse failure",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-CFG002",
+      "title": "Config.parse() must decode both the v1.10 top-level schema and legacy nested project fields (standard/asil/sil/dal) into a Config",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-CFG003",
+      "title": "Config.validateFormat() must reject report formats other than text/json/html/sarif with InvalidConfigException",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-CFG005",
+      "title": "Config.defaultConfig() must build a default Config (generic standard, no rule overrides, text report format)",
+      "status": "implemented",
+      "file": "config/Config.java"
+    },
+    {
+      "id": "REQ-RT001",
+      "title": "Watchdog must fire its handler if kick() is not called within timeoutMs, for safe-state entry on liveness loss",
+      "status": "implemented",
+      "file": "runtime/Watchdog.java"
+    },
+    {
+      "id": "REQ-RT002",
+      "title": "Heartbeat must invoke its beat handler at a fixed period to signal liveness to an external watchdog",
+      "status": "implemented",
+      "file": "runtime/Heartbeat.java"
+    },
+    {
+      "id": "REQ-RT003",
+      "title": "SafeStateGuard must manage an idempotent transition to a defined safe state, running registered onEnter handlers exactly once",
+      "status": "implemented",
+      "file": "runtime/SafeStateGuard.java"
+    },
+    {
+      "id": "REQ-CYBER001",
+      "title": "SQL injection risk: string concatenation in SQL query (CWE-89)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER002",
+      "title": "Command injection risk: process execution with user-controlled data (CWE-78)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER003",
+      "title": "Cross-site scripting risk: unescaped output (CWE-79)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER004",
+      "title": "Path traversal risk: file path constructed from user input (CWE-22)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER005",
+      "title": "Hardcoded password detected (CWE-259)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER006",
+      "title": "Hardcoded cryptographic key (CWE-321)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER007",
+      "title": "Weak PRNG used for security-sensitive operation (CWE-330)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER008",
+      "title": "Weak or obsolete cipher mode (CWE-326)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER009",
+      "title": "Broken hash algorithm (CWE-327) — MD5 or SHA-1 used",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER010",
+      "title": "Cookie created without secure/httpOnly flags (CWE-614)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER011",
+      "title": "XML parser without XXE protection (CWE-611)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER012",
+      "title": "Insecure deserialization via ObjectInputStream (CWE-502)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER013",
+      "title": "Server-side request forgery risk (CWE-918)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER014",
+      "title": "Log injection: user input logged without sanitisation (CWE-117)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER015",
+      "title": "Potential integer overflow from unsafe narrowing cast (CWE-190)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER016",
+      "title": "Exception details leaked to client (CWE-209)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER017",
+      "title": "HTTP state-changing action without CSRF token check (CWE-352)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER018",
+      "title": "Potentially catastrophic regex — ReDoS risk (CWE-400)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER019",
+      "title": "Unbounded resource allocation from user-controlled size (CWE-770)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-CYBER020",
+      "title": "SECURITY.md must be present (ISO 21434 Ch.10, IEC 62443-4-1)",
+      "status": "implemented",
+      "file": "cyber/CyberRules.java"
+    },
+    {
+      "id": "REQ-ANA001",
+      "title": "Potential null dereference — chained call without null check",
+      "status": "implemented",
+      "file": "analyze/AnalyzeRules.java"
+    },
+    {
+      "id": "REQ-ANA002",
+      "title": "Resource allocation outside try-with-resources — potential resource leak",
+      "status": "implemented",
+      "file": "analyze/AnalyzeRules.java"
+    },
+    {
+      "id": "REQ-ANA003",
+      "title": "Synchronized block on a potentially non-final field — unsafe lock object",
+      "status": "implemented",
+      "file": "analyze/AnalyzeRules.java"
+    },
+    {
+      "id": "REQ-ANA004",
+      "title": "InterruptedException caught without re-interrupting — breaks thread lifecycle",
+      "status": "implemented",
+      "file": "analyze/AnalyzeRules.java"
+    },
+    {
+      "id": "REQ-ANA005",
+      "title": "Empty catch block silently swallows exceptions",
+      "status": "implemented",
+      "file": "analyze/AnalyzeRules.java"
+    },
+    {
+      "id": "REQ-ANA006",
+      "title": "Exception thrown with new message but without chaining cause — losing context",
+      "status": "implemented",
+      "file": "analyze/AnalyzeRules.java"
     }
   ]
 }
