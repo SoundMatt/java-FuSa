@@ -416,4 +416,39 @@ class TraceTest {
         Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("TRACE002"));
         assertTrue(result.findings().isEmpty(), "without .fusa-reqs.json there is nothing to validate against");
     }
+
+    // ── Regression: escaped quotes in .fusa-reqs.json titles (issue #28) ─────
+
+    @Test
+    //fusa:test REQ-TRACE-JSON001
+    void renderJson_handlesEscapedQuoteInTitleWithoutCorruptingLaterEntries() throws Exception {
+        Path reqs = tmp.resolve(".fusa-reqs.json");
+        Files.writeString(reqs, """
+                {"requirements":[
+                  {"id":"REQ-001","title":"@SuppressWarnings(\\"unchecked\\") usage must be flagged","standard":"generic"},
+                  {"id":"REQ-002","title":"Second requirement","standard":"generic"}
+                ]}
+                """);
+        Map<String, List<Trace.Annotation>> matrix = new java.util.LinkedHashMap<>();
+        matrix.put("REQ-001", List.of(new Trace.Annotation("REQ-001", "Main.java", 1, "impl")));
+        matrix.put("REQ-002", List.of(new Trace.Annotation("REQ-002", "Main.java", 2, "impl")));
+
+        String json = Trace.renderJson(matrix, tmp);
+
+        // Must be valid, parseable JSON -- the original bug corrupted every
+        // entry after the one with an escaped quote in its title.
+        Map<String, Object> doc = assertDoesNotThrow(() -> com.soundmatt.jfusa.internal.Json.parseObject(json));
+        List<Object> requirements = com.soundmatt.jfusa.internal.Json.arr(doc, "requirements");
+        assertEquals(2, requirements.size());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> first = (Map<String, Object>) requirements.get(0);
+        assertEquals("REQ-001", first.get("id"));
+        assertEquals("@SuppressWarnings(\"unchecked\") usage must be flagged", first.get("title"));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> second = (Map<String, Object>) requirements.get(1);
+        assertEquals("REQ-002", second.get("id"));
+        assertEquals("Second requirement", second.get("title"), "entry after the escaped quote must not be corrupted");
+    }
 }

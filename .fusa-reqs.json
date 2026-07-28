@@ -960,6 +960,12 @@
       "title": "Exception thrown with new message but without chaining cause — losing context",
       "status": "implemented",
       "file": "analyze/AnalyzeRules.java"
+    },
+    {
+      "id": "REQ-TRACE-JSON001",
+      "title": "loadReqsMeta parses .fusa-reqs.json with the shared Json parser (correctly handles escaped quotes in title/standard)",
+      "status": "implemented",
+      "file": "trace/Trace.java"
     }
   ]
 }
