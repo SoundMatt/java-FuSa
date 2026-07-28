@@ -6,7 +6,7 @@ Autonomous operation guide for Claude Code sessions on this project.
 
 - **Binary**: `jfusa` (fat-JAR at `target/jfusa.jar`)
 - **Package**: `com.soundmatt.jfusa`
-- **Spec**: x-FuSa v1.14
+- **Spec**: x-FuSa v1.15
 - **Language**: Java 21, Maven 3.9+, zero runtime dependencies
 - **License**: MPL-2.0
 

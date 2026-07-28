@@ -4,7 +4,6 @@ import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.attestation.Attestation;
 import com.soundmatt.jfusa.config.Config;
 import com.soundmatt.jfusa.internal.Json;
-import com.soundmatt.jfusa.lint.LintRules;
 import com.soundmatt.jfusa.qualitybar.QualityBar;
 import com.soundmatt.jfusa.trace.Trace;
 
@@ -13,8 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Design FMEA (dFMEA) — derives failure modes and effects from the project's
@@ -34,25 +31,15 @@ public final class Fmea {
             "same public-method inventory as 'trace --func-coverage' (§1.4.1): public methods excluding "
                     + "getters/setters, constructors, and id()/description()/activate() shims";
 
-    private static final Pattern PUBLIC_METHOD = Pattern.compile(
-            "public\\s+(?!class|interface|enum|record)(?:static\\s+)?"
-                    + "([\\w<>\\[\\],.\\s]+?)\\s+(\\w+)\\s*\\(([^)]*)\\)");
-
     /**
-     * Same exemption set as {@code trace --func-coverage} (§1.4.1) — getters/setters and no-op
-     * shims aren't safety-relevant behaviour, and excluding them here keeps
-     * {@code componentsAnalyzed} a true subset of {@code componentsInProject} (§9.2) rather than
-     * two independently-drifting counts.
+     * Method names excluded from FMEA derivation on top of {@code trace --func-coverage}'s own
+     * exemption set (getters/setters/{@code id}/{@code description}/{@code activate}) — these
+     * aren't safety-relevant failure surfaces even though {@code trace}'s denominator doesn't
+     * exempt them, which is fine: excluding *more* here only keeps {@code componentsAnalyzed} a
+     * stricter subset of {@code componentsInProject} (§9.2), never the reverse.
      */
-    private static final Set<String> EXEMPT_METHOD_NAMES = Set.of("id", "description", "activate");
-
-    private static boolean isExemptMethodName(String name) {
-        if (EXEMPT_METHOD_NAMES.contains(name)) return true;
-        if (name.length() > 3 && name.startsWith("get") && Character.isUpperCase(name.charAt(3))) return true;
-        if (name.length() > 2 && name.startsWith("is") && Character.isUpperCase(name.charAt(2))) return true;
-        if (name.length() > 3 && name.startsWith("set") && Character.isUpperCase(name.charAt(3))) return true;
-        return false;
-    }
+    private static final Set<String> ADDITIONAL_EXEMPT_METHOD_NAMES =
+            Set.of("main", "equals", "hashCode", "toString");
 
     private Fmea() {}
 
@@ -73,31 +60,27 @@ public final class Fmea {
     public static List<FailureMode> derive(Path root, Config cfg) throws IOException {
         List<FailureMode> entries = new ArrayList<>();
         int id = 1;
-        for (Path f : LintRules.javaFiles(root, cfg)) {
-            String rel = root.relativize(f).toString();
-            String component = f.getFileName().toString().replace(".java", "");
-            List<String> lines = LintRules.readLines(f);
-            for (String line : lines) {
-                Matcher m = PUBLIC_METHOD.matcher(line);
-                if (!m.find()) continue;
-                String returnType = m.group(1).trim();
-                String method = m.group(2);
-                String params = m.group(3);
-                if (method.equals("main") || method.equals("equals") || method.equals("hashCode")
-                        || method.equals("toString") || isExemptMethodName(method)) continue;
+        // Reuses trace --func-coverage's own scanner (§1.6 rule 4 implementer guidance, spec
+        // v1.15.0) instead of a second, independently-drifting regex — this is what keeps
+        // componentsAnalyzed a provable subset of componentsInProject (x-FuSa/java-FuSa#33).
+        for (Trace.ComponentMethod cm : Trace.scanComponentMethods(root, cfg)) {
+            String method = cm.name();
+            if (ADDITIONAL_EXEMPT_METHOD_NAMES.contains(method)) continue;
+            String component = cm.file().substring(cm.file().lastIndexOf('/') + 1).replace(".java", "");
+            String returnType = cm.returnType();
+            String params = cm.params();
 
-                String sev = methodSeverity(method);
-                int paramCount = params.isBlank() ? 0 : params.split(",").length;
+            String sev = methodSeverity(method);
+            int paramCount = params.isBlank() ? 0 : params.split(",").length;
 
-                entries.add(new FailureMode(
-                        "FMEA-" + String.format("%03d", id++),
-                        component, method, component + "." + method, rel,
-                        failureModeFor(component, method, returnType),
-                        effectFor(component, method, sev),
-                        causeFor(method, paramCount, returnType),
-                        sev, "Low", "Code review + unit test coverage",
-                        actionPriority(sev), List.of(), List.of()));
-            }
+            entries.add(new FailureMode(
+                    "FMEA-" + String.format("%03d", id++),
+                    component, method, component + "." + method, cm.file(),
+                    failureModeFor(component, method, returnType),
+                    effectFor(component, method, sev),
+                    causeFor(method, paramCount, returnType),
+                    sev, "Low", "Code review + unit test coverage",
+                    actionPriority(sev), List.of(), List.of()));
         }
         return entries;
     }
@@ -156,13 +139,23 @@ public final class Fmea {
         List<FailureMode> entries = derive(root, cfg);
         int analyzed = entries.size();
         int inProject = Trace.computeFuncCoverage(root, cfg).totalFunctions();
-        double coveragePct = inProject == 0 ? 100.0 : round1(100.0 * analyzed / inProject);
+        double coveragePct = inProject == 0 ? 100.0 : clampCoveragePct(round1(100.0 * analyzed / inProject));
         int highPriority = (int) entries.stream().filter(e -> "high".equals(e.actionPriority())).count();
         Summary summary = new Summary(entries.size(), highPriority, analyzed, inProject, coveragePct,
                 COMPONENTS_INVENTORY_METHOD);
         Attestation existing = loadExistingAttestation(root);
         return new FmeaReport(entries, summary, existing);
     }
+
+    /**
+     * §9.2: {@code coveragePct} MUST NOT exceed 100. The scanner-reuse in {@link #derive} (via
+     * {@link Trace#scanComponentMethods}) makes {@code componentsAnalyzed} a provable subset of
+     * {@code componentsInProject} by construction (x-FuSa/java-FuSa#33), but this clamp is a
+     * defensive backstop per spec v1.15.0's explicit MUST — never trust a single code path to keep
+     * an invariant an evidence artifact depends on.
+     */
+    //fusa:req REQ-FMEA007
+    public static double clampCoveragePct(double pct) { return Math.min(100.0, pct); }
 
     private static double round1(double v) { return Math.round(v * 10.0) / 10.0; }
 

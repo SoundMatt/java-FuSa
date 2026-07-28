@@ -241,4 +241,19 @@ class LintRulesTest {
         assertTrue(LintRules.hasAnnotation(lines, 2, "//fusa:unsafe"));
         assertFalse(LintRules.hasAnnotation(lines, 0, "//fusa:unsafe"));
     }
+
+    /**
+     * Regression coverage for x-FuSa/java-FuSa#33 / spec v1.15.0 §1.6 rule 4: {@code
+     * isTestSourcePath} is the shared exclusion trace's func-coverage denominator and fmea's
+     * derivation both now use to keep test fixtures out of a "real project component" inventory.
+     */
+    //fusa:test REQ-LINTUTIL002
+    @Test
+    void isTestSourcePath_recognisesConventionalTestDirectoriesOnly() {
+        assertTrue(LintRules.isTestSourcePath(tmp, tmp.resolve("src/test/java/com/example/WidgetTest.java")));
+        assertTrue(LintRules.isTestSourcePath(tmp, tmp.resolve("tests/Fixture.java")));
+        assertFalse(LintRules.isTestSourcePath(tmp, tmp.resolve("src/main/java/com/example/Widget.java")));
+        assertFalse(LintRules.isTestSourcePath(tmp, tmp.resolve("src/main/java/com/example/TestUtils.java")),
+                "a file/segment merely containing \"test\" as a substring (not an exact path segment) must not match");
+    }
 }

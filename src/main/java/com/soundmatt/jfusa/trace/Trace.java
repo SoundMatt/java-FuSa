@@ -489,11 +489,12 @@ public final class Trace {
      * return type token before the method name, which structurally excludes constructors
      * (a constructor has only its class name before the parameter list, with no separate return
      * type token) as well as class/interface/enum/record declarations (no parameter list).
+     * Group 1 is the return type, group 2 the method name, group 3 the raw parameter list.
      */
     private static final Pattern PUBLIC_METHOD = Pattern.compile(
             "^\\s*public\\s+(?:static\\s+|final\\s+|synchronized\\s+|abstract\\s+|default\\s+)*" +
             "(?:<[^>]*>\\s*)?" +
-            "[\\w][\\w.\\[\\]<>,\\s]*?\\s+(\\w+)\\s*\\([^)]*\\)\\s*(?:throws\\s+[\\w.,\\s]+)?\\s*\\{");
+            "([\\w][\\w.\\[\\]<>,\\s]*?)\\s+(\\w+)\\s*\\(([^)]*)\\)\\s*(?:throws\\s+[\\w.,\\s]+)?\\s*\\{");
 
     /** True when {@code name} is a getter/setter (JavaBean convention) or a known no-op interface shim. */
     private static boolean isExemptMethodName(String name) {
@@ -513,10 +514,70 @@ public final class Trace {
     public record FuncCoverageResult(int totalFunctions, int taggedFunctions, double percentage) {}
 
     /**
+     * A single real, non-exempt public method/constructor-less declaration found while building
+     * the project's "real component" inventory (§1.6 rule 4) — the shared unit {@link
+     * #computeFuncCoverage} and {@code Fmea.derive} both consume, so the two scanners can never
+     * independently drift into counting different populations (the root cause of x-FuSa/java-FuSa#33).
+     *
+     * @param file       project-relative path (§4 rule)
+     * @param line       1-based line number of the declaration
+     * @param name       method name
+     * @param returnType raw return-type text as written (may include generics/arrays)
+     * @param params     raw parameter-list text as written (empty string for a no-arg method)
+     */
+    public record ComponentMethod(String file, int line, String name, String returnType, String params) {}
+
+    private record FileScan(String file, List<String> lines, List<ComponentMethod> methods) {}
+
+    /**
+     * Walks every non-test-tree {@code .java} file and returns each real, non-exempt public
+     * method declaration found, per file, along with that file's full line list (so a caller like
+     * {@link #computeFuncCoverage} can look upward from the declaration for a req tag without
+     * re-reading the file). Test-source files (§1.6 rule 4 — {@link LintRules#isTestSourcePath})
+     * are excluded so a fixture class is never mistaken for a real project component.
+     */
+    private static List<FileScan> scanRealMethodsByFile(Path root, Config cfg) throws IOException {
+        List<FileScan> out = new ArrayList<>();
+        for (Path f : LintRules.javaFiles(root, cfg)) {
+            if (LintRules.isTestSourcePath(root, f)) continue;
+            String rel = root.relativize(f).toString();
+            List<String> lines = LintRules.readLines(f);
+            List<ComponentMethod> methods = new ArrayList<>();
+            boolean[] textBlockState = {false};
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                boolean[] mask = lineInsideStringMask(line, textBlockState);
+                Matcher m = PUBLIC_METHOD.matcher(line);
+                if (!m.find() || mask[m.start()]) continue;
+                String name = m.group(2);
+                if (isExemptMethodName(name)) continue;
+                methods.add(new ComponentMethod(rel, i + 1, name, m.group(1).trim(), m.group(3)));
+            }
+            out.add(new FileScan(rel, lines, methods));
+        }
+        return out;
+    }
+
+    /**
+     * Public "real project component" inventory (§1.6 rule 4) — the same population {@link
+     * #computeFuncCoverage} uses as its denominator, exposed so other artifact-producing scanners
+     * (e.g. {@code Fmea.derive}) can reuse it directly instead of maintaining a second,
+     * independently-drifting method-detection regex (§1.6 rule 4 implementer guidance, spec
+     * v1.15.0).
+     */
+    //fusa:req REQ-TRACE005
+    public static List<ComponentMethod> scanComponentMethods(Path root, Config cfg) throws IOException {
+        List<ComponentMethod> out = new ArrayList<>();
+        for (FileScan fs : scanRealMethodsByFile(root, cfg)) out.addAll(fs.methods());
+        return out;
+    }
+
+    /**
      * Computes the §1.4.1/§5 function-coverage figure: the percentage of public methods (excluding
-     * getters/setters, constructors, and no-op {@code id()}/{@code description()}/{@code activate()}
-     * shims) carrying a {@code //fusa:req} tag directly above them. Reuses {@link #scanAnnotations}
-     * so the same string-literal/text-block false-positive filtering applies here too.
+     * getters/setters, constructors, no-op {@code id()}/{@code description()}/{@code activate()}
+     * shims, and the test-source tree — §1.6 rule 4) carrying a {@code //fusa:req} tag directly
+     * above them. Reuses {@link #scanAnnotations} so the same string-literal/text-block
+     * false-positive filtering applies here too.
      */
     //fusa:req REQ-TRACE002
     public static FuncCoverageResult computeFuncCoverage(Path root, Config cfg) throws IOException {
@@ -528,20 +589,11 @@ public final class Trace {
         }
 
         int total = 0, tagged = 0;
-        for (Path f : LintRules.javaFiles(root, cfg)) {
-            List<String> lines = LintRules.readLines(f);
-            String rel = root.relativize(f).toString();
-            Set<Integer> implLines = implLinesByFile.getOrDefault(rel, Set.of());
-            boolean[] textBlockState = {false};
-            for (int i = 0; i < lines.size(); i++) {
-                String line = lines.get(i);
-                boolean[] mask = lineInsideStringMask(line, textBlockState);
-                Matcher m = PUBLIC_METHOD.matcher(line);
-                if (!m.find() || mask[m.start()]) continue;
-                String name = m.group(1);
-                if (isExemptMethodName(name)) continue;
+        for (FileScan fs : scanRealMethodsByFile(root, cfg)) {
+            Set<Integer> implLines = implLinesByFile.getOrDefault(fs.file(), Set.of());
+            for (ComponentMethod cm : fs.methods()) {
                 total++;
-                if (hasReqTagDirectlyAbove(lines, i, implLines)) tagged++;
+                if (hasReqTagDirectlyAbove(fs.lines(), cm.line() - 1, implLines)) tagged++;
             }
         }
         double pct = total == 0 ? 100.0 : (100.0 * tagged / total);

@@ -90,9 +90,26 @@ public final class Comp {
         return results;
     }
 
-    static String extractMethodName(String line) {
-        var m = Pattern.compile("(?:public|private|protected)\\s+\\S+\\s+(\\w+)\\s*\\(").matcher(line);
-        return m.find() ? m.group(1) : "unknown";
+    /** The method/constructor name is always the identifier immediately (whitespace-only) before
+     *  the parameter list's opening paren, regardless of how many modifier/generic/return-type
+     *  tokens precede it — so this doesn't need to enumerate every legal signature shape the way
+     *  the previous single-token-return-type regex did (which silently fell back to "unknown" for
+     *  {@code public static List<Entry> load(...)}-style multi-token return types and no-arg
+     *  constructors — x-FuSa/java-FuSa#35). Matching is restricted to the text before the line's
+     *  first {@code '{'} so a same-line method body (e.g. {@code public void run() { helper(); }})
+     *  can't have its body's call expression mistaken for the declaration itself; the last match in
+     *  that prefix is taken so a same-line annotation call (e.g. {@code @Deprecated(since="1.0")})
+     *  doesn't win over the real declaration to its right. */
+    private static final Pattern METHOD_NAME_BEFORE_PAREN = Pattern.compile("(\\w+)\\s*\\(");
+
+    //fusa:req REQ-COMP006
+    public static String extractMethodName(String line) {
+        int brace = line.indexOf('{');
+        String signature = brace >= 0 ? line.substring(0, brace) : line;
+        var m = METHOD_NAME_BEFORE_PAREN.matcher(signature);
+        String name = null;
+        while (m.find()) name = m.group(1);
+        return name != null ? name : "unknown";
     }
 
     /** Generate comp-report.json with canonical §9.2 / §3.1 shape. */

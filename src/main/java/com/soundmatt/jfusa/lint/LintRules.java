@@ -53,9 +53,31 @@ public final class LintRules {
     }
 
     private static boolean isExcluded(Path p, Path root, Config cfg) {
-        String rel = root.relativize(p).toString();
-        if (rel.contains("test") || rel.contains("Test")) return false; // include test files
-        return false; // honour cfg.rules().exclude patterns if needed
+        // Deliberately never excludes test files here: most rule packages (LINT/CYBER/ANALYZE/
+        // MISRA) intentionally analyze test sources too (e.g. RulePrintlnInNonTest below needs to
+        // see both). cfg.rules().exclude() is a *rule-id* exclusion list consumed by Engine, not a
+        // file-path pattern, so there is nothing else to honour here. A scanner that specifically
+        // needs to exclude the test-source tree (building a "real project component" inventory —
+        // §1.6 rule 4, e.g. trace's func-coverage denominator or fmea's failure-mode derivation)
+        // should use isTestSourcePath below instead of changing this method's global behaviour.
+        return false;
+    }
+
+    /**
+     * True when {@code file} lives under a conventional test-source directory (Maven/Gradle
+     * {@code src/test/**}, or a bare {@code test/}/{@code tests/} root) relative to {@code root}.
+     * Shared by every scanner that must build a "real project component" inventory excluding test
+     * fixtures (x-FuSa spec §1.6 rule 4) — e.g. {@code trace}'s func-coverage denominator and
+     * {@code fmea}'s failure-mode derivation — so the exclusion logic doesn't independently drift
+     * out of sync between them (§1.6 rule 4 implementer guidance, spec v1.15.0).
+     */
+    //fusa:req REQ-LINTUTIL002
+    public static boolean isTestSourcePath(Path root, Path file) {
+        for (Path seg : root.relativize(file)) {
+            String s = seg.toString();
+            if (s.equalsIgnoreCase("test") || s.equalsIgnoreCase("tests")) return true;
+        }
+        return false;
     }
 
     //fusa:req REQ-LINTUTIL001

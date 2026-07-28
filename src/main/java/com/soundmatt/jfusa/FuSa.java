@@ -15,10 +15,10 @@ import java.util.HexFormat;
 public final class FuSa {
 
     /** Current release of java-FuSa. */
-    public static final String VERSION = "0.5.0";
+    public static final String VERSION = "0.6.0";
 
     /** x-FuSa spec version this release implements. */
-    public static final String SPEC_VERSION = "1.14.0";
+    public static final String SPEC_VERSION = "1.15.0";
 
     // § 2.3 exit codes
     /** Success — no gate failure. */

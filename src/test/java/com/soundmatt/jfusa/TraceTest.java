@@ -349,6 +349,66 @@ class TraceTest {
                 "no public functions to cover — gate must trivially pass");
     }
 
+    /**
+     * Regression test for x-FuSa/java-FuSa#33 (§1.6 rule 4, "real referents only"): a public
+     * method declared only inside {@code src/test} must not be counted in the func-coverage
+     * denominator — it is a test fixture, not a real project component. Without this exclusion,
+     * fmea's coveragePct (which reuses this same denominator) can be pushed above 100%.
+     */
+    @Test
+    //fusa:test REQ-TRACE005
+    void computeFuncCoverage_excludesSrcTestTree() throws Exception {
+        Config cfg = Config.defaultConfig("func-cov-test");
+        Config.save(tmp, cfg);
+        Path main = tmp.resolve("src/main/java/Widget.java");
+        Files.createDirectories(main.getParent());
+        Files.writeString(main, """
+                public class Widget {
+                    //fusa:req REQ-A
+                    public void safeShutdown() {}
+                }
+                """);
+        Path test = tmp.resolve("src/test/java/WidgetTest.java");
+        Files.createDirectories(test.getParent());
+        Files.writeString(test, """
+                public class WidgetTest {
+                    public void testFixtureMethod() {}
+                }
+                """);
+        Trace.FuncCoverageResult result = Trace.computeFuncCoverage(tmp, cfg);
+        assertEquals(1, result.totalFunctions(),
+                "the src/test fixture method must be excluded from the denominator");
+        assertEquals(1, result.taggedFunctions());
+    }
+
+    /**
+     * Regression test for x-FuSa/java-FuSa#33: {@code scanComponentMethods} is the shared scan
+     * fmea's derivation reuses (spec v1.15.0 §1.6 rule 4 implementer guidance) — it must expose
+     * the real method's return type/params and must also exclude the src/test tree.
+     */
+    @Test
+    //fusa:test REQ-TRACE005
+    void scanComponentMethods_excludesTestTreeAndExposesSignature() throws Exception {
+        Config cfg = Config.defaultConfig("func-cov-test");
+        Config.save(tmp, cfg);
+        Path main = tmp.resolve("src/main/java/Widget.java");
+        Files.createDirectories(main.getParent());
+        Files.writeString(main, """
+                public class Widget {
+                    public boolean validateInput(String s) { return true; }
+                }
+                """);
+        Path test = tmp.resolve("src/test/java/WidgetTest.java");
+        Files.createDirectories(test.getParent());
+        Files.writeString(test, "public class WidgetTest {\n    public void fixture() {}\n}\n");
+
+        List<Trace.ComponentMethod> methods = Trace.scanComponentMethods(tmp, cfg);
+        assertEquals(1, methods.size());
+        assertEquals("validateInput", methods.get(0).name());
+        assertEquals("boolean", methods.get(0).returnType());
+        assertEquals("String s", methods.get(0).params());
+    }
+
     // ── §1.4.1 dangling test-reference detection (TRACE002 rule) ─────────────
 
     @Test

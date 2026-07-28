@@ -1,7 +1,7 @@
 # Tool Safety Manual
 
 **Tool:** jfusa v0.1.0
-**Spec:** x-FuSa v1.14
+**Spec:** x-FuSa v1.15
 **Date:** 2026-06-12
 
 ## Purpose

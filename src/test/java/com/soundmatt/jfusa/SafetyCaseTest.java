@@ -22,6 +22,25 @@ class SafetyCaseTest {
         assertEquals(report.completeness().totalGoals(), report.completeness().undeveloped());
     }
 
+    /**
+     * §1.6.2 attestation carry-forward MUST (spec v1.15.0): {@code safety-case}'s own {@code build}
+     * must load any prior saved {@code safety-case.json}'s {@code attestation} object and carry it
+     * forward onto the freshly-rebuilt report, rather than discarding it — mirrors the equivalent
+     * regression tests already present for fmea/tara/sas.
+     */
+    @Test
+    //fusa:test REQ-SAFETYCASE001
+    void build_carriesForwardExistingAttestation() throws Exception {
+        Files.writeString(tmp.resolve(SafetyCase.SAFETY_CASE_JSON), """
+                {"attestation": {"status":"reviewed","implementationAuthor":"auto",
+                 "independentReviewer":"Jane Doe","reviewedAt":"2026-07-28T00:00:00Z",
+                 "contentHash":"sha256:doesnotmatter"}}
+                """);
+        SafetyCase.SafetyCaseReport report = SafetyCase.build(tmp, "proj", "iso26262");
+        assertNotNull(report.attestation());
+        assertEquals("Jane Doe", report.attestation().independentReviewer());
+    }
+
     @Test
     //fusa:test REQ-SAFETYCASE001
     void build_onlyEmitsSolutionNodesForEvidenceThatActuallyExists() throws Exception {

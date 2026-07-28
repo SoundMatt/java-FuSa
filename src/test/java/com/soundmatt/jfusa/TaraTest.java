@@ -16,22 +16,65 @@ class TaraTest {
     @Test
     //fusa:test REQ-TARA006
     void highestImpact_returnsWorstCaseAcrossSfopAxes() {
-        var ir = new Tara.ImpactRating("low", "critical", "medium", "low");
+        var ir = new Tara.ImpactRating("negligible", "critical", "moderate", "negligible");
         assertEquals("critical", Tara.highestImpact(ir));
     }
 
     @Test
     //fusa:test REQ-TARA006
     void deriveRisk_criticalImpactHighFeasibility_isCritical() {
-        var ir = new Tara.ImpactRating("critical", "low", "low", "low");
+        var ir = new Tara.ImpactRating("critical", "negligible", "negligible", "negligible");
         assertEquals("critical", Tara.deriveRisk(ir, "high"));
     }
 
     @Test
     //fusa:test REQ-TARA006
-    void deriveRisk_lowImpactLowFeasibility_isLow() {
-        var ir = new Tara.ImpactRating("low", "low", "low", "low");
+    void deriveRisk_negligibleImpactLowFeasibility_isLow() {
+        var ir = new Tara.ImpactRating("negligible", "negligible", "negligible", "negligible");
         assertEquals("low", Tara.deriveRisk(ir, "low"));
+    }
+
+    /**
+     * Regression test for x-FuSa/java-FuSa#34: {@code deriveRisk} must implement the x-FuSa spec
+     * §9.2 risk-combination table verbatim across all 16 impact×feasibility cells, using the
+     * spec-mandated {@code critical|major|moderate|negligible} impact vocabulary — not just the
+     * subset of cells the tool's own fixed catalogue happens to exercise.
+     */
+    @Test
+    //fusa:test REQ-TARA006
+    void deriveRisk_matchesSpecCombinationTableForAll16Cells() {
+        String[] impacts = {"negligible", "moderate", "major", "critical"};
+        String[] feasibilities = {"very-low", "low", "medium", "high"};
+        String[][] expected = {
+                // very-low,  low,      medium,     high
+                { "low",      "low",    "low",      "low"      }, // negligible
+                { "low",      "low",    "medium",   "medium"   }, // moderate
+                { "medium",   "medium", "high",     "high"     }, // major
+                { "medium",   "high",   "critical", "critical" }, // critical
+        };
+        for (int i = 0; i < impacts.length; i++) {
+            for (int f = 0; f < feasibilities.length; f++) {
+                var ir = new Tara.ImpactRating(impacts[i], "negligible", "negligible", "negligible");
+                assertEquals(expected[i][f], Tara.deriveRisk(ir, feasibilities[f]),
+                        "impact=" + impacts[i] + " feasibility=" + feasibilities[f]);
+            }
+        }
+    }
+
+    @Test
+    //fusa:test REQ-TARA006
+    void deriveRisk_rejectsHighMediumLowVocabularyForImpactAxes() {
+        // §9.2 closed enum: impact.{safety,financial,operational,privacy} MUST use
+        // critical|major|moderate|negligible, never attackFeasibility's high|medium|low vocabulary.
+        // An unrecognised value (including the disallowed vocabulary) falls back to the lowest
+        // rank (negligible) — fail-safe, never silently promoted to a higher risk than warranted,
+        // but also never silently downgraded from what a spec-correct "major" would have produced.
+        var majorEquivalentButWrongVocab = new Tara.ImpactRating("high", "negligible", "negligible", "negligible");
+        var majorSpecVocab = new Tara.ImpactRating("major", "negligible", "negligible", "negligible");
+        assertEquals("low", Tara.deriveRisk(majorEquivalentButWrongVocab, "high"),
+                "the disallowed high|medium|low vocabulary must not be silently accepted as impact");
+        assertEquals("high", Tara.deriveRisk(majorSpecVocab, "high"),
+                "the spec-correct 'major' vocabulary must be recognised");
     }
 
     @Test
