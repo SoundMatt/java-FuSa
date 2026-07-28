@@ -1,11 +1,11 @@
 # java-FuSa — Java Functional Safety Tool Suite
 
 [![CI](https://github.com/soundmatt/java-FuSa/actions/workflows/ci.yml/badge.svg)](https://github.com/soundmatt/java-FuSa/actions/workflows/ci.yml)
-[![x-FuSa spec](https://img.shields.io/badge/x--FuSa%20spec-v1.10-blue)](https://github.com/soundmatt/x-FuSa)
+[![x-FuSa spec](https://img.shields.io/badge/x--FuSa%20spec-v1.14-blue)](https://github.com/soundmatt/x-FuSa)
 [![Java 21](https://img.shields.io/badge/java-21-orange)](https://adoptium.net/)
 [![License: MPL-2.0](https://img.shields.io/badge/license-MPL--2.0-green)](LICENSE)
 
-**jfusa** is the Java implementation of the [x-FuSa specification v1.10](https://github.com/soundmatt/x-FuSa) — a tool-qualification-grade functional safety CLI for Java projects targeting ISO 26262, IEC 61508, ISO 21434, DO-178C, IEC 62443, UN R.155, and SLSA.
+**jfusa** is the Java implementation of the [x-FuSa specification v1.14](https://github.com/soundmatt/x-FuSa) — a tool-qualification-grade functional safety CLI for Java projects targeting ISO 26262, IEC 61508, ISO 21434, DO-178C, IEC 62443, UN R.155, and SLSA.
 
 It is feature-equivalent to [go-FuSa](https://github.com/soundmatt/go-FuSa) and [cpp-FuSa](https://github.com/soundmatt/cpp-FuSa).
 
@@ -82,12 +82,12 @@ chmod +x ~/bin/jfusa
 | `jfusa verify` | Generate `.fusa-evidence.json` |
 | `jfusa release` | Generate SBOM (SPDX 2.3) + SLSA provenance |
 | `jfusa qualify` | Run tool qualification suite (TC-001–TC-010) |
-| `jfusa safety-case` | Generate GSN safety-case.{json,md,mermaid} |
-| `jfusa fmea` | Generate dFMEA (fmea.{json,csv}) |
+| `jfusa safety-case [--format=text\|json\|md\|mermaid] [--strict]` | Generate GSN safety-case.{json,md,mermaid} |
+| `jfusa fmea [--format=text\|json] [--min-coverage=N] [--strict]` | Generate dFMEA (fmea.{json,csv}) |
 | `jfusa boundary` | Package dependency boundary graph |
 | `jfusa coupling` | Data/control coupling report (DO-178C MC/DC) |
-| `jfusa tara` | TARA per ISO 21434 Ch.9 |
-| `jfusa hara` | HARA per ISO 26262-3 |
+| `jfusa tara [--format=text\|json\|md] [--min-coverage=N] [--strict]` | TARA per ISO 21434 Ch.9 |
+| `jfusa hara [--init] [--format=text\|json] [--strict]` | HARA per ISO 26262-3 (validates `.fusa-hara.json`) |
 | `jfusa vuln` | Dependency vulnerability scan |
 | `jfusa audit-pack` | Bundle all evidence artifacts into audit-pack.zip |
 | `jfusa diff <a.json> <b.json>` | Compare two reports by fingerprint |
@@ -105,7 +105,7 @@ chmod +x ~/bin/jfusa
 | `jfusa iec62443` | IEC 62443 check (INCIDENT-RESPONSE.md) |
 | `jfusa unece [--format=text\|json]` | UN R.155 Annex 5 threat categories |
 | `jfusa slsa` | SLSA L2/L3 supply chain checks |
-| `jfusa sas` | Software Accomplishment Summary (DO-178C §11.20) |
+| `jfusa sas [--format=json\|md] [--strict]` | Software Accomplishment Summary (DO-178C §11.20) |
 | `jfusa sci [--format=json\|markdown]` | Software Configuration Index (DO-178C §11.16) |
 | `jfusa coverage` | Show JaCoCo coverage metrics |
 | `jfusa comp` | Cyclomatic complexity analysis |
@@ -258,8 +258,49 @@ Method m = cls.getMethod("foo"); //fusa:reflect needed for plugin architecture
 | `safety-case.json/md/mermaid` | `jfusa safety-case` | GSN safety case |
 | `.fusa-hara.json` | `jfusa hara` | HARA (ISO 26262-3) |
 | `sci.json` | `jfusa sci` | Software Configuration Index (DO-178C §11.16) |
-| `sas.md` | `jfusa sas` | Software Accomplishment Summary (DO-178C §11.20) |
+| `sas.md` + `sas.json` | `jfusa sas` | Software Accomplishment Summary (DO-178C §11.20) |
 | `audit-pack.zip` | `jfusa audit-pack` | All artifacts bundled |
+
+### Content-quality baseline (x-FuSa spec §1.6)
+
+`hara`, `fmea`, `tara`, `safety-case`, and `sas` all scan their own qualitative
+fields (hazard/failure-mode/threat/goal text) for two conditions before
+writing:
+
+- **`FUSA-STUB001`** — literal placeholder/template text (`[describe …]`,
+  `TBD`, `replace with`, `lorem ipsum`, `fill in`). Always an `ERROR`; gates
+  the command's exit code. Suppressible only via `jfusa disposition add
+  FUSA-STUB001 <artifact-file> accepted "<reason>"` — never by attestation.
+- **`FUSA-STUB002`** — a single hardcoded value reused across ≥10 entries
+  (distinct-value ratio < 0.1), e.g. every FMEA row sharing one `failureMode`
+  string. A `WARNING` by default (advisory, does not gate). Pass `--strict`
+  (or `--require-attestation`) to escalate an unsuppressed instance to exit 1.
+
+A `FUSA-STUB002` warning can be suppressed by adding a document-level
+`attestation` object to the generated JSON once a human has genuinely
+reviewed the content:
+
+```json
+"attestation": {
+  "status": "reviewed",
+  "implementationAuthor": "auto",
+  "independentReviewer": "Jane Doe <jane@example.com>",
+  "reviewedAt": "2026-07-28T00:00:00Z",
+  "contentHash": "sha256:…"
+}
+```
+
+`independentReviewer` must differ from `implementationAuthor`, and
+`contentHash` (RFC 8785 canonical hash of the entries/hazards/nodes, excluding
+`attestation` and `generatedAt`) is recomputed on every run — the attestation
+silently falls back to advisory once the underlying content changes. The
+attestation block, once added, is carried forward verbatim on every
+regeneration as long as its `contentHash` still matches.
+
+`fmea` and `tara` additionally report `summary.coveragePct` against a stated
+denominator (`componentsInProject`/`assetsInProject` +
+`*InventoryMethod`, documenting how the denominator was counted) — pass
+`--min-coverage N` to gate on it.
 
 ## Docker
 

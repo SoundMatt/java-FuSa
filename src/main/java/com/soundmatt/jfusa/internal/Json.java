@@ -59,12 +59,49 @@ public final class Json {
         //fusa:req REQ-JSON003
         public Writer field(String k, long v)    { return key(k).value(v); }
         //fusa:req REQ-JSON003
+        public Writer field(String k, double v)  { return key(k).value(v); }
+        //fusa:req REQ-JSON003
         public Writer field(String k, boolean v) { return key(k).value(v); }
 
         //fusa:req REQ-JSON003
         public Writer fieldIfNonBlank(String k, String v) {
             if (v != null && !v.isBlank()) field(k, v);
             return this;
+        }
+
+        /**
+         * Recursively serialises an arbitrary decoded-JSON value ({@code Map<String,Object>},
+         * {@code List<Object>}, {@code String}, {@code Long}/{@code Integer}/{@code Double},
+         * {@code Boolean}, or {@code null} — the same object model {@link Json#parse} produces).
+         * Lets a caller build one plain object graph and use it for both JSON output and
+         * canonical-hash computation ({@code internal.CanonJson}) instead of hand-writing the
+         * same structure twice.
+         */
+        @SuppressWarnings("unchecked")
+        //fusa:req REQ-JSON007
+        public Writer rawValue(Object v) {
+            if (v == null) { nullValue(); return this; }
+            if (v instanceof String s) { value(s); return this; }
+            if (v instanceof Boolean b) { value(b.booleanValue()); return this; }
+            if (v instanceof Long l) { value(l.longValue()); return this; }
+            if (v instanceof Integer i) { value(i.longValue()); return this; }
+            if (v instanceof Double d) { value(d.doubleValue()); return this; }
+            if (v instanceof Map<?, ?> m) {
+                objectStart();
+                for (var e : ((Map<String, Object>) m).entrySet()) {
+                    key(e.getKey());
+                    rawValue(e.getValue());
+                }
+                objectEnd();
+                return this;
+            }
+            if (v instanceof List<?> l) {
+                arrayStart();
+                for (Object e : l) rawValue(e);
+                arrayEnd();
+                return this;
+            }
+            throw new IllegalArgumentException("Json.Writer: unsupported raw value type " + v.getClass());
         }
 
         private void comma() { if (needsComma) sb.append(','); }
@@ -126,9 +163,10 @@ public final class Json {
                         out.append('\n');
                         indent = Math.max(0, indent - 1);
                         out.append("  ".repeat(indent));
-                    } else {
-                        indent = Math.max(0, indent - 1);
                     }
+                    // else: empty {} / [] — the matching open bracket never incremented indent
+                    // (see the '{','[' case below), so this branch must not decrement it either,
+                    // or every sibling that follows an empty collection drifts one level shallow.
                     out.append(c);
                 }
                 case ',' -> {

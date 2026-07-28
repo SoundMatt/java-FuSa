@@ -29,6 +29,7 @@ import com.soundmatt.jfusa.metrics.Metrics;
 import com.soundmatt.jfusa.misra.Misra;
 import com.soundmatt.jfusa.pr.ProblemReport;
 import com.soundmatt.jfusa.qualify.Qualify;
+import com.soundmatt.jfusa.qualitybar.QualityBar;
 import com.soundmatt.jfusa.release.Release;
 import com.soundmatt.jfusa.report.Report;
 import com.soundmatt.jfusa.safetycase.SafetyCase;
@@ -49,6 +50,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * jfusa CLI entry point — dispatches all 45 sub-commands.
@@ -386,12 +388,67 @@ public final class Main {
 
     static void cmdSafetyCase(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        SafetyCase.generate(root, cfg);
+        String format = flagValue(args, "--format", "text");
+        String output = flagValue(args, "--output", "");
+        boolean strict = hasFlag(args, "--strict") || hasFlag(args, "--require-attestation");
+        String project = cfg.project().name();
+        String standard = cfg.project().standard().canonicalId();
+
+        SafetyCase.SafetyCaseReport report = SafetyCase.build(root, project, standard);
+        SafetyCase.writeJson(root, report, "json".equals(format) ? output : "");
+        SafetyCase.writeMarkdown(root, report, project, standard);
+        SafetyCase.writeMermaid(root, report);
+
+        QualityBar.Result qb = QualityBar.evaluate(root, SafetyCase.SAFETY_CASE_JSON,
+                SafetyCase.qualityBarFields(report.nodes()), report.attestation(),
+                SafetyCase.substantiveContent(report.nodes(), report.edges()));
+        System.err.print(QualityBar.renderText(qb));
+
+        String rendered = switch (format) {
+            case "json" -> null; // already written above
+            case "mermaid" -> Files.readString(root.resolve(SafetyCase.SAFETY_CASE_MERMAID));
+            case "md" -> Files.readString(root.resolve(SafetyCase.SAFETY_CASE_MD));
+            default -> SafetyCase.renderText(report, project, standard);
+        };
+        if (rendered != null) {
+            if (!output.isEmpty() && !"json".equals(format)) Files.writeString(root.resolve(output), rendered);
+            else System.out.print(rendered);
+        } else {
+            System.out.println("safety-case written: " + SafetyCase.SAFETY_CASE_JSON);
+        }
+
+        gateQualityBar(qb, strict, "safety-case");
     }
 
     static void cmdFmea(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        Fmea.generate(root, cfg);
+        String format = flagValue(args, "--format", "json");
+        String output = flagValue(args, "--output", "");
+        int minCoverage = Integer.parseInt(flagValue(args, "--min-coverage", "0"));
+        boolean strict = hasFlag(args, "--strict") || hasFlag(args, "--require-attestation");
+
+        Fmea.FmeaReport report = Fmea.build(root, cfg);
+        Fmea.writeJson(root, report, "json".equals(format) ? output : "");
+        Fmea.writeCsv(root, report.entries());
+
+        QualityBar.Result qb = QualityBar.evaluate(root, Fmea.FMEA_JSON, Fmea.qualityBarFields(report.entries()),
+                report.attestation(), Fmea.substantiveContent(report.entries()));
+        System.err.print(QualityBar.renderText(qb));
+
+        if ("text".equals(format)) {
+            String rendered = Fmea.renderText(report);
+            if (!output.isEmpty()) Files.writeString(root.resolve(output), rendered);
+            else System.out.print(rendered);
+        } else if ("json".equals(format)) {
+            System.out.println("fmea written: " + (output.isEmpty() ? Fmea.FMEA_JSON : output) + ", " + Fmea.FMEA_CSV);
+        }
+
+        if (minCoverage > 0 && report.summary().coveragePct() < minCoverage) {
+            System.err.printf("jfusa fmea: coverage %.1f%% is below required --min-coverage %d%%%n",
+                    report.summary().coveragePct(), minCoverage);
+            throw new FuSa.CheckFailedException("fmea coverage gate failed");
+        }
+        gateQualityBar(qb, strict, "fmea");
     }
 
     static void cmdBoundary(Path root, String[] args) throws IOException {
@@ -405,13 +462,96 @@ public final class Main {
 
     static void cmdTara(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        Tara.generate(root, cfg.project().name());
+        String format = flagValue(args, "--format", "json");
+        String output = flagValue(args, "--output", "");
+        int minCoverage = Integer.parseInt(flagValue(args, "--min-coverage", "0"));
+        boolean strict = hasFlag(args, "--strict") || hasFlag(args, "--require-attestation");
+        String project = cfg.project().name();
+
+        Tara.TaraReport report = Tara.build(root, project);
+        Tara.writeJson(root, report, "json".equals(format) ? output : "");
+        Tara.writeMarkdown(root, report, project);
+
+        QualityBar.Result qb = QualityBar.evaluate(root, Tara.TARA_JSON, Tara.qualityBarFields(report.threats()),
+                report.attestation(), Tara.substantiveContent(report.threats()));
+        System.err.print(QualityBar.renderText(qb));
+
+        if ("text".equals(format)) {
+            String rendered = Tara.renderText(report);
+            if (!output.isEmpty()) Files.writeString(root.resolve(output), rendered);
+            else System.out.print(rendered);
+        } else if ("json".equals(format)) {
+            System.out.println("tara written: " + (output.isEmpty() ? Tara.TARA_JSON : output) + ", " + Tara.TARA_MD);
+        }
+
+        if (minCoverage > 0 && report.summary().coveragePct() < minCoverage) {
+            System.err.printf("jfusa tara: coverage %.1f%% is below required --min-coverage %d%%%n",
+                    report.summary().coveragePct(), minCoverage);
+            throw new FuSa.CheckFailedException("tara coverage gate failed");
+        }
+        gateQualityBar(qb, strict, "tara");
     }
 
     static void cmdHara(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
-        Hara.init(root, cfg.project().name());
-        System.out.println(Hara.show(root));
+        String format = flagValue(args, "--format", "text");
+        String output = flagValue(args, "--output", "");
+        boolean init = hasFlag(args, "--init");
+
+        if (init) Hara.init(root, cfg.project().name(), cfg.project().standard().canonicalId());
+
+        Path haraFile = root.resolve(Hara.HARA_FILE);
+        if (!Files.exists(haraFile)) {
+            if ("json".equals(format)) {
+                emitJsonError("no_config", "no " + Hara.HARA_FILE + " found — run 'jfusa hara --init' first");
+                System.exit(EXIT_RUNTIME);
+                return;
+            }
+            System.out.println("No " + Hara.HARA_FILE + " found. Run 'jfusa hara --init' to scaffold one.");
+            return;
+        }
+
+        Hara.HaraDoc doc = Hara.load(root);
+        Set<String> reqIds = Hara.loadReqIds(root);
+        List<Hara.ValidationFinding> findings = Hara.validate(doc, reqIds);
+        Hara.Completeness completeness = Hara.computeCompleteness(doc, reqIds);
+
+        QualityBar.Result qb = QualityBar.evaluate(root, Hara.HARA_FILE, Hara.qualityBarFields(doc),
+                doc.attestation(), Hara.substantiveContent(doc));
+        System.err.print(QualityBar.renderText(qb));
+
+        String rendered = "json".equals(format) ? Hara.renderJson(doc, completeness)
+                : Hara.renderText(doc, findings, completeness);
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered + "\n");
+            System.err.println("HARA written to " + output);
+        } else {
+            System.out.println(rendered);
+        }
+
+        boolean structuralGap = completeness.danglingReferences() > 0
+                || completeness.safetyGoalsWithFssrRefs() < completeness.totalSafetyGoals();
+        if (structuralGap) {
+            System.err.println("jfusa hara: " + findings.size() + " validation finding(s) — "
+                    + completeness.danglingReferences() + " dangling reference(s), "
+                    + (completeness.totalSafetyGoals() - completeness.safetyGoalsWithFssrRefs())
+                    + " safety goal(s) without fssrRefs");
+            throw new FuSa.CheckFailedException("hara validation failed");
+        }
+        gateQualityBar(qb, hasFlag(args, "--strict") || hasFlag(args, "--require-attestation"), "hara");
+    }
+
+    /** Shared FUSA-STUB001/002 exit-code gating (§1.6.1/§1.6.2) for every artifact command. */
+    static void gateQualityBar(QualityBar.Result qb, boolean strict, String commandName) {
+        if (qb.hasBlockingError()) {
+            System.err.println("jfusa " + commandName + ": FUSA-STUB001 placeholder text found — see above");
+            throw new FuSa.CheckFailedException(commandName + " content-quality gate failed (FUSA-STUB001)");
+        }
+        if (strict && qb.hasUnsuppressedWarning()) {
+            System.err.println("jfusa " + commandName + ": --strict/--require-attestation: unsuppressed "
+                    + "FUSA-STUB002 warning(s) — see above");
+            throw new FuSa.CheckFailedException(commandName + " content-quality gate failed (FUSA-STUB002, --strict)");
+        }
     }
 
     static void cmdVuln(Path root, String[] args) throws IOException {
@@ -564,13 +704,34 @@ public final class Main {
     }
 
     static void cmdSas(Path root, String[] args) throws IOException {
-        Sas.generate(root);
+        String format = flagValue(args, "--format", "md");
+        String output = flagValue(args, "--output", "");
+        boolean strict = hasFlag(args, "--strict") || hasFlag(args, "--require-attestation");
+
+        Sas.SasReport report = Sas.build(root);
+        Sas.writeMarkdown(root, report);
+        if ("json".equals(format)) Sas.writeJson(root, report, output);
+        else Sas.writeJson(root, report, Sas.SAS_JSON); // §9.3: sas.json is always also written
+
+        QualityBar.Result qb = QualityBar.evaluate(root, Sas.SAS_JSON, Sas.qualityBarFields(report.checklist()),
+                report.attestation(), Sas.substantiveContent(report.checklist()));
+        System.err.print(QualityBar.renderText(qb));
+
+        System.out.println("SAS generated: " + Sas.SAS_MD + " (" + report.summary().present() + "/"
+                + report.summary().total() + " items present)");
+        gateQualityBar(qb, strict, "sas");
     }
 
     static void cmdSci(Path root, String[] args) throws IOException {
         String format = flagValue(args, "--format", "json");
-        Sci.generate(root, format);
-        System.out.println("SCI generated: " + ("markdown".equals(format) ? Sci.SCI_MD : Sci.SCI_JSON));
+        String output = flagValue(args, "--output", "");
+        if ("markdown".equals(format)) {
+            Sci.generate(root, format);
+            System.out.println("SCI generated: " + Sci.SCI_MD);
+        } else {
+            Sci.generateJson(root, output);
+            System.out.println("SCI generated: " + (output.isEmpty() ? Sci.SCI_JSON : output));
+        }
     }
 
     static void cmdCoverage(Path root, String[] args) throws IOException {
@@ -741,9 +902,13 @@ public final class Main {
     }
 
     static String flagValue(String[] args, String flag, String def) {
-        for (int i = 0; i < args.length - 1; i++) {
-            if (args[i].equals(flag)) return args[i + 1];
+        // The "--flag=value" form is checked against every arg, including the last one — the
+        // previous "i < args.length - 1" bound skipped it entirely when the equals-form flag was
+        // the final argument (e.g. "check --format=json --output=report.json", exactly the shape
+        // ci.yml's steps use), silently falling back to def instead of the given value.
+        for (int i = 0; i < args.length; i++) {
             if (args[i].startsWith(flag + "=")) return args[i].substring(flag.length() + 1);
+            if (args[i].equals(flag) && i + 1 < args.length) return args[i + 1];
         }
         return def;
     }

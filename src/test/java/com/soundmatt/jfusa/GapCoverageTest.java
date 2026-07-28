@@ -168,24 +168,24 @@ class GapCoverageTest {
                 "COV001 should not fire when statement coverage >= 80%");
     }
 
-    // ── Fmea.FmeaEntry (0%) ──────────────────────────────────────────────────
+    // ── Fmea.FailureMode (0%) ──────────────────────────────────────────────────
 
     @Test
     //fusa:test REQ-NF001
     void fmeaEntry_recordAccessors() {
-        Fmea.FmeaEntry e = new Fmea.FmeaEntry(
-                "FMEA-001", "MyClass", "doSomething",
-                "Returns incorrect value", "Safety output invalid",
-                "Critical", "Low", "Code review", "High");
+        Fmea.FailureMode e = new Fmea.FailureMode(
+                "FMEA-001", "MyClass", "doSomething", "MyClass.doSomething", "MyClass.java",
+                "Returns incorrect value", "Safety output invalid", "Implementation defect",
+                "high", "Low", "Code review", "high", List.of(), List.of());
         assertEquals("FMEA-001", e.id());
         assertEquals("MyClass", e.component());
         assertEquals("doSomething", e.method());
         assertEquals("Returns incorrect value", e.failureMode());
         assertEquals("Safety output invalid", e.effect());
-        assertEquals("Critical", e.severity());
+        assertEquals("high", e.severity());
         assertEquals("Low", e.occurrence());
         assertEquals("Code review", e.detection());
-        assertEquals("High", e.rpn());
+        assertEquals("high", e.actionPriority());
     }
 
     @Test
@@ -202,14 +202,16 @@ class GapCoverageTest {
                 }
                 """);
         Config cfg = Config.defaultConfig("fmea-test");
-        Fmea.generate(tmp, cfg);
+        Fmea.FmeaReport report = Fmea.build(tmp, cfg);
+        Fmea.writeJson(tmp, report, "");
+        Fmea.writeCsv(tmp, report.entries());
         assertTrue(Files.exists(tmp.resolve(Fmea.FMEA_JSON)), "fmea.json should be written");
         assertTrue(Files.exists(tmp.resolve(Fmea.FMEA_CSV)),  "fmea.csv should be written");
         String json = Files.readString(tmp.resolve(Fmea.FMEA_JSON));
         assertTrue(json.contains("\"kind\": \"fmea-report\""),
                 "JSON should contain kind field");
         String csv = Files.readString(tmp.resolve(Fmea.FMEA_CSV));
-        assertTrue(csv.contains("ID,Component"), "CSV must have header");
+        assertTrue(csv.contains("ID,Item"), "CSV must have header");
     }
 
     @Test
@@ -226,21 +228,21 @@ class GapCoverageTest {
                 }
                 """);
         Config cfg = Config.defaultConfig("fmea-test");
-        List<Fmea.FmeaEntry> entries = Fmea.derive(tmp, cfg);
+        List<Fmea.FailureMode> entries = Fmea.derive(tmp, cfg);
         assertFalse(entries.isEmpty(), "derive should produce entries for public methods");
-        // safeShutdown -> Critical, validateInput -> Significant, processData -> Moderate
-        assertTrue(entries.stream().anyMatch(e -> e.method().equals("safeShutdown") && "Critical".equals(e.severity())),
-                "safeShutdown should be classified as Critical");
-        assertTrue(entries.stream().anyMatch(e -> e.method().equals("validateInput") && "Significant".equals(e.severity())),
-                "validateInput should be classified as Significant");
-        assertTrue(entries.stream().anyMatch(e -> e.method().equals("processData") && "Moderate".equals(e.severity())),
-                "processData should be classified as Moderate");
+        // safeShutdown -> high, validateInput -> medium, processData -> low
+        assertTrue(entries.stream().anyMatch(e -> e.method().equals("safeShutdown") && "high".equals(e.severity())),
+                "safeShutdown should be classified as high");
+        assertTrue(entries.stream().anyMatch(e -> e.method().equals("validateInput") && "medium".equals(e.severity())),
+                "validateInput should be classified as medium");
+        assertTrue(entries.stream().anyMatch(e -> e.method().equals("processData") && "low".equals(e.severity())),
+                "processData should be classified as low");
     }
 
     @Test
     //fusa:test REQ-NF001
     //fusa:test REQ-FMEA001
-    void fmea_derive_rpnMapsFromSeverity() throws Exception {
+    void fmea_derive_actionPriorityMapsFromSeverity() throws Exception {
         Path srcDir = tmp.resolve("src/main/java");
         Files.createDirectories(srcDir);
         Files.writeString(srcDir.resolve("RpnTest.java"), """
@@ -251,13 +253,13 @@ class GapCoverageTest {
                 }
                 """);
         Config cfg = Config.defaultConfig("fmea-test");
-        List<Fmea.FmeaEntry> entries = Fmea.derive(tmp, cfg);
-        entries.stream().filter(e -> "Critical".equals(e.severity()))
-               .forEach(e -> assertEquals("High", e.rpn(), "Critical severity should map to High RPN"));
-        entries.stream().filter(e -> "Significant".equals(e.severity()))
-               .forEach(e -> assertEquals("Medium", e.rpn(), "Significant severity should map to Medium RPN"));
-        entries.stream().filter(e -> "Moderate".equals(e.severity()))
-               .forEach(e -> assertEquals("Low", e.rpn(), "Moderate severity should map to Low RPN"));
+        List<Fmea.FailureMode> entries = Fmea.derive(tmp, cfg);
+        entries.stream().filter(e -> "high".equals(e.severity()))
+               .forEach(e -> assertEquals("high", e.actionPriority(), "high severity should map to high priority"));
+        entries.stream().filter(e -> "medium".equals(e.severity()))
+               .forEach(e -> assertEquals("medium", e.actionPriority(), "medium severity should map to medium priority"));
+        entries.stream().filter(e -> "low".equals(e.severity()))
+               .forEach(e -> assertEquals("low", e.actionPriority(), "low severity should map to low priority"));
     }
 
     // ── Json.JsonParseException (0%) ──────────────────────────────────────────
