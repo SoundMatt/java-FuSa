@@ -2,7 +2,6 @@ package com.soundmatt.jfusa.safetycase;
 
 import com.soundmatt.jfusa.FuSa;
 import com.soundmatt.jfusa.attestation.Attestation;
-import com.soundmatt.jfusa.config.Config;
 import com.soundmatt.jfusa.internal.Json;
 import com.soundmatt.jfusa.qualitybar.QualityBar;
 
