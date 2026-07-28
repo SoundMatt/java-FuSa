@@ -135,8 +135,8 @@ jobs:
           push: false
           tags: ghcr.io/soundmatt/java-fusa:latest
           build-args: |
-            VERSION=0.5.0
-            SPEC_VERSION=1.14.0
+            VERSION=0.6.0
+            SPEC_VERSION=1.15.0
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
           cache-from: type=gha

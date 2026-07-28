@@ -8,6 +8,61 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## v0.6.0 — 2026-07-28
+
+Adopts x-FuSa spec v1.15.0 and fixes three real defects found by a same-day
+deep audit that ran `jfusa`'s own commands against this repo and compared
+output to the spec (SoundMatt/java-FuSa#33, #34, #35, #36). `SPEC_VERSION`
+1.14.0 → 1.15.0.
+
+### Fixed
+
+- **`fmea`: `coveragePct` could exceed 100%** (SoundMatt/java-FuSa#33).
+  `Fmea.derive` maintained its own second, unanchored, unmasked
+  method-detection regex instead of reusing `trace --func-coverage`'s
+  denominator scanner, so it both matched method-declaration-shaped text
+  *inside a text-block string literal* in `src/test` fixtures and never
+  excluded the test-source tree at all — on this repo's own codebase,
+  `coveragePct` came out to 111.9%. `Fmea.derive` now calls the same shared
+  scanner `trace --func-coverage` uses (`Trace.scanComponentMethods`, new),
+  which excludes `src/test`/`tests` (`LintRules.isTestSourcePath`, new) —
+  making `componentsAnalyzed` a provable subset of `componentsInProject` by
+  construction — plus a defensive `Fmea.clampCoveragePct` backstop per the
+  spec's explicit MUST that the value never exceed 100 regardless.
+- **`tara`: `impact` axes used the wrong closed-enum vocabulary, and
+  `deriveRisk` didn't implement the spec's risk-combination table**
+  (SoundMatt/java-FuSa#34). The fixed threat catalogue emitted
+  `high`/`medium`/`low` for `impact.{safety,financial,operational,privacy}`
+  — the vocabulary reserved for `attackFeasibility` — instead of the
+  spec-mandated `critical`/`major`/`moderate`/`negligible`. Independently,
+  `Tara.deriveRisk`'s hand-rolled `if`-chain diverged from the spec's 4×4
+  risk-combination table on 7 of 16 cells once fed the correct vocabulary
+  (e.g. a `major`-impact/`high`-feasibility threat — spec: `high` risk — was
+  silently rated `low`). Both fixed: the catalogue now uses the correct
+  vocabulary, and `deriveRisk` looks up the verbatim spec table.
+- **`comp`: `extractMethodName` still produced `name: "unknown"` for ~51% of
+  entries** (SoundMatt/java-FuSa#35). The old regex only matched a
+  declaration with exactly one token between the access modifier and the
+  method name, so any additional modifier (`static`), a generic/parameterized
+  return type (`List<Entry>`), or a no-arg constructor fell through to
+  `"unknown"`. Rewritten to take the last identifier immediately before an
+  opening paren in the text before the line's first `{` — a signature shape
+  invariant regardless of how many modifier/generic/return-type tokens
+  precede it. On this repo's own `comp-report.json`: 276/542 (51%) → 0/545.
+
+### Changed
+
+- **§1.6 rule 4 (implementer guidance):** `trace --func-coverage`'s
+  denominator, `fmea`'s derivation, and `comp`'s complexity scan no longer
+  maintain independent method-detection/exclusion logic — `trace` and `fmea`
+  now share one scanner (`Trace.scanComponentMethods`) and one test-tree
+  exclusion helper (`LintRules.isTestSourcePath`), per the spec's guidance to
+  reuse rather than re-implement.
+- Verified (no code change needed): `fmea`/`tara`/`safety-case`/`sas`
+  already implement §1.6.2's new attestation carry-forward MUST correctly
+  (each `build` loads any prior saved artifact's `attestation` before
+  rebuilding) — added the one missing regression test, for `safety-case`.
+
 ## v0.5.0 — 2026-07-28
 
 Adopts x-FuSa spec v1.14.0 across `hara`/`fmea`/`tara`/`safety-case`/`sas`/`sci`

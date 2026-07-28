@@ -47,12 +47,19 @@ public final class Tara {
 
     // ── Risk derivation — feasibility × highest SFOP impact ─────────────────
 
+    /**
+     * Rank for the x-FuSa family's own closed {@code impact.{safety,financial,operational,privacy}}
+     * enum (x-FuSa spec §9.2, "Closed enums"): {@code critical} | {@code major} | {@code moderate} |
+     * {@code negligible}. This is a deliberately distinct vocabulary from {@code attackFeasibility}'s
+     * {@code high|medium|low|very-low} — the two are different scales for different questions
+     * (damage vs. likelihood) and a tool MUST NOT conflate them (x-FuSa/java-FuSa#34).
+     */
     private static int impactRank(String impact) {
         return switch (impact) {
             case "critical" -> 3;
-            case "high" -> 2;
-            case "medium" -> 1;
-            default -> 0;
+            case "major" -> 2;
+            case "moderate" -> 1;
+            default -> 0; // negligible
         };
     }
 
@@ -65,6 +72,20 @@ public final class Tara {
         };
     }
 
+    /**
+     * x-FuSa spec §9.2 "Risk combination table" — the family's own canonical convention (ISO/SAE
+     * 21434 Clause 15.3 leaves the determination method organization-defined). Row = highest SFOP
+     * impact rank ({@link #impactRank}, 0=negligible..3=critical); column = attackFeasibility rank
+     * ({@link #feasibilityRank}, 0=very-low..3=high).
+     */
+    private static final String[][] RISK_TABLE = {
+            // very-low,  low,      medium,     high        (feasibility →)
+            { "low",      "low",    "low",      "low"      }, // negligible
+            { "low",      "low",    "medium",   "medium"   }, // moderate
+            { "medium",   "medium", "high",     "high"     }, // major
+            { "medium",   "high",   "critical", "critical" }, // critical
+    };
+
     /** Highest of the four SFOP axes — ISO 21434 Clause 15.7: overall risk uses the worst-case damage. */
     //fusa:req REQ-TARA006
     public static String highestImpact(ImpactRating ir) {
@@ -75,16 +96,15 @@ public final class Tara {
         return best;
     }
 
-    /** Derives {@code risk} from feasibility × the highest SFOP impact axis (ISO 21434 risk matrix). */
+    /**
+     * Derives {@code risk} from {@code attackFeasibility} × the highest SFOP impact axis, per the
+     * x-FuSa spec §9.2 risk-combination table verbatim.
+     */
     //fusa:req REQ-TARA006
     public static String deriveRisk(ImpactRating impact, String feasibility) {
         int i = impactRank(highestImpact(impact));
         int f = feasibilityRank(feasibility);
-        if (i == 3 && f >= 2) return "critical";
-        if (i == 3) return "high";
-        if (i == 2 && f >= 2) return "high";
-        if (i >= 1 && f >= 1) return "medium";
-        return "low";
+        return RISK_TABLE[i][f];
     }
 
     // ── Fixed catalogue ───────────────────────────────────────────────────────
@@ -97,48 +117,51 @@ public final class Tara {
         return new ImpactRating(s, f, o, p);
     }
 
+    // Impact axes use the x-FuSa family's own closed enum (spec §9.2): critical | major |
+    // moderate | negligible — NOT the high|medium|low vocabulary attackFeasibility uses
+    // (x-FuSa/java-FuSa#34). attackFeasibility itself stays high|medium|low|very-low, unchanged.
     private static List<ScenarioSpec> catalogue(String projectName) {
         return List.of(
                 new ScenarioSpec("TARA-001", projectName + " build artifacts / SBOM",
                         "Supply-chain compromise via a malicious or tampered dependency reaching the release build",
                         "CWE-829", "network",
-                        "low", impact("critical", "high", "medium", "low"), "mitigate",
+                        "low", impact("critical", "major", "moderate", "negligible"), "mitigate",
                         List.of("Pin dependency versions", "Verify checksums via SBOM", "SLSA provenance (fusaops slsa)"),
                         ""),
                 new ScenarioSpec("TARA-002", "Configuration files",
                         "Credential exposure via a hardcoded secret committed to source",
                         "CWE-259", "local",
-                        "high", impact("high", "high", "medium", "medium"), "mitigate",
+                        "high", impact("major", "major", "moderate", "moderate"), "mitigate",
                         List.of("Use environment variables or a secrets manager", "Enforce CYBER005/CYBER006"),
                         "CYBER005"),
                 new ScenarioSpec("TARA-003", "Runtime process",
                         "Privilege escalation via command injection into a subprocess call",
                         "CWE-78", "network",
-                        "medium", impact("critical", "medium", "high", "low"), "mitigate",
+                        "medium", impact("critical", "moderate", "major", "negligible"), "mitigate",
                         List.of("Input validation", "Process isolation", "Least-privilege execution"),
                         ""),
                 new ScenarioSpec("TARA-004", "Audit / evidence logs",
                         "Log tampering to conceal malicious activity or a suppressed finding",
                         "CWE-117", "local",
-                        "low", impact("high", "medium", "medium", "low"), "mitigate",
+                        "low", impact("major", "moderate", "moderate", "negligible"), "mitigate",
                         List.of("Centralised tamper-evident logging", "Hash chaining"),
                         ""),
                 new ScenarioSpec("TARA-005", "Safety decision outputs (fmea/tara/hara/safety-case JSON)",
                         "Integrity violation of a safety-critical evidence artefact after generation",
                         "CWE-345", "network",
-                        "medium", impact("critical", "medium", "medium", "low"), "mitigate",
+                        "medium", impact("critical", "moderate", "moderate", "negligible"), "mitigate",
                         List.of("Digital signatures (fusaops sign)", "Integrity checks on all safety outputs"),
                         ""),
                 new ScenarioSpec("TARA-006", "Memory / process resources",
                         "Denial of service via resource exhaustion during analysis of an adversarial input",
                         "CWE-770", "network",
-                        "medium", impact("medium", "medium", "high", "low"), "mitigate",
+                        "medium", impact("moderate", "moderate", "major", "negligible"), "mitigate",
                         List.of("Input size limits", "Rate limiting", "Circuit breakers"),
                         ""),
                 new ScenarioSpec("TARA-007", "JSON parser (internal.Json)",
                         "Data injection or parser DoS via malformed/adversarial input",
                         "CWE-611", "network",
-                        "medium", impact("medium", "low", "medium", "low"), "mitigate",
+                        "medium", impact("moderate", "negligible", "moderate", "negligible"), "mitigate",
                         List.of("No external entity resolution", "Reject malformed input early"),
                         "")
         );

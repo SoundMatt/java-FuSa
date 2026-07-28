@@ -1158,6 +1158,30 @@
       "title": "Tara threat text is scanned against the FUSA-STUB001/002 content-quality baseline",
       "status": "implemented",
       "file": "tara/Tara.java"
+    },
+    {
+      "id": "REQ-LINTUTIL002",
+      "title": "LintRules.isTestSourcePath() must identify the src/test-tree so a component-inventory scanner can exclude test fixtures",
+      "status": "implemented",
+      "file": "lint/LintRules.java"
+    },
+    {
+      "id": "REQ-TRACE005",
+      "title": "Trace.scanComponentMethods() must expose the real, non-test-tree public-method inventory shared by trace --func-coverage and fmea derivation",
+      "status": "implemented",
+      "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-FMEA007",
+      "title": "Fmea.clampCoveragePct() must ensure coveragePct never exceeds 100 even if the underlying scan invariant is violated",
+      "status": "implemented",
+      "file": "fmea/Fmea.java"
+    },
+    {
+      "id": "REQ-COMP006",
+      "title": "Comp.extractMethodName() must resolve a real method/constructor name for multi-modifier declarations, generic return types, and no-arg constructors, not fall back to \"unknown\"",
+      "status": "implemented",
+      "file": "comp/Comp.java"
     }
   ]
 }

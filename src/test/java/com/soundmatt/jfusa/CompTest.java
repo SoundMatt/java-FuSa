@@ -71,6 +71,59 @@ class CompTest {
                 .forEach(r -> assertTrue(r.complexity() <= 2));
     }
 
+    /**
+     * Regression test for x-FuSa/java-FuSa#35: {@code extractMethodName} must not fall back to
+     * "unknown" for the common shapes the old single-token-return-type regex missed — a
+     * multi-modifier declaration, a generic/parameterized return type, and a no-arg constructor.
+     */
+    //fusa:test REQ-COMP006
+    @Test
+    void extractMethodName_handlesMultiModifierGenericReturnTypeAndConstructor() {
+        assertEquals("load", Comp.extractMethodName("public static List<Entry> load(String path) {"));
+        assertEquals("activate", Comp.extractMethodName("public static void activate() {"));
+        assertEquals("Disposition", Comp.extractMethodName("private Disposition() {}"));
+        assertEquals("foo", Comp.extractMethodName("public int foo(int x) {"));
+        assertEquals("identity", Comp.extractMethodName("public static <T> T identity(T t) {"));
+    }
+
+    /**
+     * A same-line method body containing a call expression (e.g. {@code helper()}) must not be
+     * mistaken for the declared method's own name — extraction is scoped to the text before the
+     * line's first {@code '{'}.
+     */
+    //fusa:test REQ-COMP006
+    @Test
+    void extractMethodName_ignoresCallsInsideSameLineBody() {
+        assertEquals("run", Comp.extractMethodName("public void run() { helper(); }"));
+    }
+
+    /**
+     * Real-world regression check: analyzing this tool's own {@code disposition/Disposition.java}
+     * and {@code iec62443/Iec62443.java} (the exact files cited in x-FuSa/java-FuSa#35) must no
+     * longer yield "unknown" names for their load()/activate()-style declarations.
+     */
+    //fusa:test REQ-COMP006
+    @Test
+    void comp_analyze_noLongerReportsUnknownForMultiModifierDeclarations() throws Exception {
+        Path src = tmp.resolve("src/main/java/Disposition.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public final class Disposition {
+                    private Disposition() {}
+                    public static List<Entry> load(String path) {
+                        return List.of();
+                    }
+                    public static void activate() {}
+                }
+                """);
+        List<Comp.MethodComplexity> results = Comp.analyze(tmp);
+        assertTrue(results.stream().noneMatch(r -> r.method().equals("unknown")),
+                "no method in this fixture should resolve to \"unknown\"");
+        assertTrue(results.stream().anyMatch(r -> r.method().equals("load")));
+        assertTrue(results.stream().anyMatch(r -> r.method().equals("activate")));
+        assertTrue(results.stream().anyMatch(r -> r.method().equals("Disposition")));
+    }
+
     //fusa:test REQ-COMP005
     @Test
     void comp001_rule_firesOnHighComplexity() throws Exception {
