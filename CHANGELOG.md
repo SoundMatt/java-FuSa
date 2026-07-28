@@ -8,6 +8,20 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## v0.4.8 — 2026-07-28
+
+### Fixed
+- **`trace --format json` could emit invalid JSON** (issue #28):
+  `Trace.loadReqsMeta()` read `.fusa-reqs.json` with a hand-rolled,
+  brace-counted scanner instead of the project's own `Json` parser, so a
+  `title` containing an escaped quote (`\"`) desynced that object's
+  boundary and corrupted every subsequent entry in the array. Replaced it
+  with `Json.parseObject()`/`Json.arr()`/`Json.str()`, which already
+  handle escaped quotes and nesting correctly. Added a regression test
+  exercising a title with an escaped quote followed by another
+  requirement, asserting the rendered JSON is valid and neither entry is
+  corrupted.
+
 ## v0.4.7 — 2026-07-27
 
 ### Added

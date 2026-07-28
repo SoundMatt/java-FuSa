@@ -267,67 +267,31 @@ public final class Trace {
     // ── Requirements metadata lookup ──────────────────────────────────────────
 
     /** Reads .fusa-reqs.json and returns a map of reqId → {title, standard}. */
+    //fusa:req REQ-TRACE-JSON001
     private static Map<String, Map<String, String>> loadReqsMeta(Path root) {
         if (root == null) return Map.of();
         Path reqs = root.resolve(REQS_FILE);
         if (!Files.exists(reqs)) return Map.of();
         try {
-            String json = Files.readString(reqs);
+            Map<String, Object> doc = Json.parseObject(Files.readString(reqs));
+            List<Object> requirements = Json.arr(doc, "requirements");
             Map<String, Map<String, String>> out = new LinkedHashMap<>();
-            // Extract "requirements":[...] array and parse each {id, title, standard}
-            int arrStart = json.indexOf("\"requirements\"");
-            if (arrStart < 0) return out;
-            int bracket = json.indexOf('[', arrStart);
-            if (bracket < 0) return out;
-            int depth = 0; int i = bracket;
-            StringBuilder arr = new StringBuilder();
-            while (i < json.length()) {
-                char c = json.charAt(i);
-                if (c == '[' || c == '{') depth++;
-                if (c == ']' || c == '}') depth--;
-                arr.append(c);
-                if (depth == 0) break;
-                i++;
-            }
-            // Simple per-object parser: extract id, title, standard from each {...}
-            String arrStr = arr.toString();
-            int pos = 0;
-            while (pos < arrStr.length()) {
-                int ob = arrStr.indexOf('{', pos);
-                if (ob < 0) break;
-                int cb = arrStr.indexOf('}', ob);
-                if (cb < 0) break;
-                String obj = arrStr.substring(ob, cb + 1);
-                String id       = extractField(obj, "id");
-                String title    = extractField(obj, "title");
-                String standard = extractField(obj, "standard");
-                if (id != null && !id.isEmpty()) {
-                    Map<String, String> meta = new LinkedHashMap<>();
-                    if (title != null)    meta.put("title",    title);
-                    if (standard != null) meta.put("standard", standard);
-                    out.put(id, meta);
-                }
-                pos = cb + 1;
+            for (Object r : requirements) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> req = (Map<String, Object>) r;
+                String id = Json.str(req, "id", "");
+                if (id.isEmpty()) continue;
+                Map<String, String> meta = new LinkedHashMap<>();
+                String title    = Json.str(req, "title", null);
+                String standard = Json.str(req, "standard", null);
+                if (title != null)    meta.put("title",    title);
+                if (standard != null) meta.put("standard", standard);
+                out.put(id, meta);
             }
             return out;
-        } catch (IOException e) {
+        } catch (IOException | Json.JsonParseException | ClassCastException e) {
             return Map.of();
         }
-    }
-
-    private static String extractField(String obj, String key) {
-        String needle = "\"" + key + "\"";
-        int ki = obj.indexOf(needle);
-        if (ki < 0) return null;
-        int colon = obj.indexOf(':', ki + needle.length());
-        if (colon < 0) return null;
-        int vs = colon + 1;
-        while (vs < obj.length() && (obj.charAt(vs) == ' ' || obj.charAt(vs) == '\t')) vs++;
-        if (vs >= obj.length() || obj.charAt(vs) != '"') return null;
-        int start = vs + 1;
-        int end = obj.indexOf('"', start);
-        if (end < 0) return null;
-        return obj.substring(start, end);
     }
 
     // ── HLR/LLR hierarchy ─────────────────────────────────────────────────────
