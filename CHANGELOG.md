@@ -8,6 +8,98 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## v0.5.0 — 2026-07-28
+
+Adopts x-FuSa spec v1.14.0 across `hara`/`fmea`/`tara`/`safety-case`/`sas`/`sci`
+(SoundMatt/java-FuSa#31): real field-level schemas (§9.2/§9.3), a
+content-quality baseline (§1.6), and coverage metrics (§9.2). `SPEC_VERSION`
+1.10.12 → 1.14.0.
+
+### Added
+
+- **`.fusa-hara.json` §1.2.5 schema.** `hara` is now a *validator* over an
+  author-maintained input file, not a hardcoded 3-hazard generator:
+  `operationalSituations[]`/`hazards[]`/`safetyGoals[]`, each hazard's
+  `risk.asil` derived from `severity`×`exposure`×`controllability` (ISO
+  26262-3:2018 Table 4 — the lookup table was previously wrong in several
+  cells; ported the correct table), `safetyGoals[].fssrRefs` enforced as
+  **MUST, ≥1 entry** resolving into `.fusa-reqs.json`, a `completeness` block
+  (dangling-reference/ASIL/fssrRefs coverage), `--init` scaffolds **empty**
+  arrays (never dummy rows, per §1.6 rule 1), `--format json|text`.
+- **`fmea.json` §9.2 schema.** `entries[]` (`item`/`file`/`failureMode`/
+  `effect`/`cause`/`severity`/`actionPriority`/`mitigations`/`requirementIds`),
+  `ratingScale`, `summary.coveragePct` against the same public-method
+  denominator as `trace --func-coverage` (`componentsInventoryMethod`
+  documents the methodology), `--min-coverage N`. `failureMode`/`effect`/
+  `cause` are now derived from the method's actual return type/parameter
+  count/name instead of one fixed sentence repeated for every entry — the
+  exact "blanket qualitative fallback" the spec's content-quality audit
+  flags (§1.6.1 rule B).
+- **`tara.json` §9.2 schema.** `threats[]` with an **SFOP impact object**
+  (`safety`/`financial`/`operational`/`privacy`, ISO 21434 Clause 15.7)
+  replacing the single generic `impactRating` string; `risk` derived from
+  `attackFeasibility` × the highest SFOP axis; `treatment`
+  (mitigate/accept/transfer/avoid); `summary.coveragePct` +
+  `assetInventoryMethod` — honestly disclosed as a fixed cross-project
+  catalogue, not a per-project asset-discovery scan; `--min-coverage N`.
+- **`safety-case.json` §9.2 GSN schema.** Replaced the ad hoc `goals[]`/
+  `evidence[]` arrays with real GSN Community Standard v3 `nodes[]`
+  (`goal`/`strategy`/`solution`/`context`/`assumption`/`justification`) and
+  `edges[]` (`supportedBy`/`inContextOf`), plus a `completeness` block
+  (`totalGoals`/`goalsWithEvidence`/`undeveloped`). Goal text now names the
+  actual project and standard instead of the generic "the system is
+  acceptably safe for its intended use" boilerplate the spec calls out as
+  non-conformant.
+- **`sas.json` §9.3 schema.** `sas` now also writes `sas.json`
+  (`checklist[]`/`summary`/`attestation`) alongside the existing `sas.md`.
+- **`sci.json` hash-field fix (§2.7).** `artifacts[].hash` (renamed from
+  `sha256`/`path` to the canonical `hash`/`file`) is `sha256:`-prefixed, per
+  the rule that a field *named* `hash` carries `"algo:value"` while a field
+  named for its algorithm carries bare hex — the old code had this
+  backwards (field named `sha256` holding an already-prefixed value). A
+  missing file is now omitted from `artifacts[]` entirely instead of
+  emitting a placeholder empty-string hash. Added `version`.
+- **Content-quality baseline (§1.6/§1.6.1) — `FUSA-STUB001`/`FUSA-STUB002`.**
+  New `qualitybar` package, wired into `hara`/`fmea`/`tara`/`safety-case`/
+  `sas`: `FUSA-STUB001` (deny-list placeholder-text scan, always `ERROR`,
+  suppressible only via `jfusa disposition add FUSA-STUB001 <file> accepted
+  "<reason>"`) and `FUSA-STUB002` (distinct-value-ratio < 0.1 across ≥10
+  entries, `WARNING` by default, not gating unless `--strict`/
+  `--require-attestation`).
+- **Attestation (§1.6.2) — new `attestation` package.** A document-level
+  `attestation` object (`status`/`implementationAuthor`/`independentReviewer`/
+  `reviewedAt`/`contentHash`) suppresses `FUSA-STUB002` once it is a
+  non-stale (`contentHash` recomputed via a new RFC 8785 canonicalizer,
+  `internal.CanonJson`), genuinely independent (`independentReviewer` ≠
+  `implementationAuthor`) review. A previously-added attestation is carried
+  forward verbatim on every regeneration.
+- `internal.CanonJson` — RFC 8785 (JSON Canonicalization Scheme)
+  canonicalizer + `sha256:`-prefixed hashing, mirroring FuSaOps' own
+  canonicalizer so both projects compute the same hash over the same
+  content.
+- `Json.Writer.rawValue(Object)` — recursively serialises an arbitrary
+  decoded-JSON object graph, so an artifact's entries can be built once as
+  plain `Map`/`List` and reused for both JSON output and canonical hashing.
+
+### Fixed
+
+- **`Json.prettify` indentation drift after an empty `{}`/`[]`.** The
+  pretty-printer decremented its indent level after *every* closing
+  bracket, including one whose matching open bracket never incremented it
+  (the `{}`/`[]` collapse-onto-one-line case) — every sibling following an
+  empty collection was rendered one indent level shallow. Silent before
+  (JSON stays valid regardless of whitespace) but visible now that `hara
+  --init`'s empty-array scaffold is a first-class, spec-required shape
+  rather than an edge case.
+
+### Tests
+
+- Added `CanonJsonTest`, `AttestationTest`, `QualityBarTest`, `FmeaTest`,
+  `TaraTest`, `SafetyCaseTest`, `SasTest`, `SciTest`; rewrote `HaraTest` for
+  the new §1.2.5 schema; updated `GapCoverageTest` for the renamed
+  `Fmea.FailureMode` record. Registered 32 new requirement ids in
+  `.fusa-reqs.json`.
+
 ## v0.4.8 — 2026-07-28
 
 ### Fixed

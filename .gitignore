@@ -33,8 +33,12 @@ unece-gap-report.json
 sci.json
 sci.md
 sas.md
+sas.json
 badge.svg
 audit-pack.zip
+artifact-manifest.json
+fusa-security.sarif
+*.sha256
 .fusa-signing.key
 *.sig
 

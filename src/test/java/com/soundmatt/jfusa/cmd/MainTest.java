@@ -71,13 +71,27 @@ class MainTest {
 
     @Test
     void flagValue_returnsValueFromEqualsForm() {
-        // Equals form must work when followed by another element (loop covers i < length-1)
         assertEquals("json", Main.flagValue(new String[]{"--format=json", "--other"}, "--format", "text"));
     }
 
     @Test
     void flagValue_returnsDefaultWhenAbsent() {
         assertEquals("text", Main.flagValue(new String[]{}, "--format", "text"));
+    }
+
+    @Test
+    void flagValue_equalsForm_worksAsTheFinalArgument() {
+        // Regression: the previous "i < args.length - 1" loop bound skipped the equals-form
+        // check entirely when it was the last argument — exactly the shape ci.yml uses
+        // ("check --format=json --output=report.json").
+        assertEquals("json", Main.flagValue(new String[]{"--format=json"}, "--format", "text"));
+        assertEquals("report.json",
+                Main.flagValue(new String[]{"--format=json", "--output=report.json"}, "--output", ""));
+    }
+
+    @Test
+    void flagValue_spaceForm_asFinalArgumentWithNoValue_returnsDefault() {
+        assertEquals("text", Main.flagValue(new String[]{"--format"}, "--format", "text"));
     }
 
     // ── version / capabilities ────────────────────────────────────────────────

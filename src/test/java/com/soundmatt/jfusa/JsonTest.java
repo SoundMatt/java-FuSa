@@ -2,6 +2,7 @@ package com.soundmatt.jfusa;
 
 import com.soundmatt.jfusa.internal.Json;
 import org.junit.jupiter.api.Test;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
@@ -161,6 +162,34 @@ class JsonTest {
         var w = new Json.Writer();
         w.objectStart(); w.field("k", "v"); w.objectEnd();
         assertTrue(w.toPretty().contains("\n"));
+    }
+
+    //fusa:test REQ-JSON007
+    @Test
+    void writer_rawValue_serialisesArbitraryObjectGraph() {
+        Map<String, Object> inner = new LinkedHashMap<>();
+        inner.put("id", "A");
+        inner.put("count", 3L);
+        inner.put("ratio", 1.5);
+        inner.put("ok", true);
+        inner.put("note", (String) null);
+        inner.put("tags", List.of("x", "y"));
+        var w = new Json.Writer();
+        w.objectStart();
+        w.key("item");
+        w.rawValue(inner);
+        w.objectEnd();
+        Map<String, Object> parsed = Json.parseObject(w.toString());
+        Map<String, Object> item = Json.obj(parsed, "item");
+        assertEquals("A", Json.str(item, "id", ""));
+        assertEquals(List.of("x", "y"), Json.arr(item, "tags"));
+    }
+
+    //fusa:test REQ-JSON007
+    @Test
+    void writer_rawValue_rejectsUnsupportedType() {
+        var w = new Json.Writer();
+        assertThrows(IllegalArgumentException.class, () -> w.rawValue(new Object()));
     }
 
     //fusa:test REQ-JSON006

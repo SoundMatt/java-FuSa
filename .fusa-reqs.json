@@ -966,6 +966,198 @@
       "title": "loadReqsMeta parses .fusa-reqs.json with the shared Json parser (correctly handles escaped quotes in title/standard)",
       "status": "implemented",
       "file": "trace/Trace.java"
+    },
+    {
+      "id": "REQ-ATT001",
+      "title": "Attestation status defaults to heuristic (fail-safe) unless explicitly reviewed",
+      "status": "implemented",
+      "file": "attestation/Attestation.java"
+    },
+    {
+      "id": "REQ-ATT002",
+      "title": "Attestation independence requires independentReviewer to differ from implementationAuthor",
+      "status": "implemented",
+      "file": "attestation/Attestation.java"
+    },
+    {
+      "id": "REQ-ATT003",
+      "title": "Attestation contentHash is recomputed and compared to detect staleness",
+      "status": "implemented",
+      "file": "attestation/Attestation.java"
+    },
+    {
+      "id": "REQ-ATT004",
+      "title": "A FUSA-STUB002 finding is suppressed only by a genuine, non-stale, independent attestation",
+      "status": "implemented",
+      "file": "attestation/Attestation.java"
+    },
+    {
+      "id": "REQ-ATT005",
+      "title": "Attestation is parsed from and serialised back to an artifact's attestation object verbatim",
+      "status": "implemented",
+      "file": "attestation/Attestation.java"
+    },
+    {
+      "id": "REQ-CANON001",
+      "title": "CanonJson serialises a decoded JSON value per RFC 8785 (sorted keys, no whitespace)",
+      "status": "implemented",
+      "file": "internal/CanonJson.java"
+    },
+    {
+      "id": "REQ-CANON002",
+      "title": "CanonJson computes a sha256:-prefixed hash over canonicalized content",
+      "status": "implemented",
+      "file": "internal/CanonJson.java"
+    },
+    {
+      "id": "REQ-FMEA002",
+      "title": "Fmea.build assembles entries plus a coverage summary and carries forward any existing attestation",
+      "status": "implemented",
+      "file": "fmea/Fmea.java"
+    },
+    {
+      "id": "REQ-FMEA003",
+      "title": "Fmea persists fmea.json and fmea.csv",
+      "status": "implemented",
+      "file": "fmea/Fmea.java"
+    },
+    {
+      "id": "REQ-FMEA004",
+      "title": "Fmea.renderText produces a human-readable dFMEA summary",
+      "status": "implemented",
+      "file": "fmea/Fmea.java"
+    },
+    {
+      "id": "REQ-FMEA006",
+      "title": "Fmea failureMode/effect/cause are scanned against the FUSA-STUB001/002 content-quality baseline",
+      "status": "implemented",
+      "file": "fmea/Fmea.java"
+    },
+    {
+      "id": "REQ-HARA003",
+      "title": "Hara.load parses .fusa-hara.json verbatim; Hara.loadReqIds resolves fssrRefs against .fusa-reqs.json",
+      "status": "implemented",
+      "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-HARA004",
+      "title": "Hara.validate/effectiveAsil enforce §1.2.5 referential integrity and MUST-field completeness",
+      "status": "implemented",
+      "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-HARA005",
+      "title": "Hara.computeCompleteness rolls up the §9.2 completeness block",
+      "status": "implemented",
+      "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-HARA006",
+      "title": "Hara hazard/safety-goal descriptions are scanned against the FUSA-STUB001/002 content-quality baseline",
+      "status": "implemented",
+      "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-HARA007",
+      "title": "Hara.renderJson/renderText render the §9.2 hara-report document",
+      "status": "implemented",
+      "file": "hara/Hara.java"
+    },
+    {
+      "id": "REQ-JSON007",
+      "title": "Json.Writer.rawValue recursively serialises an arbitrary decoded-JSON object graph",
+      "status": "implemented",
+      "file": "internal/Json.java"
+    },
+    {
+      "id": "REQ-QB001",
+      "title": "QualityBar.scanPlaceholders implements FUSA-STUB001 (deny-list placeholder text, always ERROR)",
+      "status": "implemented",
+      "file": "qualitybar/QualityBar.java"
+    },
+    {
+      "id": "REQ-QB002",
+      "title": "QualityBar.scanBlanketFallback implements FUSA-STUB002 (distinct-value-ratio, WARNING by default)",
+      "status": "implemented",
+      "file": "qualitybar/QualityBar.java"
+    },
+    {
+      "id": "REQ-QB003",
+      "title": "QualityBar.isDispositioned suppresses FUSA-STUB001 only via a per-finding disposition, never attestation",
+      "status": "implemented",
+      "file": "qualitybar/QualityBar.java"
+    },
+    {
+      "id": "REQ-QB004",
+      "title": "QualityBar.evaluate combines both rules with disposition/attestation suppression for a command's exit-code gate",
+      "status": "implemented",
+      "file": "qualitybar/QualityBar.java"
+    },
+    {
+      "id": "REQ-SAFETYCASE002",
+      "title": "SafetyCase persists safety-case.json/md/mermaid",
+      "status": "implemented",
+      "file": "safetycase/SafetyCase.java"
+    },
+    {
+      "id": "REQ-SAFETYCASE003",
+      "title": "SafetyCase.renderText renders the GSN argument as text",
+      "status": "implemented",
+      "file": "safetycase/SafetyCase.java"
+    },
+    {
+      "id": "REQ-SAFETYCASE007",
+      "title": "SafetyCase node text is scanned against the FUSA-STUB001/002 content-quality baseline",
+      "status": "implemented",
+      "file": "safetycase/SafetyCase.java"
+    },
+    {
+      "id": "REQ-SAS002",
+      "title": "Sas persists sas.json (checklist/summary/attestation)",
+      "status": "implemented",
+      "file": "sas/Sas.java"
+    },
+    {
+      "id": "REQ-SAS003",
+      "title": "Sas.writeMarkdown persists the human-readable sas.md companion",
+      "status": "implemented",
+      "file": "sas/Sas.java"
+    },
+    {
+      "id": "REQ-SAS005",
+      "title": "Sas checklist item text is scanned against the FUSA-STUB001/002 content-quality baseline",
+      "status": "implemented",
+      "file": "sas/Sas.java"
+    },
+    {
+      "id": "REQ-TARA002",
+      "title": "Tara.build assembles the threat catalogue plus a coverage summary and carries forward any existing attestation",
+      "status": "implemented",
+      "file": "tara/Tara.java"
+    },
+    {
+      "id": "REQ-TARA003",
+      "title": "Tara persists tara.json and tara.md",
+      "status": "implemented",
+      "file": "tara/Tara.java"
+    },
+    {
+      "id": "REQ-TARA004",
+      "title": "Tara.renderText produces a human-readable TARA summary",
+      "status": "implemented",
+      "file": "tara/Tara.java"
+    },
+    {
+      "id": "REQ-TARA006",
+      "title": "Tara derives risk from attackFeasibility x the highest SFOP impact axis",
+      "status": "implemented",
+      "file": "tara/Tara.java"
+    },
+    {
+      "id": "REQ-TARA007",
+      "title": "Tara threat text is scanned against the FUSA-STUB001/002 content-quality baseline",
+      "status": "implemented",
+      "file": "tara/Tara.java"
     }
   ]
 }
