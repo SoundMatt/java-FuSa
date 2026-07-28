@@ -159,6 +159,30 @@ class QualifyTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY006
+    void generateReport_honorsExplicitOutputPath() throws Exception {
+        var cases = Qualify.runSelfTests();
+        String content = Qualify.generateReport(tmp, cases, Qualify.QualifyOptions.empty(), "custom-name.json");
+        assertTrue(Files.exists(tmp.resolve("custom-name.json")),
+                "generateReport should write to the explicit output path");
+        assertFalse(Files.exists(tmp.resolve("qualify-report.json")),
+                "generateReport must not also write the default qualify-report.json");
+        assertTrue(Files.exists(tmp.resolve("custom-name.sha256")),
+                "the sibling sha256 hash file should be named after the actual output, not the default");
+        assertTrue(content.contains("\"schemaVersion\""));
+    }
+
+    @Test
+    //fusa:test REQ-QUALIFY006
+    void run_withJsonFormat_writesConfiguredOutputAndDoesNotWriteDefault() throws Exception {
+        Config cfg = Config.defaultConfig("qualify-test");
+        Config.save(tmp, cfg);
+        Qualify.run(tmp, cfg, false, Qualify.QualifyOptions.empty(), "q-out.json", "json");
+        assertTrue(Files.exists(tmp.resolve("q-out.json")));
+        assertFalse(Files.exists(tmp.resolve("qualify-report.json")));
+    }
+
+    @Test
     //fusa:test REQ-QUALIFY005
     void generateReport_backwardCompatOverload_writesReportWithoutOptions() throws Exception {
         var cases = Qualify.runSelfTests();

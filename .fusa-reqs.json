@@ -714,6 +714,30 @@
       "title": "Sas.generate() must write the Software Accomplishment Summary markdown document",
       "status": "implemented",
       "file": "sas/Sas.java"
+    },
+    {
+      "id": "REQ-QUALIFY006",
+      "title": "Qualify.run()/generateReport() must honor an explicit --output report path and a text/json --format for stdout",
+      "status": "implemented",
+      "file": "qualify/Qualify.java"
+    },
+    {
+      "id": "REQ-RELEASE007",
+      "title": "Release.run() must honor an explicit --output-dir for sbom.json/provenance.json/artifact-manifest.json, creating it if missing",
+      "status": "implemented",
+      "file": "release/Release.java"
+    },
+    {
+      "id": "REQ-AUDITPACK002",
+      "title": "AuditPack.generate() must honor an explicit --output ZIP path, creating parent directories if missing",
+      "status": "implemented",
+      "file": "auditpack/AuditPack.java"
+    },
+    {
+      "id": "REQ-AUDITPACK003",
+      "title": "AuditPack.generate() must write its own top-level manifest.json (kind: audit-manifest, files[] with path/size/sha256) into the ZIP, distinct from release's artifact-manifest.json",
+      "status": "implemented",
+      "file": "auditpack/AuditPack.java"
     }
   ]
 }

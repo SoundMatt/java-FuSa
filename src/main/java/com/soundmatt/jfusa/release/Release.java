@@ -113,12 +113,25 @@ public final class Release {
         Files.writeString(projectRoot.resolve(MANIFEST_FILE), w.toPretty() + "\n");
     }
 
+    /** Backward-compatible entry point; writes artifacts into {@code projectRoot} itself. */
     //fusa:req REQ-RELEASE005
     public static void run(Path projectRoot, Config cfg) throws IOException {
-        generateSBOM(projectRoot, cfg);
-        generateProvenance(projectRoot, cfg);
-        generateManifest(projectRoot, List.of(SBOM_FILE, PROVENANCE_FILE));
-        System.out.println("Release artifacts generated: " + SBOM_FILE + ", " + PROVENANCE_FILE);
+        run(projectRoot, cfg, projectRoot);
+    }
+
+    /**
+     * Writes SBOM/provenance/manifest into {@code outputDir}, creating it first if it
+     * does not exist (per x-FuSa spec §7, {@code --output-dir} MUST NOT fail on a
+     * missing directory).
+     */
+    //fusa:req REQ-RELEASE007
+    public static void run(Path projectRoot, Config cfg, Path outputDir) throws IOException {
+        Files.createDirectories(outputDir);
+        generateSBOM(outputDir, cfg);
+        generateProvenance(outputDir, cfg);
+        generateManifest(outputDir, List.of(SBOM_FILE, PROVENANCE_FILE));
+        System.out.println("Release artifacts generated: " + SBOM_FILE + ", " + PROVENANCE_FILE +
+                " (in " + outputDir + ")");
     }
 
     //fusa:req REQ-RELEASE006
