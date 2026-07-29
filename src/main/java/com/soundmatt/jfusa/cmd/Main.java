@@ -149,21 +149,27 @@ public final class Main {
                 }
             }
         } catch (NoConfigException e) {
-            emitJsonError("no_config", "no .fusa.json found — run 'jfusa init' first");
+            emitJsonError(ERR_NO_CONFIG, "no .fusa.json found — run 'jfusa init' first");
             System.exit(EXIT_RUNTIME);
         } catch (InvalidConfigException e) {
-            emitJsonError("invalid_config", e.getMessage());
+            emitJsonError(ERR_INVALID_CONFIG, e.getMessage());
             System.exit(EXIT_RUNTIME);
         } catch (CheckFailedException e) {
             System.exit(EXIT_GATE_FAIL);
         } catch (Exception e) {
-            emitJsonError("internal", e.getMessage() != null ? e.getMessage() : e.getClass().getName());
+            emitJsonError(ERR_INTERNAL, e.getMessage() != null ? e.getMessage() : e.getClass().getName());
             if (System.getenv("JFUSA_DEBUG") != null) e.printStackTrace();
             System.exit(EXIT_RUNTIME);
         }
     }
 
     // ── §3.2 structured error to stderr ──────────────────────────────────────
+
+    // §3.2 MUST: error.code is one of this closed, hyphenated enum (never underscores).
+    static final String ERR_NO_CONFIG      = "no-config";
+    static final String ERR_INVALID_CONFIG = "invalid-config";
+    static final String ERR_UNSUPPORTED    = "unsupported";
+    static final String ERR_INTERNAL       = "internal";
 
     static void emitJsonError(String code, String message) {
         String safeMsg = message == null ? "" : message.replace("\\", "\\\\").replace("\"", "\\\"");
@@ -505,7 +511,7 @@ public final class Main {
         Path haraFile = root.resolve(Hara.HARA_FILE);
         if (!Files.exists(haraFile)) {
             if ("json".equals(format)) {
-                emitJsonError("no_config", "no " + Hara.HARA_FILE + " found — run 'jfusa hara --init' first");
+                emitJsonError(ERR_NO_CONFIG, "no " + Hara.HARA_FILE + " found — run 'jfusa hara --init' first");
                 System.exit(EXIT_RUNTIME);
                 return;
             }

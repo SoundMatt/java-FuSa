@@ -182,6 +182,16 @@ class MainTest {
         assertTrue(err.contains("missing file"));
     }
 
+    @Test
+    void errorCodes_matchSpecClosedHyphenatedEnum() {
+        // §3.2 MUST: error.code is one of no-config | invalid-config | unsupported |
+        // internal — hyphenated, never underscored (issue #42).
+        assertEquals("no-config", Main.ERR_NO_CONFIG);
+        assertEquals("invalid-config", Main.ERR_INVALID_CONFIG);
+        assertEquals("unsupported", Main.ERR_UNSUPPORTED);
+        assertEquals("internal", Main.ERR_INTERNAL);
+    }
+
     // ── init ──────────────────────────────────────────────────────────────────
 
     @Test
