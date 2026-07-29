@@ -807,14 +807,48 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("badge.svg")));
     }
 
+    // ── report (§9.1 MUST — re-runs analysis, never gate-fails) ────────────────
+
     @Test
-    void cmdReport_existingFile_rendersContent() throws Exception {
+    void cmdReport_reRunsAnalysis_producesOutputWithoutReadingCachedFile() throws Exception {
         initProject();
-        // Generate a report first (ignoring gate failure), then test re-rendering it
-        try {
-            Main.cmdCheck(tmp, new String[]{"--format", "json", "--output", "fusa-report.json"});
-        } catch (FuSa.CheckFailedException ignored) {}
-        String out = captureOut(() -> Main.cmdReport(tmp, new String[]{"fusa-report.json"}));
-        assertTrue(out.length() > 0);
+        // No cached report file of any name exists in tmp — this used to fail with
+        // "file not found: fusa-report.json"; `report` must analyze the project instead.
+        String out = captureOut(() -> Main.cmdReport(tmp, new String[]{}));
+        assertTrue(out.length() > 0, "report should render freshly analyzed content, not echo a cached file");
+    }
+
+    @Test
+    void cmdReport_formatJson_matchesCheckShape() throws Exception {
+        initProject();
+        String out = captureOut(() -> Main.cmdReport(tmp, new String[]{"--format", "json"}));
+        assertTrue(out.contains("\"findings\"") && out.contains("\"summary\""),
+                "report --format json must be the same Finding[]/summary shape as check (§4)");
+    }
+
+    @Test
+    void cmdReport_honorsOutputFlag_noStdoutEcho() throws Exception {
+        initProject();
+        String out = captureOut(() ->
+                Main.cmdReport(tmp, new String[]{"--format", "json", "--output", "r.json"}));
+        assertTrue(Files.exists(tmp.resolve("r.json")), "--output should redirect the report");
+        assertFalse(out.contains("\"schemaVersion\""),
+                "stdout must stay clean when --output is given (§2.2)");
+    }
+
+    @Test
+    void cmdReport_neverGateFails_evenWithErrorFindings() throws Exception {
+        initProject();
+        // A hardcoded credential trips a CYBER ERROR finding, which would gate-fail `check`.
+        Path bad = tmp.resolve("src/main/java/Bad.java");
+        Files.createDirectories(bad.getParent());
+        Files.writeString(bad, """
+                public class Bad {
+                    String pw = "password123";
+                    void f() { System.out.println("select * from users where pw='" + pw + "'"); }
+                }
+                """);
+        // report must not throw CheckFailedException regardless of findings (§9.1: only 2/3 apply).
+        captureOut(() -> Main.cmdReport(tmp, new String[]{"--format", "json"}));
     }
 }

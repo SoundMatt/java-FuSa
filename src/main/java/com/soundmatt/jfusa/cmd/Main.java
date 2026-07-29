@@ -282,16 +282,29 @@ public final class Main {
     }
 
     static void cmdReport(Path root, String[] args) throws IOException {
-        String src = args.length > 0 && !args[0].startsWith("-") ? args[0] : "fusa-report.json";
-        String format = flagValue(args, "--format", "text");
-        Path srcPath = root.resolve(src);
-        if (!Files.exists(srcPath)) {
-            System.err.println("jfusa report: file not found: " + src);
+        // §9.1 MUST: `report` re-runs analysis on the project root (same shape as `check`,
+        // §4) — it does not read a cached report and has no --input flag. It never
+        // gate-fails (only exit 2/3 apply), so --strict here is a usage error (SHOULD).
+        if (hasFlag(args, "--strict")) {
+            System.err.println("jfusa report: --strict is not supported — report never gate-fails (see 'jfusa check')");
             System.exit(EXIT_USAGE);
+            return;
         }
-        // Re-render an existing JSON report
-        System.out.println("Rendering: " + src + " (format=" + format + ")");
-        System.out.println(Files.readString(srcPath));
+        Config cfg = Config.load(root);
+        String format = flagValue(args, "--format", "text");
+        String output = flagValue(args, "--output", "");
+
+        Engine.Result result = Engine.DEFAULT.run(root, cfg);
+        Report report = new Report(result, cfg, root);
+        String rendered = report.render(format);
+
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered);
+            System.err.println("Report written to " + output);  // §2.2: progress on stderr only
+        } else {
+            System.out.print(rendered);
+        }
+        // Never gate-fails: no CheckFailedException regardless of findings.
     }
 
     static void cmdTemplate(Path root, String[] args) throws IOException {
