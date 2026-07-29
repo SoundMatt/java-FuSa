@@ -87,7 +87,9 @@ public final class Main {
 
         String cmd = args[0];
         String[] rest = Arrays.copyOfRange(args, 1, args.length);
-        Path root = cwd();
+        // §2.2 shared --dir flag — MUST apply to every command; default is cwd.
+        Path root = resolveRoot(rest);
+        rest = stripFlagWithValue(rest, "--dir");
 
         try {
             switch (cmd) {
@@ -896,6 +898,23 @@ public final class Main {
         return Paths.get(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
     }
 
+    /** §2.2 `--dir <path>` — MUST apply to every command; default (no flag) is cwd. */
+    static Path resolveRoot(String[] args) {
+        String dir = flagValue(args, "--dir", "");
+        return dir.isEmpty() ? cwd() : Paths.get(dir).toAbsolutePath().normalize();
+    }
+
+    /** Removes a flag (and its value, in either "--flag value" or "--flag=value" form) from args. */
+    static String[] stripFlagWithValue(String[] args, String flag) {
+        List<String> out = new java.util.ArrayList<>(args.length);
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals(flag)) { i++; continue; }
+            if (args[i].startsWith(flag + "=")) continue;
+            out.add(args[i]);
+        }
+        return out.toArray(new String[0]);
+    }
+
     static boolean hasFlag(String[] args, String flag) {
         for (String a : args) if (a.equals(flag)) return true;
         return false;
@@ -988,6 +1007,7 @@ public final class Main {
                   version        Print version
 
                 Flags:
+                  --dir=<path>                               Project root (default: cwd)
                   --format=<text|json|html|sarif|markdown>  Output format
                   --output=<file>                            Write to file
                   --fail-on-warn                             Exit 1 on warnings

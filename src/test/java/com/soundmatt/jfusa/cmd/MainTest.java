@@ -79,6 +79,54 @@ class MainTest {
         assertEquals("text", Main.flagValue(new String[]{}, "--format", "text"));
     }
 
+    // ── §2.2 --dir (regression: previously a no-op — issue #38) ────────────────
+
+    @Test
+    void resolveRoot_usesCwdWhenDirFlagAbsent() {
+        assertEquals(Main.cwd(), Main.resolveRoot(new String[]{"--format", "json"}));
+    }
+
+    @Test
+    void resolveRoot_usesDirFlagValueWhenGiven() {
+        Path expected = tmp.toAbsolutePath().normalize();
+        assertEquals(expected, Main.resolveRoot(new String[]{"--dir", tmp.toString()}));
+    }
+
+    @Test
+    void resolveRoot_supportsEqualsForm() {
+        Path expected = tmp.toAbsolutePath().normalize();
+        assertEquals(expected, Main.resolveRoot(new String[]{"--dir=" + tmp}));
+    }
+
+    @Test
+    void stripFlagWithValue_removesFlagAndItsValue() {
+        assertArrayEquals(new String[]{"--format", "json"},
+                Main.stripFlagWithValue(new String[]{"--dir", "/some/path", "--format", "json"}, "--dir"));
+    }
+
+    @Test
+    void stripFlagWithValue_removesEqualsForm() {
+        assertArrayEquals(new String[]{"--format", "json"},
+                Main.stripFlagWithValue(new String[]{"--dir=/some/path", "--format", "json"}, "--dir"));
+    }
+
+    @Test
+    void stripFlagWithValue_noOpWhenFlagAbsent() {
+        assertArrayEquals(new String[]{"--format", "json"},
+                Main.stripFlagWithValue(new String[]{"--format", "json"}, "--dir"));
+    }
+
+    @Test
+    void main_dirFlag_operatesOnGivenProjectNotCwd() throws Exception {
+        // End-to-end regression for issue #38: `vuln --dir <other>` must write vuln.json
+        // into <other>, not the process's actual working directory. (Avoids `check`/other
+        // gate-failing commands here since a CheckFailedException would call System.exit
+        // and kill the test JVM — `vuln` never gates.)
+        captureOut(() -> Main.main(new String[]{"vuln", "--dir", tmp.toString()}));
+        assertTrue(Files.exists(tmp.resolve("vuln.json")),
+                "--dir should redirect the command to operate on the given project root");
+    }
+
     @Test
     void flagValue_equalsForm_worksAsTheFinalArgument() {
         // Regression: the previous "i < args.length - 1" loop bound skipped the equals-form
