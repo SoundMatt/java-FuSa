@@ -56,7 +56,7 @@ public final class AnalyzeRules {
                                 "potential null dereference: chained method call without null check",
                                 LintRules.loc(root, f, i + 1))
                                 .category(FuSa.Category.safety)
-                                .standard("IEC 61508-3").clause("7.4.3")
+                                .standard("iec61508").clause("7.4.3")
                                 .remediation("add null check or use Optional; annotate with //fusa:unsafe if checked higher up")
                                 .build());
                     }
@@ -98,7 +98,7 @@ public final class AnalyzeRules {
                                     "resource allocated outside try-with-resources — potential resource leak",
                                     LintRules.loc(root, f, i + 1))
                                     .category(FuSa.Category.safety)
-                                    .standard("IEC 61508-3").clause("7.4.3")
+                                    .standard("iec61508").clause("7.4.3")
                                     .remediation("use try-with-resources: try (var x = new ...) { ... }")
                                     .build());
                         }
@@ -131,7 +131,7 @@ public final class AnalyzeRules {
                                 "synchronized on field '" + field + "' — ensure this is a final lock object",
                                 LintRules.loc(root, f, i + 1))
                                 .category(FuSa.Category.concurrency)
-                                .standard("IEC 61508-3").clause("7.4.11")
+                                .standard("iec61508").clause("7.4.11")
                                 .remediation("declare the lock field as 'private final Object " + field + " = new Object()'")
                                 .build());
                     }
@@ -171,7 +171,7 @@ public final class AnalyzeRules {
                                     "InterruptedException swallowed without calling Thread.currentThread().interrupt()",
                                     LintRules.loc(root, f, i + 1))
                                     .category(FuSa.Category.concurrency)
-                                    .standard("IEC 61508-3").clause("7.4.11")
+                                    .standard("iec61508").clause("7.4.11")
                                     .remediation("add Thread.currentThread().interrupt() in catch block, or propagate")
                                     .build());
                         }
@@ -203,7 +203,7 @@ public final class AnalyzeRules {
                                 "empty catch block silently swallows exception",
                                 LintRules.loc(root, f, i + 1))
                                 .category(FuSa.Category.safety)
-                                .standard("IEC 61508-3").clause("7.4.10")
+                                .standard("iec61508").clause("7.4.10")
                                 .remediation("log or rethrow the exception; add //fusa:unsafe with rationale if intentional")
                                 .build());
                     } else if (line.endsWith("{")) {
@@ -216,7 +216,7 @@ public final class AnalyzeRules {
                                         "empty catch block silently swallows exception",
                                         LintRules.loc(root, f, i + 1))
                                         .category(FuSa.Category.safety)
-                                        .standard("IEC 61508-3").clause("7.4.10")
+                                        .standard("iec61508").clause("7.4.10")
                                         .remediation("log or rethrow the exception; add //fusa:unsafe with rationale if intentional")
                                         .build());
                             }

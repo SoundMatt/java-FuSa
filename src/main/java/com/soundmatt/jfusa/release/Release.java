@@ -158,7 +158,7 @@ public final class Release {
                         "no sbom.json found — run 'jfusa release' to generate",
                         new FuSa.Location(SBOM_FILE))
                         .category(FuSa.Category.SUPPLY_CHAIN)
-                        .standard("SLSA").clause("L2")
+                        .standard("slsa").clause("L2")
                         .remediation("run 'jfusa release' to generate SBOM and provenance")
                         .build());
             }
@@ -177,7 +177,7 @@ public final class Release {
                         "no provenance.json found — run 'jfusa release' to generate",
                         new FuSa.Location(PROVENANCE_FILE))
                         .category(FuSa.Category.SUPPLY_CHAIN)
-                        .standard("SLSA").clause("L2")
+                        .standard("slsa").clause("L2")
                         .remediation("run 'jfusa release' to generate build provenance")
                         .build());
             }

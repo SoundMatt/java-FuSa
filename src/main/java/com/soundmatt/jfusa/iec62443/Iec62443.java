@@ -84,7 +84,7 @@ public final class Iec62443 {
                         "no INCIDENT-RESPONSE.md — IEC 62443-4-1 SR 6.2 requires incident handling process",
                         new FuSa.Location("INCIDENT-RESPONSE.md"))
                         .category(FuSa.Category.security)
-                        .standard("IEC 62443-4-1").clause("SR 6.2")
+                        .standard("iec62443-4-1").clause("SR 6.2")
                         .remediation("create INCIDENT-RESPONSE.md with triage, containment, and notification procedures")
                         .build());
             }

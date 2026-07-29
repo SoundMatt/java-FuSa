@@ -21,6 +21,18 @@ class VulnTest {
         assertTrue(deps.isEmpty());
     }
 
+    //fusa:test REQ-VULN005
+    @Test
+    void vuln001_missingReport_usesCanonicalStandardId() throws Exception {
+        // Regression (issue #44): standard used to be the display string "ISO 21434".
+        Vuln.activate();
+        Config cfg = Config.defaultConfig("vuln-test");
+        Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("VULN001"));
+        assertTrue(result.findings().stream()
+                        .anyMatch(f -> f.ruleId().equals("VULN001") && "iso21434".equals(f.standard())),
+                "Finding.standard must be the §2.4.1 canonical id iso21434, not \"ISO 21434\"");
+    }
+
     //fusa:test REQ-VULN001
     //fusa:test REQ-VULN002
     @Test

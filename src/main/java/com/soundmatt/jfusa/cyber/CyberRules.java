@@ -60,7 +60,7 @@ public final class CyberRules {
         public List<Finding> run(Path root, Config cfg) throws IOException {
             return scanPattern(root, cfg, "CYBER001", Severity.ERROR, SQL_CONCAT,
                     "SQL query built via string concatenation — CWE-89 injection risk",
-                    "use PreparedStatement with parameterised queries", "CWE-89", "ISO 21434");
+                    "use PreparedStatement with parameterised queries", "iso21434", "");
         }
     }
 
@@ -78,7 +78,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER002", Severity.ERROR, CMD_INJECT,
                     "process execution — validate all inputs before passing to Runtime/ProcessBuilder (CWE-78)",
                     "use an allowlist of permitted commands; never pass user input directly",
-                    "CWE-78", "ISO 21434");
+                    "iso21434", "");
         }
     }
 
@@ -96,7 +96,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER003", Severity.ERROR, XSS,
                     "potential XSS: user input written to response without escaping (CWE-79)",
                     "HTML-escape all untrusted data before rendering; use a templating engine",
-                    "CWE-79", "OWASP A03");
+                    "iso21434", "");
         }
     }
 
@@ -114,7 +114,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER004", Severity.ERROR, PATH_TRAV,
                     "file path from user input — CWE-22 path traversal risk",
                     "validate and canonicalize paths; deny '../' sequences; use an allowlist",
-                    "CWE-22", "OWASP A01");
+                    "iso21434", "");
         }
     }
 
@@ -132,7 +132,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER005", Severity.ERROR, HARDCODED_PW,
                     "hardcoded credential — CWE-259 password stored in source code",
                     "use environment variables, a secrets manager, or a credential vault",
-                    "CWE-259", "OWASP A07");
+                    "iso21434", "");
         }
     }
 
@@ -150,7 +150,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER006", Severity.ERROR, HARDCODED_KEY,
                     "hardcoded key or secret — CWE-321",
                     "load secrets from environment or a key management service",
-                    "CWE-321", "ISO 21434");
+                    "iso21434", "");
         }
     }
 
@@ -167,7 +167,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER007", Severity.WARNING, WEAK_RAND,
                     "java.util.Random / Math.random() are not cryptographically secure (CWE-330)",
                     "use java.security.SecureRandom for all security-sensitive random values",
-                    "CWE-330", "CERT Java MSC63-J");
+                    "iso21434", "");
         }
     }
 
@@ -185,7 +185,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER008", Severity.ERROR, WEAK_CIPHER,
                     "weak or deprecated cipher — CWE-326 insufficient key strength",
                     "use AES/GCM/NoPadding (256-bit) or AES/CBC/PKCS5Padding with IV",
-                    "CWE-326", "CERT Java MSC61-J");
+                    "iso21434", "");
         }
     }
 
@@ -203,7 +203,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER009", Severity.WARNING, BROKEN_HASH,
                     "MD5/SHA-1 are cryptographically broken — CWE-327",
                     "use SHA-256, SHA-384, or SHA-512 via MessageDigest.getInstance(\"SHA-256\")",
-                    "CWE-327", "CERT Java MSC61-J");
+                    "iso21434", "");
         }
     }
 
@@ -233,7 +233,7 @@ public final class CyberRules {
                                     "Cookie missing " + (!secure ? "Secure " : "") + (!httpOnly ? "HttpOnly " : "") + "flag (CWE-614)",
                                     LintRules.loc(root, f, i + 1))
                                     .category(FuSa.Category.security)
-                                    .standard("CWE-614").clause("614")
+                                    .standard("iso21434")
                                     .remediation("call cookie.setSecure(true) and cookie.setHttpOnly(true)")
                                     .build());
                         }
@@ -274,7 +274,7 @@ public final class CyberRules {
                                     "XML parser without XXE protection — CWE-611",
                                     LintRules.loc(root, f, i + 1))
                                     .category(FuSa.Category.security)
-                                    .standard("CWE-611").clause("611")
+                                    .standard("iso21434")
                                     .remediation("disable external entities: factory.setFeature(FEATURE_SECURE_PROCESSING, true)")
                                     .build());
                         }
@@ -298,7 +298,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER012", Severity.ERROR, DESER,
                     "Java deserialization via ObjectInputStream — CWE-502 remote code execution risk",
                     "use safe data formats (JSON, Protobuf); implement a deserialization filter (JEP 290)",
-                    "CWE-502", "OWASP A08");
+                    "iso21434", "");
         }
     }
 
@@ -316,7 +316,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER013", Severity.WARNING, SSRF,
                     "URL from user input — CWE-918 SSRF risk",
                     "validate URLs against an allowlist of permitted hosts",
-                    "CWE-918", "OWASP A10");
+                    "iso21434", "");
         }
     }
 
@@ -334,7 +334,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER014", Severity.WARNING, LOG_INJ,
                     "user input logged without stripping newlines — CWE-117 log injection",
                     "sanitise input before logging: strip \\n and \\r",
-                    "CWE-117", "CERT Java IDS03-J");
+                    "iso21434", "");
         }
     }
 
@@ -352,7 +352,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER015", Severity.WARNING, INT_OVERFLOW,
                     "narrowing integer cast may overflow — CWE-190",
                     "use Math.toIntExact() for checked narrowing; add overflow guard",
-                    "CWE-190", "CERT Java NUM00-J");
+                    "iso21434", "");
         }
     }
 
@@ -370,7 +370,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER016", Severity.WARNING, EXCEPTION_MSG,
                     "exception message or stack trace returned to client — CWE-209 information exposure",
                     "log internally; return a generic error message to the client",
-                    "CWE-209", "OWASP A09");
+                    "iso21434", "");
         }
     }
 
@@ -398,7 +398,7 @@ public final class CyberRules {
                             "POST handler without CSRF token check — CWE-352",
                             LintRules.loc(root, f, 1))
                             .category(FuSa.Category.security)
-                            .standard("CWE-352").clause("352")
+                            .standard("iso21434")
                             .remediation("implement CSRF token validation in all state-changing endpoints")
                             .build());
                 }
@@ -421,7 +421,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER018", Severity.WARNING, CATASTROPHIC_RE,
                     "regex with nested quantifiers may cause ReDoS — CWE-400",
                     "simplify the regex; add input length limits; use linear-time matching",
-                    "CWE-400", "OWASP A03");
+                    "iso21434", "");
         }
     }
 
@@ -439,7 +439,7 @@ public final class CyberRules {
             return scanPattern(root, cfg, "CYBER019", Severity.WARNING, UNBOUNDED_ALLOC,
                     "byte array allocated with user-controlled size — CWE-770 resource exhaustion",
                     "enforce maximum allocation limits; validate size against a safe upper bound",
-                    "CWE-770", "CERT Java MSC05-J");
+                    "iso21434", "");
         }
     }
 
@@ -458,7 +458,7 @@ public final class CyberRules {
                     "no SECURITY.md found — required for ISO 21434 Ch.10 vulnerability disclosure",
                     new FuSa.Location("SECURITY.md"))
                     .category(FuSa.Category.security)
-                    .standard("ISO 21434").clause("10.4")
+                    .standard("iso21434").clause("10.4")
                     .remediation("add a SECURITY.md with vulnerability reporting process")
                     .build());
         }
