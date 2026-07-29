@@ -131,7 +131,7 @@ public final class Vuln {
                         "no vuln.json — run 'jfusa vuln' to scan dependencies",
                         new FuSa.Location(VULN_JSON))
                         .category(FuSa.Category.SUPPLY_CHAIN)
-                        .standard("ISO 21434").clause("8")
+                        .standard("iso21434").clause("8")
                         .remediation("run 'jfusa vuln' to scan pom.xml dependencies for known CVEs")
                         .build());
             }

@@ -178,7 +178,7 @@ public final class Coverage {
                                 cov.statementPct(), threshold),
                         new FuSa.Location("target/site/jacoco/jacoco.xml"))
                         .category(FuSa.Category.coverage)
-                        .standard("DO-178C").clause("A-3 Table 6.3.4")
+                        .standard("do178c").clause("A-3 Table 6.3.4")
                         .remediation("add unit tests to reach ≥" + (int) threshold + "% statement coverage")
                         .build());
             }

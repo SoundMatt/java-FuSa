@@ -753,5 +753,10 @@ class GapCoverageTest {
         Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg, r -> r.id().equals("MISRA001"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("MISRA001")),
                 "MISRA001 should fire on a detected MISRA violation");
+        // Regression (issue #44): standard used to be the display string "MISRA Java 2023".
+        assertTrue(result.findings().stream()
+                        .filter(f -> f.ruleId().equals("MISRA001"))
+                        .allMatch(f -> "misra-java".equals(f.standard())),
+                "Finding.standard must be a canonical lowercase id, not a display string");
     }
 }

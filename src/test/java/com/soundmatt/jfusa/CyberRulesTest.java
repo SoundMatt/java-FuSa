@@ -31,6 +31,12 @@ class CyberRulesTest {
                 r -> r.id().equals("CYBER001"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("CYBER001")),
                 "CYBER001 should detect SQL string concatenation");
+        // Regression (issue #44): standard used to be the CWE weakness id "CWE-89" —
+        // §2.4.1 reserves `standard` for the governing standard, never a CWE id.
+        assertTrue(result.findings().stream()
+                        .filter(f -> f.ruleId().equals("CYBER001"))
+                        .noneMatch(f -> f.standard().startsWith("CWE")),
+                "Finding.standard must not carry a CWE-<n> value");
     }
 
     //fusa:test REQ-CYBER005
@@ -221,6 +227,11 @@ class CyberRulesTest {
                 r -> r.id().equals("CYBER010"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("CYBER010")),
                 "CYBER010 should detect Cookie missing Secure/HttpOnly flags");
+        // Regression (issue #44): standard used to be "CWE-614" with a redundant clause "614".
+        assertTrue(result.findings().stream()
+                        .filter(f -> f.ruleId().equals("CYBER010"))
+                        .anyMatch(f -> "iso21434".equals(f.standard())),
+                "Finding.standard must be the §2.4.1 canonical id iso21434, not CWE-614");
     }
 
     //fusa:test REQ-CYBER012

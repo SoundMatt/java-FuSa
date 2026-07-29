@@ -87,7 +87,9 @@ public final class Main {
 
         String cmd = args[0];
         String[] rest = Arrays.copyOfRange(args, 1, args.length);
-        Path root = cwd();
+        // §2.2 shared --dir flag — MUST apply to every command; default is cwd.
+        Path root = resolveRoot(rest);
+        rest = stripFlagWithValue(rest, "--dir");
 
         try {
             switch (cmd) {
@@ -147,21 +149,27 @@ public final class Main {
                 }
             }
         } catch (NoConfigException e) {
-            emitJsonError("no_config", "no .fusa.json found — run 'jfusa init' first");
+            emitJsonError(ERR_NO_CONFIG, "no .fusa.json found — run 'jfusa init' first");
             System.exit(EXIT_RUNTIME);
         } catch (InvalidConfigException e) {
-            emitJsonError("invalid_config", e.getMessage());
+            emitJsonError(ERR_INVALID_CONFIG, e.getMessage());
             System.exit(EXIT_RUNTIME);
         } catch (CheckFailedException e) {
             System.exit(EXIT_GATE_FAIL);
         } catch (Exception e) {
-            emitJsonError("internal", e.getMessage() != null ? e.getMessage() : e.getClass().getName());
+            emitJsonError(ERR_INTERNAL, e.getMessage() != null ? e.getMessage() : e.getClass().getName());
             if (System.getenv("JFUSA_DEBUG") != null) e.printStackTrace();
             System.exit(EXIT_RUNTIME);
         }
     }
 
     // ── §3.2 structured error to stderr ──────────────────────────────────────
+
+    // §3.2 MUST: error.code is one of this closed, hyphenated enum (never underscores).
+    static final String ERR_NO_CONFIG      = "no-config";
+    static final String ERR_INVALID_CONFIG = "invalid-config";
+    static final String ERR_UNSUPPORTED    = "unsupported";
+    static final String ERR_INTERNAL       = "internal";
 
     static void emitJsonError(String code, String message) {
         String safeMsg = message == null ? "" : message.replace("\\", "\\\\").replace("\"", "\\\"");
@@ -274,16 +282,29 @@ public final class Main {
     }
 
     static void cmdReport(Path root, String[] args) throws IOException {
-        String src = args.length > 0 && !args[0].startsWith("-") ? args[0] : "fusa-report.json";
-        String format = flagValue(args, "--format", "text");
-        Path srcPath = root.resolve(src);
-        if (!Files.exists(srcPath)) {
-            System.err.println("jfusa report: file not found: " + src);
+        // §9.1 MUST: `report` re-runs analysis on the project root (same shape as `check`,
+        // §4) — it does not read a cached report and has no --input flag. It never
+        // gate-fails (only exit 2/3 apply), so --strict here is a usage error (SHOULD).
+        if (hasFlag(args, "--strict")) {
+            System.err.println("jfusa report: --strict is not supported — report never gate-fails (see 'jfusa check')");
             System.exit(EXIT_USAGE);
+            return;
         }
-        // Re-render an existing JSON report
-        System.out.println("Rendering: " + src + " (format=" + format + ")");
-        System.out.println(Files.readString(srcPath));
+        Config cfg = Config.load(root);
+        String format = flagValue(args, "--format", "text");
+        String output = flagValue(args, "--output", "");
+
+        Engine.Result result = Engine.DEFAULT.run(root, cfg);
+        Report report = new Report(result, cfg, root);
+        String rendered = report.render(format);
+
+        if (!output.isEmpty()) {
+            Files.writeString(root.resolve(output), rendered);
+            System.err.println("Report written to " + output);  // §2.2: progress on stderr only
+        } else {
+            System.out.print(rendered);
+        }
+        // Never gate-fails: no CheckFailedException regardless of findings.
     }
 
     static void cmdTemplate(Path root, String[] args) throws IOException {
@@ -370,7 +391,9 @@ public final class Main {
     static void cmdQualify(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         boolean full = hasFlag(args, "--full");
-        String output = flagValue(args, "--output", Qualify.QUALIFY_REPORT);
+        // §2.2: empty here (not Qualify.QUALIFY_REPORT) so Qualify.run can tell whether
+        // --output was explicitly given — that distinction gates the stdout echo below.
+        String output = flagValue(args, "--output", "");
         String format = flagValue(args, "--format", "text");
         // Feature 2: qualification display options
         String method    = flagValue(args, "--qualification-method", "");
@@ -503,7 +526,7 @@ public final class Main {
         Path haraFile = root.resolve(Hara.HARA_FILE);
         if (!Files.exists(haraFile)) {
             if ("json".equals(format)) {
-                emitJsonError("no_config", "no " + Hara.HARA_FILE + " found — run 'jfusa hara --init' first");
+                emitJsonError(ERR_NO_CONFIG, "no " + Hara.HARA_FILE + " found — run 'jfusa hara --init' first");
                 System.exit(EXIT_RUNTIME);
                 return;
             }
@@ -864,7 +887,7 @@ public final class Main {
             w.key("comp"); w.arrayStart(); w.value("text"); w.value("json"); w.arrayEnd();
             w.objectEnd();
             w.key("standards"); w.arrayStart();
-            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443","unece-r155","slsa")) w.value(s);
+            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443-4-1","unece-r155","slsa")) w.value(s);
             w.arrayEnd();
             w.objectEnd();
             System.out.println(w.toPretty());
@@ -894,6 +917,23 @@ public final class Main {
 
     static Path cwd() {
         return Paths.get(System.getProperty("user.dir", ".")).toAbsolutePath().normalize();
+    }
+
+    /** §2.2 `--dir <path>` — MUST apply to every command; default (no flag) is cwd. */
+    static Path resolveRoot(String[] args) {
+        String dir = flagValue(args, "--dir", "");
+        return dir.isEmpty() ? cwd() : Paths.get(dir).toAbsolutePath().normalize();
+    }
+
+    /** Removes a flag (and its value, in either "--flag value" or "--flag=value" form) from args. */
+    static String[] stripFlagWithValue(String[] args, String flag) {
+        List<String> out = new java.util.ArrayList<>(args.length);
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals(flag)) { i++; continue; }
+            if (args[i].startsWith(flag + "=")) continue;
+            out.add(args[i]);
+        }
+        return out.toArray(new String[0]);
     }
 
     static boolean hasFlag(String[] args, String flag) {
@@ -988,6 +1028,7 @@ public final class Main {
                   version        Print version
 
                 Flags:
+                  --dir=<path>                               Project root (default: cwd)
                   --format=<text|json|html|sarif|markdown>  Output format
                   --output=<file>                            Write to file
                   --fail-on-warn                             Exit 1 on warnings

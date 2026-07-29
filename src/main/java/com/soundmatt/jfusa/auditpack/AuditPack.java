@@ -1,9 +1,18 @@
 package com.soundmatt.jfusa.auditpack;
 
 import com.soundmatt.jfusa.FuSa;
+import com.soundmatt.jfusa.comp.Comp;
 import com.soundmatt.jfusa.config.Config;
+import com.soundmatt.jfusa.coupling.Coupling;
+import com.soundmatt.jfusa.iec62443.Iec62443;
 import com.soundmatt.jfusa.internal.Json;
+import com.soundmatt.jfusa.misra.Misra;
 import com.soundmatt.jfusa.release.Release;
+import com.soundmatt.jfusa.sas.Sas;
+import com.soundmatt.jfusa.sci.Sci;
+import com.soundmatt.jfusa.slsa.Slsa;
+import com.soundmatt.jfusa.unece.Unece;
+import com.soundmatt.jfusa.vuln.Vuln;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,6 +35,8 @@ public final class AuditPack {
     /** x-FuSa spec §8: the audit-pack's own top-level manifest, entry name inside the ZIP. */
     public static final String MANIFEST_ENTRY  = "manifest.json";
 
+    /** §8 MUST: every §1.2 input file and every §1.3 generated file this tool can produce
+     *  (except {@link #AUDIT_PACK_FILE} itself, which is excluded from its own contents). */
     private static final List<String> ARTIFACTS = List.of(
             ".fusa.json", ".fusa-reqs.json", ".fusa-hara.json", ".fusa-evidence.json",
             ".fusa-dispositions.json",
@@ -35,7 +46,10 @@ public final class AuditPack {
             "safety-case.mermaid", "check-report.json", "cyber-report.json",
             "iso26262-gap-report.json", "iec61508-gap-report.json",
             "iso21434-gap-report.json", "do178-gap-report.json",
-            "boundary.mermaid", "boundary.dot", "CHANGELOG.md", "SECURITY.md"
+            Iec62443.GAP_REPORT, Unece.GAP_REPORT, Slsa.SLSA_GAP_REPORT, Misra.MISRA_JSON,
+            Comp.COMP_JSON, Vuln.VULN_JSON, Coupling.COUPLING_JSON,
+            Sci.SCI_JSON, Sas.SAS_JSON, Sas.SAS_MD,
+            "boundary.mermaid", "boundary.dot"
     );
 
     private AuditPack() {}

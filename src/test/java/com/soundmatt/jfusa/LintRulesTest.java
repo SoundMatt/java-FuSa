@@ -71,6 +71,9 @@ class LintRulesTest {
         Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
                 r -> r.id().equals("LINT002"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT002")));
+        // Regression (issue #44): standard used to be the display string "IEC 61508-3".
+        assertTrue(result.findings().stream().anyMatch(f -> "iec61508".equals(f.standard())),
+                "Finding.standard must be the §2.4.1 canonical id, not a display string");
     }
 
     @Test
@@ -88,6 +91,9 @@ class LintRulesTest {
         Engine.Result result = Engine.DEFAULT.runFilter(tmp, cfg,
                 r -> r.id().equals("LINT005"));
         assertTrue(result.findings().stream().anyMatch(f -> f.ruleId().equals("LINT005")));
+        // Regression (issue #44): standard used to be the display string "MISRA Java".
+        assertTrue(result.findings().stream().anyMatch(f -> "misra-java".equals(f.standard())),
+                "Finding.standard must be a canonical lowercase id, not a display string");
     }
 
     @Test

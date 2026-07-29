@@ -148,7 +148,7 @@ public final class LintRules {
                                 "System.exit() requires //fusa:safe-state annotation (safe-state design clause)",
                                 loc(root, f, i + 1))
                                 .category(FuSa.Category.lint)
-                                .standard("IEC 61508-3").clause("7.4.10")
+                                .standard("iec61508").clause("7.4.10")
                                 .remediation("add //fusa:safe-state comment explaining the safe-state transition")
                                 .build());
                     }
@@ -178,7 +178,7 @@ public final class LintRules {
                                 "raw new Thread() — use Executors.newFixedThreadPool() or a named ThreadFactory",
                                 loc(root, f, i + 1))
                                 .category(FuSa.Category.lint)
-                                .standard("IEC 61508-3").clause("7.4.11")
+                                .standard("iec61508").clause("7.4.11")
                                 .remediation("use ExecutorService for controlled lifecycle; add //fusa:unsafe to suppress")
                                 .build());
                     }
@@ -211,7 +211,7 @@ public final class LintRules {
                                 "static mutable field requires //fusa:shared annotation documenting thread-safety contract",
                                 loc(root, f, i + 1))
                                 .category(FuSa.Category.lint)
-                                .standard("IEC 61508-3").clause("7.4.11")
+                                .standard("iec61508").clause("7.4.11")
                                 .remediation("add //fusa:shared with synchronisation strategy, or make final/immutable")
                                 .build());
                     }
@@ -243,7 +243,7 @@ public final class LintRules {
                                 "floating-point == comparison is unreliable in safety-critical code",
                                 loc(root, f, i + 1))
                                 .category(FuSa.Category.lint)
-                                .standard("MISRA Java").clause("15.7")
+                                .standard("misra-java").clause("15.7")
                                 .remediation("use Math.abs(a - b) < EPSILON; add //fusa:unsafe to suppress")
                                 .build());
                     }
@@ -291,7 +291,10 @@ public final class LintRules {
                                         "recursive method '" + currentMethod + "' requires //fusa:recursive <max-depth> annotation",
                                         loc(root, f, methodStartLine + 1))
                                         .category(FuSa.Category.lint)
-                                        .standard("JSF++").clause("119")
+                                        // No §2.4.1 canonical id applies here (this rule enforces a general
+                                        // stack-overflow safety concern, not a specific registered standard) —
+                                        // leave `standard`/`clause` unset (SHOULD, not MUST) rather than emit
+                                        // a non-canonical display string.
                                         .remediation("add //fusa:recursive <max-depth> above the method declaration")
                                         .build());
                                 currentMethod = null; // report once per method
@@ -360,7 +363,7 @@ public final class LintRules {
                                 "reflection usage requires //fusa:reflect annotation (traceability risk)",
                                 loc(root, f, i + 1))
                                 .category(FuSa.Category.lint)
-                                .standard("IEC 61508-3").clause("7.4.3")
+                                .standard("iec61508").clause("7.4.3")
                                 .remediation("add //fusa:reflect with justification; consider refactoring to avoid reflection")
                                 .build());
                     }

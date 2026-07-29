@@ -79,6 +79,54 @@ class MainTest {
         assertEquals("text", Main.flagValue(new String[]{}, "--format", "text"));
     }
 
+    // ── §2.2 --dir (regression: previously a no-op — issue #38) ────────────────
+
+    @Test
+    void resolveRoot_usesCwdWhenDirFlagAbsent() {
+        assertEquals(Main.cwd(), Main.resolveRoot(new String[]{"--format", "json"}));
+    }
+
+    @Test
+    void resolveRoot_usesDirFlagValueWhenGiven() {
+        Path expected = tmp.toAbsolutePath().normalize();
+        assertEquals(expected, Main.resolveRoot(new String[]{"--dir", tmp.toString()}));
+    }
+
+    @Test
+    void resolveRoot_supportsEqualsForm() {
+        Path expected = tmp.toAbsolutePath().normalize();
+        assertEquals(expected, Main.resolveRoot(new String[]{"--dir=" + tmp}));
+    }
+
+    @Test
+    void stripFlagWithValue_removesFlagAndItsValue() {
+        assertArrayEquals(new String[]{"--format", "json"},
+                Main.stripFlagWithValue(new String[]{"--dir", "/some/path", "--format", "json"}, "--dir"));
+    }
+
+    @Test
+    void stripFlagWithValue_removesEqualsForm() {
+        assertArrayEquals(new String[]{"--format", "json"},
+                Main.stripFlagWithValue(new String[]{"--dir=/some/path", "--format", "json"}, "--dir"));
+    }
+
+    @Test
+    void stripFlagWithValue_noOpWhenFlagAbsent() {
+        assertArrayEquals(new String[]{"--format", "json"},
+                Main.stripFlagWithValue(new String[]{"--format", "json"}, "--dir"));
+    }
+
+    @Test
+    void main_dirFlag_operatesOnGivenProjectNotCwd() throws Exception {
+        // End-to-end regression for issue #38: `vuln --dir <other>` must write vuln.json
+        // into <other>, not the process's actual working directory. (Avoids `check`/other
+        // gate-failing commands here since a CheckFailedException would call System.exit
+        // and kill the test JVM — `vuln` never gates.)
+        captureOut(() -> Main.main(new String[]{"vuln", "--dir", tmp.toString()}));
+        assertTrue(Files.exists(tmp.resolve("vuln.json")),
+                "--dir should redirect the command to operate on the given project root");
+    }
+
     @Test
     void flagValue_equalsForm_worksAsTheFinalArgument() {
         // Regression: the previous "i < args.length - 1" loop bound skipped the equals-form
@@ -132,6 +180,16 @@ class MainTest {
         assertTrue(err.contains("\"error\""));
         assertTrue(err.contains("no_config"));
         assertTrue(err.contains("missing file"));
+    }
+
+    @Test
+    void errorCodes_matchSpecClosedHyphenatedEnum() {
+        // §3.2 MUST: error.code is one of no-config | invalid-config | unsupported |
+        // internal — hyphenated, never underscored (issue #42).
+        assertEquals("no-config", Main.ERR_NO_CONFIG);
+        assertEquals("invalid-config", Main.ERR_INVALID_CONFIG);
+        assertEquals("unsupported", Main.ERR_UNSUPPORTED);
+        assertEquals("internal", Main.ERR_INTERNAL);
     }
 
     // ── init ──────────────────────────────────────────────────────────────────
@@ -369,6 +427,19 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY006
+    void cmdQualify_formatJsonWithOutput_writesOnlyToFileNotStdout() throws Exception {
+        initProject();
+        String out = captureOut(() ->
+                Main.cmdQualify(tmp, new String[]{"--format", "json", "--output", "q2.json"}));
+        assertTrue(Files.exists(tmp.resolve("q2.json")), "--output should redirect the qualify report");
+        // §2.2 MUST: --output redirects the report; the same JSON document must NOT also be
+        // echoed to stdout when --output is explicitly given.
+        assertFalse(out.contains("\"schemaVersion\""),
+                "stdout must be clean when --format json --output <file> is given — no duplicated document");
+    }
+
+    @Test
     //fusa:test REQ-RELEASE007
     void cmdRelease_honorsOutputDirFlag() throws Exception {
         initProject();
@@ -422,6 +493,26 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("iso26262-gap-report.json")));
     }
 
+    //fusa:test REQ-ISO26262001
+    @Test
+    void cmdIso26262_defaultAsil_doesNotDoublePrefix() throws Exception {
+        // Regression: the default --asil value ("ASIL-B") was concatenated with an
+        // already-added "ASIL-" prefix, producing "ASIL-ASIL-B" (issue #41).
+        initProject();
+        captureOut(() -> Main.cmdIso26262(tmp, new String[]{"--format", "json"}));
+        String content = Files.readString(tmp.resolve("iso26262-gap-report.json"));
+        assertTrue(content.contains("\"level\": \"ASIL-B\""), content);
+        assertFalse(content.contains("ASIL-ASIL"), content);
+    }
+
+    //fusa:test REQ-ISO26262001
+    @Test
+    void cmdIso26262_textFormat_defaultAsil_doesNotDoublePrefix() throws Exception {
+        initProject();
+        String out = captureOut(() -> Main.cmdIso26262(tmp, new String[]{}));
+        assertFalse(out.contains("ASIL-ASIL"), out);
+    }
+
     //fusa:test REQ-ISO21434001
     @Test
     void cmdIso21434_textFormat() throws Exception {
@@ -463,6 +554,29 @@ class MainTest {
         initProject();
         captureOut(() -> Main.cmdIec62443(tmp, new String[]{"--format", "json"}));
         assertTrue(Files.exists(tmp.resolve("iec62443-gap-report.json")));
+    }
+
+    //fusa:test REQ-IEC62443001
+    @Test
+    void cmdIec62443_jsonFormat_usesCanonicalStandardId() throws Exception {
+        // Regression: "iec62443" is the command name, not a §2.4.1 registry id — the
+        // gap-report must emit "iec62443-4-1" (issue #45).
+        initProject();
+        captureOut(() -> Main.cmdIec62443(tmp, new String[]{"--format", "json"}));
+        String content = Files.readString(tmp.resolve("iec62443-gap-report.json"));
+        assertTrue(content.contains("\"standard\": \"iec62443-4-1\""), content);
+    }
+
+    @Test
+    void capabilities_json_usesCanonicalIec62443Id() throws Exception {
+        // Regression (issue #45): "iec62443" (the bare command name — still legitimately
+        // present in the `commands` array) must not appear as a `standards` entry; only
+        // the canonical "iec62443-4-1" id may.
+        String out = captureOut(() -> Main.cmdCapabilitiesFmt("json"));
+        String standardsSection = out.substring(out.indexOf("\"standards\""));
+        assertTrue(standardsSection.contains("\"iec62443-4-1\""), standardsSection);
+        assertFalse(standardsSection.contains("\"iec62443\","), standardsSection);
+        assertFalse(standardsSection.contains("\"iec62443\"\n"), standardsSection);
     }
 
     //fusa:test REQ-UNECE001
@@ -541,7 +655,22 @@ class MainTest {
     void cmdMisra_jsonFormat() throws Exception {
         initProject();
         captureOut(() -> Main.cmdMisra(tmp, new String[]{}));
-        assertTrue(Files.exists(tmp.resolve("misra-report.json")));
+        assertTrue(Files.exists(tmp.resolve("misra-java-gap-report.json")));
+    }
+
+    //fusa:test REQ-MISRA001
+    @Test
+    void cmdMisra_jsonFormat_usesCanonicalGapReportSchema() throws Exception {
+        initProject();
+        captureOut(() -> Main.cmdMisra(tmp, new String[]{}));
+        String content = Files.readString(tmp.resolve("misra-java-gap-report.json"));
+        // §9.3 MUST: kind "gap-report" + objectives[]/summary — not the bespoke
+        // "misra-report"/totalFindings-findings shape this used to emit.
+        assertTrue(content.contains("\"kind\": \"gap-report\""));
+        assertTrue(content.contains("\"objectives\""));
+        assertTrue(content.contains("\"summary\""));
+        assertFalse(content.contains("\"totalFindings\""));
+        assertFalse(content.contains("misra-report"));
     }
 
     //fusa:test REQ-MISRA001
@@ -749,14 +878,48 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("badge.svg")));
     }
 
+    // ── report (§9.1 MUST — re-runs analysis, never gate-fails) ────────────────
+
     @Test
-    void cmdReport_existingFile_rendersContent() throws Exception {
+    void cmdReport_reRunsAnalysis_producesOutputWithoutReadingCachedFile() throws Exception {
         initProject();
-        // Generate a report first (ignoring gate failure), then test re-rendering it
-        try {
-            Main.cmdCheck(tmp, new String[]{"--format", "json", "--output", "fusa-report.json"});
-        } catch (FuSa.CheckFailedException ignored) {}
-        String out = captureOut(() -> Main.cmdReport(tmp, new String[]{"fusa-report.json"}));
-        assertTrue(out.length() > 0);
+        // No cached report file of any name exists in tmp — this used to fail with
+        // "file not found: fusa-report.json"; `report` must analyze the project instead.
+        String out = captureOut(() -> Main.cmdReport(tmp, new String[]{}));
+        assertTrue(out.length() > 0, "report should render freshly analyzed content, not echo a cached file");
+    }
+
+    @Test
+    void cmdReport_formatJson_matchesCheckShape() throws Exception {
+        initProject();
+        String out = captureOut(() -> Main.cmdReport(tmp, new String[]{"--format", "json"}));
+        assertTrue(out.contains("\"findings\"") && out.contains("\"summary\""),
+                "report --format json must be the same Finding[]/summary shape as check (§4)");
+    }
+
+    @Test
+    void cmdReport_honorsOutputFlag_noStdoutEcho() throws Exception {
+        initProject();
+        String out = captureOut(() ->
+                Main.cmdReport(tmp, new String[]{"--format", "json", "--output", "r.json"}));
+        assertTrue(Files.exists(tmp.resolve("r.json")), "--output should redirect the report");
+        assertFalse(out.contains("\"schemaVersion\""),
+                "stdout must stay clean when --output is given (§2.2)");
+    }
+
+    @Test
+    void cmdReport_neverGateFails_evenWithErrorFindings() throws Exception {
+        initProject();
+        // A hardcoded credential trips a CYBER ERROR finding, which would gate-fail `check`.
+        Path bad = tmp.resolve("src/main/java/Bad.java");
+        Files.createDirectories(bad.getParent());
+        Files.writeString(bad, """
+                public class Bad {
+                    String pw = "password123";
+                    void f() { System.out.println("select * from users where pw='" + pw + "'"); }
+                }
+                """);
+        // report must not throw CheckFailedException regardless of findings (§9.1: only 2/3 apply).
+        captureOut(() -> Main.cmdReport(tmp, new String[]{"--format", "json"}));
     }
 }

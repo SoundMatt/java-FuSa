@@ -22,7 +22,10 @@ import java.util.stream.Stream;
  */
 public final class Misra {
 
-    public static final String MISRA_JSON = "misra-report.json";
+    /** §1.3/§9.3: `<standard>-gap-report.json` — "misra-java" is this tool's own
+     *  Java-specific interpretation (§2.4.1 allows ids outside the registry as long as
+     *  they are a consistent lowercase id, never a display string). */
+    public static final String MISRA_JSON = "misra-java-gap-report.json";
 
     private static final List<MisraRule> RULES = List.of(
         new MisraRule("MISRA-1.1",  "Avoid implicit narrowing conversions",
@@ -50,30 +53,48 @@ public final class Misra {
 
     record MisraRule(String id, String description, Pattern pattern) {}
 
+    /** §9.3 canonical gap-report — one objective per MISRA rule; `status` is
+     *  `satisfied` when no violation was found, `gap` otherwise (this scan is a
+     *  binary pattern match, so `partial` never applies). */
     //fusa:req REQ-MISRA001
     public static void generate(Path root) throws IOException {
         List<Object[]> hits = scan(root);
         var w = new Json.Writer();
         w.objectStart();
         w.field("schemaVersion", FuSa.SPEC_VERSION);
-        w.field("kind", "misra-report");
+        w.field("kind", "gap-report");
         w.field("tool", "java-FuSa");
         w.field("toolVersion", FuSa.VERSION);
         w.field("language", "java");
         w.field("generatedAt", Instant.now().toString());
         w.field("standard", "misra-java");
-        w.field("totalFindings", hits.size());
-        w.key("findings"); w.arrayStart();
-        for (Object[] h : hits) {
+        w.key("objectives"); w.arrayStart();
+        int satisfied = 0, gaps = 0;
+        for (MisraRule r : RULES) {
+            boolean violated = hits.stream().anyMatch(h -> h[0].equals(r.id()));
             w.objectStart();
-            w.field("rule", (String) h[0]); w.field("file", (String) h[1]);
-            w.field("line", (int) h[2]); w.field("snippet", (String) h[3]);
+            w.field("id", r.id());
+            w.field("title", r.description());
+            w.field("clause", r.id());
+            w.field("status", violated ? "gap" : "satisfied");
+            w.key("evidence"); w.arrayStart(); w.arrayEnd();
+            w.key("findings"); w.arrayStart();
+            if (violated) w.value("MISRA001");
+            w.arrayEnd();
             w.objectEnd();
+            if (violated) gaps++; else satisfied++;
         }
         w.arrayEnd();
+        w.key("summary"); w.objectStart();
+        w.field("total", RULES.size());
+        w.field("satisfied", satisfied);
+        w.field("partial", 0);
+        w.field("gaps", gaps);
+        w.objectEnd();
         w.objectEnd();
         Files.writeString(root.resolve(MISRA_JSON), w.toPretty() + "\n");
-        System.out.println("MISRA report: " + hits.size() + " finding(s) written to " + MISRA_JSON);
+        System.out.println("MISRA gap-report: " + hits.size() + " violation(s) across " + gaps
+                + "/" + RULES.size() + " rule(s) written to " + MISRA_JSON);
     }
 
     //fusa:req REQ-MISRA001
@@ -117,7 +138,7 @@ public final class Misra {
                                 .map(MisraRule::description).findFirst().orElse(""),
                         new FuSa.Location((String) h[1], (int) h[2]))
                         .category(FuSa.Category.safety)
-                        .standard("MISRA Java 2023")
+                        .standard("misra-java")
                         .build());
             }
             return out;

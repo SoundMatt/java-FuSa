@@ -37,7 +37,9 @@ public final class Iec62443 {
         w.field("toolVersion", FuSa.VERSION);
         w.field("language", "java");
         w.field("generatedAt", Instant.now().toString());
-        w.field("standard", "iec62443");
+        // §2.4.1: "iec62443" is the command name, not a registry id — this gap-report
+        // targets IEC 62443-4-1 (technical requirements for IACS), so it emits that id.
+        w.field("standard", "iec62443-4-1");
         w.field("level", sl);
         record Obj(String id, String title, String clause, String status) {}
         List<Obj> objectives = List.of(
@@ -84,7 +86,7 @@ public final class Iec62443 {
                         "no INCIDENT-RESPONSE.md — IEC 62443-4-1 SR 6.2 requires incident handling process",
                         new FuSa.Location("INCIDENT-RESPONSE.md"))
                         .category(FuSa.Category.security)
-                        .standard("IEC 62443-4-1").clause("SR 6.2")
+                        .standard("iec62443-4-1").clause("SR 6.2")
                         .remediation("create INCIDENT-RESPONSE.md with triage, containment, and notification procedures")
                         .build());
             }
