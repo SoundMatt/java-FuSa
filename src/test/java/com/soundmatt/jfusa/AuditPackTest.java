@@ -59,4 +59,38 @@ class AuditPackTest {
             assertTrue(content.contains("sbom.json"), "manifest.json must list the bundled sbom.json");
         }
     }
+
+    @Test
+    //fusa:test REQ-AUDITPACK002
+    void generate_bundlesAllSpecEvidenceFilesAndExcludesNonSpecFiles() throws Exception {
+        initProject();
+        // §1.3-listed generated evidence this tool can itself produce, but that were
+        // missing from the old hardcoded ARTIFACTS list.
+        Files.writeString(tmp.resolve("comp-report.json"), "{}");
+        Files.writeString(tmp.resolve("vuln.json"), "{}");
+        Files.writeString(tmp.resolve("coupling-report.json"), "{}");
+        Files.writeString(tmp.resolve("sci.json"), "{}");
+        Files.writeString(tmp.resolve("sas.json"), "{}");
+        Files.writeString(tmp.resolve("sas.md"), "# sas");
+        Files.writeString(tmp.resolve("iec62443-gap-report.json"), "{}");
+        Files.writeString(tmp.resolve("unece-gap-report.json"), "{}");
+        Files.writeString(tmp.resolve("slsa-gap-report.json"), "{}");
+        Files.writeString(tmp.resolve("misra-java-gap-report.json"), "{}");
+        // Not §1.2/§1.3 evidence — must NOT be swept into the pack.
+        Files.writeString(tmp.resolve("CHANGELOG.md"), "# changelog");
+        Files.writeString(tmp.resolve("SECURITY.md"), "# security");
+
+        AuditPack.generate(tmp);
+        Path zipPath = tmp.resolve(AuditPack.AUDIT_PACK_FILE);
+        try (ZipFile zf = new ZipFile(zipPath.toFile())) {
+            for (String expected : new String[]{
+                    "comp-report.json", "vuln.json", "coupling-report.json", "sci.json",
+                    "sas.json", "sas.md", "iec62443-gap-report.json", "unece-gap-report.json",
+                    "slsa-gap-report.json", "misra-java-gap-report.json"}) {
+                assertNotNull(zf.getEntry(expected), expected + " is §1.3 evidence and must be bundled");
+            }
+            assertNull(zf.getEntry("CHANGELOG.md"), "CHANGELOG.md is not §1.2/§1.3 evidence");
+            assertNull(zf.getEntry("SECURITY.md"), "SECURITY.md is not §1.2/§1.3 evidence");
+        }
+    }
 }
