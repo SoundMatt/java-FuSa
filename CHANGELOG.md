@@ -8,6 +8,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Bumped `SPEC_VERSION` to 1.15.2 — the 1.15.1/1.15.2 spec revisions were
+  pure documentation clarifications (schemaVersion/specVersion format, an
+  explicit Rule A false-positive example) with no required behavior or
+  wire-format change.
+
 ## v0.6.1 — 2026-07-29
 
 Patch release fixing nine real defects found by a same-day deep audit that
