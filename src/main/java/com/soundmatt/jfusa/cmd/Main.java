@@ -887,7 +887,7 @@ public final class Main {
             w.key("comp"); w.arrayStart(); w.value("text"); w.value("json"); w.arrayEnd();
             w.objectEnd();
             w.key("standards"); w.arrayStart();
-            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443","unece-r155","slsa")) w.value(s);
+            for (String s : List.of("iso26262","iec61508","do178c","iso21434","iec62443-4-1","unece-r155","slsa")) w.value(s);
             w.arrayEnd();
             w.objectEnd();
             System.out.println(w.toPretty());

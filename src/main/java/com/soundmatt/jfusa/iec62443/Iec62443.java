@@ -37,7 +37,9 @@ public final class Iec62443 {
         w.field("toolVersion", FuSa.VERSION);
         w.field("language", "java");
         w.field("generatedAt", Instant.now().toString());
-        w.field("standard", "iec62443");
+        // §2.4.1: "iec62443" is the command name, not a registry id — this gap-report
+        // targets IEC 62443-4-1 (technical requirements for IACS), so it emits that id.
+        w.field("standard", "iec62443-4-1");
         w.field("level", sl);
         record Obj(String id, String title, String clause, String status) {}
         List<Obj> objectives = List.of(

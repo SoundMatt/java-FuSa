@@ -556,6 +556,29 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("iec62443-gap-report.json")));
     }
 
+    //fusa:test REQ-IEC62443001
+    @Test
+    void cmdIec62443_jsonFormat_usesCanonicalStandardId() throws Exception {
+        // Regression: "iec62443" is the command name, not a §2.4.1 registry id — the
+        // gap-report must emit "iec62443-4-1" (issue #45).
+        initProject();
+        captureOut(() -> Main.cmdIec62443(tmp, new String[]{"--format", "json"}));
+        String content = Files.readString(tmp.resolve("iec62443-gap-report.json"));
+        assertTrue(content.contains("\"standard\": \"iec62443-4-1\""), content);
+    }
+
+    @Test
+    void capabilities_json_usesCanonicalIec62443Id() throws Exception {
+        // Regression (issue #45): "iec62443" (the bare command name — still legitimately
+        // present in the `commands` array) must not appear as a `standards` entry; only
+        // the canonical "iec62443-4-1" id may.
+        String out = captureOut(() -> Main.cmdCapabilitiesFmt("json"));
+        String standardsSection = out.substring(out.indexOf("\"standards\""));
+        assertTrue(standardsSection.contains("\"iec62443-4-1\""), standardsSection);
+        assertFalse(standardsSection.contains("\"iec62443\","), standardsSection);
+        assertFalse(standardsSection.contains("\"iec62443\"\n"), standardsSection);
+    }
+
     //fusa:test REQ-UNECE001
     @Test
     void cmdUnece_textFormat() throws Exception {

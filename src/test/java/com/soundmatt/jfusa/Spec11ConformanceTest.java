@@ -252,7 +252,9 @@ class Spec11ConformanceTest {
         Iec62443.generate(tmp, "SL-2");
         String content = Files.readString(tmp.resolve(Iec62443.GAP_REPORT));
         assertTrue(content.contains("\"gap-report\""), "iec62443 must emit kind='gap-report'");
-        assertTrue(content.contains("\"iec62443\""), "iec62443 must have standard='iec62443'");
+        // §2.4.1: "iec62443" is the command name, not a registry id — the canonical id is
+        // "iec62443-4-1" (superseding the old issue #3 fix, tracked as issue #45).
+        assertTrue(content.contains("\"iec62443-4-1\""), "iec62443 must have standard='iec62443-4-1'");
     }
 
     //fusa:test REQ-UNECE001
@@ -346,15 +348,18 @@ class Spec11ConformanceTest {
                 "trace JSON must include testedRequirements in coverage");
     }
 
-    // ── Issue #3: capabilities standards[] iec62443 id consistency ────────────
+    // ── Issue #45: capabilities standards[] / gap-report use the canonical §2.4.1 id ──
 
     @Test
-    void capabilities_standards_usesIec62443_notIec62443_4_1() throws Exception {
-        // The capabilities JSON must use "iec62443" (consistent with gap-report standard field)
+    void capabilities_standards_usesIec62443_4_1_notBareCommandName() throws Exception {
+        // §2.4.1: "iec62443" (the bare command name) is not a registry id; both the
+        // gap-report's `standard` field and capabilities.standards[] must use the
+        // canonical "iec62443-4-1" id, consistently.
         com.soundmatt.jfusa.iec62443.Iec62443.generate(tmp, "SL-2");
         String gapReport = Files.readString(tmp.resolve(com.soundmatt.jfusa.iec62443.Iec62443.GAP_REPORT));
-        assertTrue(gapReport.contains("\"iec62443\""), "iec62443 gap-report standard must be 'iec62443'");
-        assertFalse(gapReport.contains("\"iec62443-4-1\""), "iec62443 gap-report must not use 'iec62443-4-1'");
+        assertTrue(gapReport.contains("\"iec62443-4-1\""), "iec62443 gap-report standard must be 'iec62443-4-1'");
+        assertFalse(gapReport.contains("\"standard\": \"iec62443\""),
+                "iec62443 gap-report must not use the bare command name as the standard id");
     }
 
     // ── Issue #5: projectRoot in JSON check report ─────────────────────────────
