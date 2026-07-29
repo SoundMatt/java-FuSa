@@ -391,7 +391,9 @@ public final class Main {
     static void cmdQualify(Path root, String[] args) throws IOException {
         Config cfg = Config.load(root);
         boolean full = hasFlag(args, "--full");
-        String output = flagValue(args, "--output", Qualify.QUALIFY_REPORT);
+        // §2.2: empty here (not Qualify.QUALIFY_REPORT) so Qualify.run can tell whether
+        // --output was explicitly given — that distinction gates the stdout echo below.
+        String output = flagValue(args, "--output", "");
         String format = flagValue(args, "--format", "text");
         // Feature 2: qualification display options
         String method    = flagValue(args, "--qualification-method", "");

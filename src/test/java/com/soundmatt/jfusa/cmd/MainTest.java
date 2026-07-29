@@ -427,6 +427,19 @@ class MainTest {
     }
 
     @Test
+    //fusa:test REQ-QUALIFY006
+    void cmdQualify_formatJsonWithOutput_writesOnlyToFileNotStdout() throws Exception {
+        initProject();
+        String out = captureOut(() ->
+                Main.cmdQualify(tmp, new String[]{"--format", "json", "--output", "q2.json"}));
+        assertTrue(Files.exists(tmp.resolve("q2.json")), "--output should redirect the qualify report");
+        // §2.2 MUST: --output redirects the report; the same JSON document must NOT also be
+        // echoed to stdout when --output is explicitly given.
+        assertFalse(out.contains("\"schemaVersion\""),
+                "stdout must be clean when --format json --output <file> is given — no duplicated document");
+    }
+
+    @Test
     //fusa:test REQ-RELEASE007
     void cmdRelease_honorsOutputDirFlag() throws Exception {
         initProject();

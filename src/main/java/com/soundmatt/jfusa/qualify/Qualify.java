@@ -113,11 +113,18 @@ public final class Qualify {
     //fusa:req REQ-QUALIFY006
     public static void run(Path projectRoot, Config cfg, boolean full, QualifyOptions opts,
                             String output, String format) throws IOException {
+        boolean explicitOutput = output != null && !output.isBlank();
         List<TestCase> cases = runSelfTests();
         String content = generateReport(projectRoot, cases, opts,
-                output == null || output.isBlank() ? QUALIFY_REPORT : output);
+                explicitOutput ? output : QUALIFY_REPORT);
         if ("json".equalsIgnoreCase(format)) {
-            System.out.println(content);
+            // §2.2 MUST: when --output was explicitly given, write only to that file —
+            // never also echo the same document to stdout.
+            if (explicitOutput) {
+                System.err.println("Qualification report written to " + output);
+            } else {
+                System.out.println(content);
+            }
             return;
         }
         long passed = cases.stream().filter(TestCase::passed).count();
