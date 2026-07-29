@@ -632,7 +632,22 @@ class MainTest {
     void cmdMisra_jsonFormat() throws Exception {
         initProject();
         captureOut(() -> Main.cmdMisra(tmp, new String[]{}));
-        assertTrue(Files.exists(tmp.resolve("misra-report.json")));
+        assertTrue(Files.exists(tmp.resolve("misra-java-gap-report.json")));
+    }
+
+    //fusa:test REQ-MISRA001
+    @Test
+    void cmdMisra_jsonFormat_usesCanonicalGapReportSchema() throws Exception {
+        initProject();
+        captureOut(() -> Main.cmdMisra(tmp, new String[]{}));
+        String content = Files.readString(tmp.resolve("misra-java-gap-report.json"));
+        // §9.3 MUST: kind "gap-report" + objectives[]/summary — not the bespoke
+        // "misra-report"/totalFindings-findings shape this used to emit.
+        assertTrue(content.contains("\"kind\": \"gap-report\""));
+        assertTrue(content.contains("\"objectives\""));
+        assertTrue(content.contains("\"summary\""));
+        assertFalse(content.contains("\"totalFindings\""));
+        assertFalse(content.contains("misra-report"));
     }
 
     //fusa:test REQ-MISRA001
