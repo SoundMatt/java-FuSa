@@ -493,6 +493,26 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve("iso26262-gap-report.json")));
     }
 
+    //fusa:test REQ-ISO26262001
+    @Test
+    void cmdIso26262_defaultAsil_doesNotDoublePrefix() throws Exception {
+        // Regression: the default --asil value ("ASIL-B") was concatenated with an
+        // already-added "ASIL-" prefix, producing "ASIL-ASIL-B" (issue #41).
+        initProject();
+        captureOut(() -> Main.cmdIso26262(tmp, new String[]{"--format", "json"}));
+        String content = Files.readString(tmp.resolve("iso26262-gap-report.json"));
+        assertTrue(content.contains("\"level\": \"ASIL-B\""), content);
+        assertFalse(content.contains("ASIL-ASIL"), content);
+    }
+
+    //fusa:test REQ-ISO26262001
+    @Test
+    void cmdIso26262_textFormat_defaultAsil_doesNotDoublePrefix() throws Exception {
+        initProject();
+        String out = captureOut(() -> Main.cmdIso26262(tmp, new String[]{}));
+        assertFalse(out.contains("ASIL-ASIL"), out);
+    }
+
     //fusa:test REQ-ISO21434001
     @Test
     void cmdIso21434_textFormat() throws Exception {
