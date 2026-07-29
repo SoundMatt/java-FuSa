@@ -8,6 +8,55 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## v0.6.1 — 2026-07-29
+
+Patch release fixing nine real defects found by a same-day deep audit that
+built `jfusa`, ran every command against this repo, and diffed output
+against the x-FuSa spec line-by-line (SoundMatt/java-FuSa#38–#46).
+
+### Fixed
+
+- **`--dir` was a no-op** (#38): nothing parsed it, so every command
+  silently operated on cwd regardless of the flag. `main()` now resolves
+  `root` from `--dir` (both `--dir value` and `--dir=value` forms) before
+  dispatch.
+- **`report` echoed a cached file instead of re-running analysis** (#39):
+  contradicted the §9.1 MUST that `report` behaves like `check` (same
+  Finding[]/summary shape, never gate-fails). Reimplemented to run
+  `Engine.DEFAULT` directly, honour `--output` per §2.2, and treat
+  `--strict` as a usage error.
+- **`audit-pack` omitted several generated evidence files** (#40):
+  `comp-report.json`, `vuln.json`, `coupling-report.json`, `sci.json`,
+  `sas.{json,md}`, and three of the seven standards gap-reports were
+  missing from the hardcoded artifact list, while non-spec `CHANGELOG.md`/
+  `SECURITY.md` were bundled. The list now references each artifact's own
+  filename constant and drops the two non-spec files.
+- **`iso26262` doubled the `ASIL-` prefix** (#41): the default `--asil`
+  value (`"ASIL-B"`) was concatenated with an already-added `ASIL-`
+  prefix, producing `"ASIL-ASIL-B"` in `level` and both gap notes.
+- **Structured `error.code` used underscores** (#42): `no_config`/
+  `invalid_config` instead of the spec's hyphenated `no-config`/
+  `invalid-config` enum.
+- **`misra --format json` used a bespoke shape** (#43): `kind:
+  "misra-report"` with a flat `{totalFindings, findings}` body instead of
+  the canonical `gap-report` schema every sibling standards command uses.
+  Now emits `objectives[]`/`summary` and writes
+  `misra-java-gap-report.json`.
+- **`Finding.standard` emitted display strings, not canonical ids** (#44):
+  `"IEC 61508-3"`, `"ISO 21434"`, `"MISRA Java"`/`"MISRA Java 2023"`,
+  `"SLSA"` (inconsistent with the lowercase `"slsa"` used elsewhere), and
+  CWE ids (`"CWE-89"`, ...) used as the standard value itself. Replaced
+  with the matching §2.4.1 canonical lowercase id at every call site.
+- **`iec62443` used the non-canonical id `"iec62443"`** (#45): the bare
+  command name isn't a registry id — both the gap-report `standard` field
+  and `capabilities.standards[]` now emit `"iec62443-4-1"`.
+- **`qualify --format json --output <file>` also echoed to stdout**
+  (#46): violated §2.2's "MUST NOT also write it to stdout" — the same
+  document was both written to the file and printed. `cmdQualify` now
+  defaults `--output` to empty (like `check`/`trace`/`report`) so
+  `Qualify.run` can tell an explicit `--output` apart from the default
+  path and suppress the stdout echo accordingly.
+
 ## v0.6.0 — 2026-07-28
 
 Adopts x-FuSa spec v1.15.0 and fixes three real defects found by a same-day

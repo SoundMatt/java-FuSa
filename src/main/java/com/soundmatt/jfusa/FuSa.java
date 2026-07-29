@@ -15,7 +15,7 @@ import java.util.HexFormat;
 public final class FuSa {
 
     /** Current release of java-FuSa. */
-    public static final String VERSION = "0.6.0";
+    public static final String VERSION = "0.6.1";
 
     /** x-FuSa spec version this release implements. */
     public static final String SPEC_VERSION = "1.15.0";
