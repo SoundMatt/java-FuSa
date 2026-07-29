@@ -8,10 +8,18 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## v0.6.2 — 2026-07-29
+
+Patch release tracking the x-FuSa spec's two latest PATCH releases.
+
 - Bumped `SPEC_VERSION` to 1.15.2 — the 1.15.1/1.15.2 spec revisions were
   pure documentation clarifications (schemaVersion/specVersion format, an
   explicit Rule A false-positive example) with no required behavior or
   wire-format change.
+- Synced the same `SPEC_VERSION` value into the `Dockerfile`, `ci.yml`,
+  and `docker-publish.yml` build-args, which had been missed in the
+  initial bump and would otherwise have kept labelling the published
+  container image as spec `1.15.0`.
 
 ## v0.6.1 — 2026-07-29
 
