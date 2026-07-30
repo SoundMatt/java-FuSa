@@ -44,7 +44,11 @@ public final class Sign {
         byte[] data     = Files.readAllBytes(artifact);
         String expected = Files.readString(sigFile).strip();
         String actual   = hmacSha256(key, data);
-        boolean ok = expected.equalsIgnoreCase(actual);
+        // Constant-time comparison — avoid the timing/length side-channel of a
+        // short-circuiting String.equalsIgnoreCase on a security primitive.
+        boolean ok = java.security.MessageDigest.isEqual(
+                expected.toLowerCase(java.util.Locale.ROOT).getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                actual.toLowerCase(java.util.Locale.ROOT).getBytes(java.nio.charset.StandardCharsets.UTF_8));
         System.out.println(ok ? "Signature VALID" : "Signature INVALID");
         return ok;
     }

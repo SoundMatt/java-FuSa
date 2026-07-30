@@ -93,11 +93,19 @@ public final class Engine {
                         // Apply per-rule severity overrides from config.
                         if (cfg != null && cfg.rules().severity().containsKey(f.ruleId())) {
                             String sevStr = cfg.rules().severity().get(f.ruleId());
-                            Severity sev = Severity.valueOf(sevStr);
-                            f = Finding.builder(f.ruleId(), sev, f.message(), f.location())
-                                    .category(f.category()).standard(f.standard()).clause(f.clause())
-                                    .remediation(f.remediation()).disposition(f.disposition())
-                                    .fingerprint(f.fingerprint()).build();
+                            Severity sev = parseSeverity(sevStr);
+                            if (sev == null) {
+                                // An invalid override value is a config error, not a reason to
+                                // silently discard the rule's findings — report it and keep the
+                                // finding at its original severity.
+                                errors.add("invalid-config: rule " + f.ruleId()
+                                        + " has invalid severity override \"" + sevStr + "\"");
+                            } else {
+                                f = Finding.builder(f.ruleId(), sev, f.message(), f.location())
+                                        .category(f.category()).standard(f.standard()).clause(f.clause())
+                                        .remediation(f.remediation()).disposition(f.disposition())
+                                        .fingerprint(f.fingerprint()).build();
+                            }
                         }
                         findings.add(f);
                     }
@@ -109,6 +117,16 @@ public final class Engine {
         }
         return new Result(Collections.unmodifiableList(findings),
                 Collections.unmodifiableList(errors));
+    }
+
+    /** Parses a severity override value; returns {@code null} for an unknown value. */
+    private static Severity parseSeverity(String s) {
+        if (s == null) return null;
+        try {
+            return Severity.valueOf(s);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     // ── Built-in rules (FUSA001–005) ──────────────────────────────────────────

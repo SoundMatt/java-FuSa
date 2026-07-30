@@ -22,7 +22,7 @@ public final class Template {
             case "test-evidence"   -> testEvidence(root, name);
             case "hara"            -> haraTemplate(root, name);
             case "qualification-plan" -> qualificationPlan(root, name);
-            default -> { System.err.println("Unknown template: " + kind); System.exit(FuSa.EXIT_USAGE); }
+            default -> { System.err.println("Unknown template: " + kind); System.exit(FuSa.EXIT_USAGE); } //fusa:safe-state no template written, nothing mutated
         }
     }
 

@@ -53,7 +53,7 @@ src/main/java/com/soundmatt/jfusa/
 │                           #   do178, unece, coverage, comp, misra, vuln,
 │                           #   coupling, sas, sci, pr, impact, diff, badge,
 │                           #   sign, hooks, disposition, metrics, template
-└── cmd/Main.java           # CLI dispatcher — all 45 commands
+└── cmd/Main.java           # CLI dispatcher — all 43 commands
 ```
 
 ## Key Invariants

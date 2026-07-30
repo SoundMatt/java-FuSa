@@ -4,7 +4,8 @@
     "name": "java-FuSa",
     "version": "0.1.0"
   },
-  "standard": "generic",
+  "standard": "iso26262",
+  "asil": "ASIL-C",
   "rules": {
     "exclude": [],
     "severity": {

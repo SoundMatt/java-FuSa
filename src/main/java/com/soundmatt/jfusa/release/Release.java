@@ -145,6 +145,18 @@ public final class Release {
         }
     }
 
+    /** SHA-256 of an in-memory string (UTF-8), for hashing a canonicalised form. */
+    //fusa:req REQ-RELEASE006
+    public static String sha256(String content) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] bytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            return "sha256:" + HexFormat.of().formatHex(md.digest(bytes));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     // ── Rules ─────────────────────────────────────────────────────────────────
 
     static final class RuleSBOMPresent implements Rule {

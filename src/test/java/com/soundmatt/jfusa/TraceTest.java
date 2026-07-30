@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TraceTest {
@@ -510,5 +511,121 @@ class TraceTest {
         Map<String, Object> second = (Map<String, Object>) requirements.get(1);
         assertEquals("REQ-002", second.get("id"));
         assertEquals("Second requirement", second.get("title"), "entry after the escaped quote must not be corrupted");
+    }
+
+    // ── §5 --gaps / --req-coverage / --sec-tested (java-FuSa-03) ─────────────
+
+    private static Map<String, List<Trace.Annotation>> gapsFixtureMatrix() {
+        Map<String, List<Trace.Annotation>> matrix = new java.util.LinkedHashMap<>();
+        // Fully tested (impl + test)
+        matrix.put("REQ-001", List.of(
+                new Trace.Annotation("REQ-001", "A.java", 1, "impl"),
+                new Trace.Annotation("REQ-001", "ATest.java", 1, "test")));
+        // Security-tested only
+        matrix.put("REQ-002", List.of(
+                new Trace.Annotation("REQ-002", "B.java", 1, "impl"),
+                new Trace.Annotation("REQ-002", "BTest.java", 1, "sec-test")));
+        // Untested gap: impl only, no test/sec-test
+        matrix.put("REQ-003", List.of(
+                new Trace.Annotation("REQ-003", "C.java", 1, "impl")));
+        return matrix;
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void computeCoverage_countsTracedTestedAndSecTested() {
+        Trace.CoverageCounts cov = Trace.computeCoverage(gapsFixtureMatrix());
+        assertEquals(3, cov.total());
+        assertEquals(3, cov.traced());
+        assertEquals(2, cov.tested());       // REQ-001 (test), REQ-002 (sec-test)
+        assertEquals(1, cov.secTested());    // REQ-002 only
+        assertEquals(100.0 * 2 / 3, cov.testedPct(), 0.01);
+        assertEquals(100.0 / 3, cov.secTestedPct(), 0.01);
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void computeCoverage_zeroTotal_percentagesAreHundred() {
+        Trace.CoverageCounts cov = Trace.computeCoverage(Map.of());
+        assertEquals(0, cov.total());
+        assertEquals(100.0, cov.testedPct());
+        assertEquals(100.0, cov.secTestedPct());
+    }
+
+    @Test
+    void untestedMatrix_returnsOnlyRequirementsWithNoTestOrSecTestTag() {
+        Map<String, List<Trace.Annotation>> gaps = Trace.untestedMatrix(gapsFixtureMatrix());
+        assertEquals(Set.of("REQ-003"), gaps.keySet());
+    }
+
+    @Test
+    void renderJson_gapsOnly_filtersRequirementsAndTagsButKeepsFullCoverageTotals() throws Exception {
+        String json = Trace.renderJson(gapsFixtureMatrix(), tmp, null, true);
+        Map<String, Object> doc = com.soundmatt.jfusa.internal.Json.parseObject(json);
+        List<Object> requirements = com.soundmatt.jfusa.internal.Json.arr(doc, "requirements");
+        assertEquals(1, requirements.size(), "only the untested requirement should be listed");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> onlyReq = (Map<String, Object>) requirements.get(0);
+        assertEquals("REQ-003", onlyReq.get("id"));
+
+        List<Object> tags = com.soundmatt.jfusa.internal.Json.arr(doc, "tags");
+        assertEquals(1, tags.size(), "only REQ-003's tag should be listed");
+
+        // §5: coverage MUST still report the FULL totals, not the filtered gap-set size.
+        @SuppressWarnings("unchecked")
+        Map<String, Object> coverage = (Map<String, Object>) doc.get("coverage");
+        assertEquals(3.0, ((Number) coverage.get("totalRequirements")).doubleValue());
+        assertEquals(2.0, ((Number) coverage.get("testedRequirements")).doubleValue());
+    }
+
+    @Test
+    void renderJson_gapsOnly_noGaps_stillReturnsFullCoverage() throws Exception {
+        Map<String, List<Trace.Annotation>> matrix = new java.util.LinkedHashMap<>();
+        matrix.put("REQ-001", List.of(
+                new Trace.Annotation("REQ-001", "A.java", 1, "impl"),
+                new Trace.Annotation("REQ-001", "ATest.java", 1, "test")));
+        String json = Trace.renderJson(matrix, tmp, null, true);
+        Map<String, Object> doc = com.soundmatt.jfusa.internal.Json.parseObject(json);
+        assertTrue(com.soundmatt.jfusa.internal.Json.arr(doc, "requirements").isEmpty());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> coverage = (Map<String, Object>) doc.get("coverage");
+        assertEquals(1.0, ((Number) coverage.get("totalRequirements")).doubleValue());
+    }
+
+    @Test
+    void renderText_gapsOnly_listsOnlyUntestedRequirementsButFullFooterTotals() {
+        String text = Trace.renderText(gapsFixtureMatrix(), null, true);
+        assertTrue(text.contains("REQ-003"), "gap requirement should be listed");
+        assertFalse(text.contains("REQ-001"), "fully-tested requirement should be excluded from the gap listing");
+        assertFalse(text.contains("REQ-002"), "sec-tested requirement should be excluded from the gap listing");
+        assertTrue(text.contains("Total requirements annotated: 3"), "footer must report the FULL total, not the gap-set size");
+    }
+
+    @Test
+    void renderText_gapsOnly_noGaps_saysSoAndStillShowsFooter() {
+        Map<String, List<Trace.Annotation>> matrix = new java.util.LinkedHashMap<>();
+        matrix.put("REQ-001", List.of(
+                new Trace.Annotation("REQ-001", "A.java", 1, "impl"),
+                new Trace.Annotation("REQ-001", "ATest.java", 1, "test")));
+        String text = Trace.renderText(matrix, null, true);
+        assertTrue(text.contains("No untested requirements"));
+        assertTrue(text.contains("Total requirements annotated: 1"));
+    }
+
+    @Test
+    void renderJson_nonGaps_equivalentToThreeArgOverload() throws Exception {
+        Map<String, List<Trace.Annotation>> matrix = gapsFixtureMatrix();
+        String a = Trace.renderJson(matrix, tmp);
+        String b = Trace.renderJson(matrix, tmp, null, false);
+        // "generatedAt" is Instant.now() at call time, so two independent calls can legitimately
+        // differ by a millisecond — strip it before comparing the rest of the document verbatim.
+        assertEquals(a.replaceAll("\"generatedAt\": \"[^\"]*\"", ""),
+                     b.replaceAll("\"generatedAt\": \"[^\"]*\"", ""));
+    }
+
+    @Test
+    void renderText_nonGaps_equivalentToOneArgOverload() {
+        Map<String, List<Trace.Annotation>> matrix = gapsFixtureMatrix();
+        assertEquals(Trace.renderText(matrix), Trace.renderText(matrix, null, false));
     }
 }

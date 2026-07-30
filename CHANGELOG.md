@@ -8,6 +8,171 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The self-check CI gates (`check`/`lint`/`cyber`) had never actually been
+  green** — removing `continue-on-error` (this release's own CI fix, see
+  below) surfaced that `jfusa check` has always found 46 real ERROR findings
+  when run against this repo's own source, silently masked until now:
+  - `LINT002` (`System.exit()` requires a `//fusa:safe-state` annotation):
+    every one of the 24 call sites in `Main.java`, plus one each in
+    `Misra.java` and `Template.java`, was missing the annotation. All 26 are
+    now annotated with a short rationale.
+  - `LINT002` also self-matched its own remediation text in
+    `misra/Misra.java`'s `MISRA-4.1` rule description, which spelled out
+    `System.exit(` as a literal example; reworded to describe the same rule
+    without the self-triggering substring.
+  - `CYBER012` self-matched `cyber/CyberRules.java`'s own detection pattern
+    (`Pattern.compile("ObjectInputStream|...")` contains the very string it
+    searches for) — a self-referential false positive, not a real
+    deserialization call site.
+  - `CYBER002` flagged `Main.java`'s `gitChangedFiles()`, which calls
+    `ProcessBuilder` with fully hardcoded arguments (no user-controlled
+    input) — a true but low-risk match from a blanket "any process
+    execution" rule.
+  - The remaining findings were all in rule-test fixture files
+    (`CyberRulesTest.java`, `AnalyzeRulesTest.java`, `GapCoverageTest.java`,
+    `LintRulesTest.java`) that intentionally contain example bad-pattern
+    snippets to verify each rule detects them — not shipped code.
+
+  The two genuine false positives and the low-risk hardcoded-args case are
+  now recorded as `accepted` dispositions in the new `.fusa-dispositions.json`
+  (with a rationale each) — the spec's own designed mechanism for this
+  (x-FuSa spec §1.2.3/§4.1: "the fix for that specific finding is a
+  disposition waiver... never a tool narrowing its own rule to dodge a true
+  positive"). The rule definitions themselves are unchanged, so they remain
+  fully active against any new violation elsewhere in the codebase.
+
+## v0.7.0 — 2026-07-30
+
+Release fixing a Critical data-integrity defect and a live-reproduced
+data-loss bug found by an independent audit that compiled the tool and
+re-ran its findings against the live code, plus a batch of related High/
+Medium/Low fixes and several previously-missing `trace`/`check` gating
+features.
+
+### Fixed — Critical
+
+- **`hara` ASIL determination table was wrong for 20 of 36 S×E×C cells**
+  (`hara/Hara.java`): `ASIL_TABLE` mis-implemented ISO 26262-3:2018 Table 4,
+  inflating the resulting ASIL by one or two grades for most combinations
+  (only S1 and S2/E1 rows were correct). Replaced the hardcoded table with
+  the standard's additive risk-point model (`points = S + E + C`, with
+  S1=1/S2=2/S3=3, E1–E4=1–4, C1–C3=1–3; ≤6 → QM, 7 → A, 8 → B, 9 → C,
+  10 → D) and corrected the `HaraTest` assertions that had locked the wrong
+  values in as "expected".
+
+### Fixed — High (data loss / security)
+
+- **`req add` silently discarded every requirement it claimed to add**:
+  the append check tested `endsWith("]}")` against the canonical
+  pretty-printed `.fusa-reqs.json` that `jfusa init` itself writes, whose
+  real tail is `...[]\n}` — two different characters — so the check always
+  failed, the tool printed `"Requirement ... added."`, and wrote the file
+  back byte-identical with the new requirement thrown away. This is a
+  safety-requirements tool that was silently losing requirements while
+  reporting success. `req add` now parses `.fusa-reqs.json` structurally
+  instead of splicing raw strings.
+- **`req add` was vulnerable to JSON injection**: an id containing
+  `","evil":"pwned` was spliced unescaped into `.fusa-reqs.json`,
+  injecting arbitrary keys into the requirements registry. Fixed by the
+  same structural-JSON rewrite above, which also rejects duplicate ids
+  (exit 2) instead of silently accepting them.
+- **`check --strict` was silently non-gating**: only `--fail-on-warn` was
+  read; `--strict` was accepted as a valid flag but had no effect, so a
+  CI pipeline relying on `jfusa check --strict` never actually gated on
+  warnings. `check` (and `lint`/`analyze`/`cyber`) now use a
+  disposition-aware gate that also honours `--strict` as a warning-gating
+  flag, and no longer force a gate failure on findings covered by an
+  accepted/deferred disposition.
+- **`trace` implemented none of its documented gates**: `--req-coverage`,
+  `--sec-tested`, `--gaps`, and `--strict` were parsed nowhere — only
+  `--func-coverage` was wired. `trace` now computes full coverage counters
+  (`tracedRequirements`/`testedRequirements`/`secTestedRequirements`),
+  gates on `--req-coverage N` / `--sec-tested N` (percentage 0–100, `N=0`
+  disables), filters the printed matrix to untested requirements under
+  `--gaps` (while `coverage` in `--format json` still reports the full
+  totals, per spec), and treats `--strict` with no explicit threshold as
+  `--req-coverage 100 --sec-tested 100`.
+- **`qualify`'s integrity hash was not reproducible**: it hashed over the
+  live `generatedAt` timestamp and an unsorted `results[]`, so re-running
+  qualification against unchanged code produced a different hash every
+  time. The hash is now computed over a canonical form with `generatedAt`
+  blanked and `results[]` sorted by name.
+
+### Fixed — Medium
+
+- **Path traversal via `--output`**: `check --output ../x.txt` (and nine
+  other identical call sites — `lint`, `analyze`, `cyber`, `report`,
+  `trace`, `safety-case`, `fmea`, `tara`, `hara`) resolved the path with no
+  containment check, allowing a report to be written outside the project
+  root. All ten writers now go through `writeOutputWithinRoot`, which
+  normalizes the target and exits 2 on any attempt to escape `root`.
+- **`init` never read `--standard`/`--asil`**: the config was always
+  written with `standard: "generic"` and no integrity field, regardless of
+  what was passed on the command line. `init` now parses `--standard`
+  and one of `--asil`/`--sil`/`--dal` into the saved `.fusa.json`, treats
+  `--standard` as a required value (exiting 2 when it's given as a bare
+  flag with no value and stdin is not a TTY, rather than writing a
+  placeholder config), and no longer mistakes a flag token for the
+  positional project name when a flag precedes it.
+- **`QualityBar.evaluate` hard-coded `STUB001`** when checking whether a
+  finding was suppressed by disposition, so an accepted/deferred
+  disposition on any other finding was ignored by the gate. It now
+  consults each finding's actual `ruleId`, per x-FuSa spec §4.1 (MUST-128).
+- **CVE matching in `vuln` compared full `artifactId:version` strings**
+  against major.minor-keyed entries, so a patch-pinned version (e.g.
+  `2.14.1`) never matched a `2.14` advisory and a genuinely vulnerable
+  dependency was reported clean. Now matches on the major.minor prefix and
+  parses the description with a bounded split so embedded colons are no
+  longer truncated.
+- **README.md/CLAUDE.md still claimed "45 commands"** after a prior release
+  reduced the dispatch switch to 43; only `Main.java`'s Javadoc had been
+  corrected. All three now say 43.
+- **CI gate steps carried `continue-on-error: true`**: `check`/`lint`/
+  `cyber` never actually failed the pipeline on ERROR findings, making the
+  gates purely advisory. Removed from the three gate steps (the optional
+  SARIF upload step keeps it).
+
+### Fixed — Low
+
+- **`fix` exited 0** while printing "not yet implemented", letting scripts
+  treat an unimplemented stub as a successful auto-fix. Now exits 2 via a
+  `UsageException`; the existing test was updated to match.
+- **`capabilities.standards` was inaccurate**: it omitted `misra-java`,
+  which `Misra.java` genuinely emits, and (in an earlier draft of this
+  fix) briefly listed `iec62443-4-2`/`unece-r156`/`misra-c`/`misra-cpp` —
+  none of which this tool ever produces (that's c-FuSa/cpp-FuSa
+  territory). The list now names exactly the eight standard ids java-FuSa
+  can actually gap-report.
+- HMAC signature verification used `String.equalsIgnoreCase` (a
+  short-circuiting, timing-observable compare); switched to
+  `MessageDigest.isEqual` over the normalized hex bytes.
+- A per-rule severity override crash (invalid `Severity.valueOf` value)
+  was silently swallowed by the rule-execution try/catch, discarding all
+  of that rule's findings; the override is now validated up front and an
+  invalid value is recorded as `invalid-config` instead.
+- The SLSA-L4 gap objective had two identical branches, so an L4 gap never
+  carried a finding id; it now attaches `SLSA006`.
+- `audit-pack` embedded the live timestamp in ZIP entries, so a
+  byte-identical input produced a different archive on every run; entries
+  now use a fixed epoch so the archive is hash-reproducible.
+- The JaCoCo instruction-coverage gate (70%) didn't match the 80% floor
+  documented in `CLAUDE.md`; raised to 0.80 (measured coverage comfortably
+  clears it).
+- The Maven Enforcer plugin's "zero external dependencies" comment wasn't
+  backed by an actual rule; added `bannedDependencies` for compile/runtime
+  scope (test-scope dependencies are unaffected).
+- The self-qualification `.fusa.json` declared `standard: "generic"` with
+  no integrity field despite the project's documented ISO 26262 ASIL-C
+  target; set to `iso26262`/`ASIL-C` to match.
+- The POM `<description>` still cited spec `1.14.0` after `SPEC_VERSION`
+  had moved to `1.15.2`.
+
+Independently re-verified: the ASIL Table 4 defect and the `req add`
+data-loss/JSON-injection defects were reproduced live (compiled tool,
+actual `jfusa hara`/`jfusa req add` runs) before and after this fix.
+
 ## v0.6.2 — 2026-07-29
 
 Patch release tracking the x-FuSa spec's two latest PATCH releases.

@@ -49,36 +49,32 @@ public final class Hara {
 
     // ── ASIL determination — ISO 26262-3:2018 Table 4 ────────────────────────
 
-    // table[s-1][e-1][c] for s in 1..3, e in 1..4, c in 0..3; s=0 or e=0 => QM (handled separately).
-    private static final String[][][] ASIL_TABLE = {
-            { // S1
-                    {"QM", "QM", "QM", "QM"}, // E1
-                    {"QM", "QM", "QM", "QM"}, // E2
-                    {"QM", "QM", "QM", "A"},  // E3
-                    {"QM", "QM", "A", "B"},   // E4
-            },
-            { // S2
-                    {"QM", "QM", "QM", "QM"},
-                    {"QM", "QM", "A", "B"},
-                    {"QM", "A", "B", "C"},
-                    {"A", "B", "C", "D"},
-            },
-            { // S3
-                    {"QM", "A", "B", "C"},
-                    {"A", "B", "C", "D"},
-                    {"B", "C", "D", "D"},
-                    {"C", "D", "D", "D"},
-            },
-    };
-
-    /** Derives the ASIL from numeric Severity/Exposure/Controllability per ISO 26262-3:2018 Table 4. */
+    /**
+     * Derives the ASIL from numeric Severity/Exposure/Controllability per
+     * ISO 26262-3:2018 Table 4, using the standard's additive risk-point model:
+     * the class points S (1..3) + E (1..4) + C (1..3) are summed, and
+     * <pre>
+     *   sum &le; 6 &rarr; QM,  7 &rarr; A,  8 &rarr; B,  9 &rarr; C,  10 &rarr; D
+     * </pre>
+     * so ASIL-D arises only at the single worst case S3/E4/C3 (3+4+3=10).
+     * A severity, exposure, or controllability class of 0 (e.g. S0/E0/C0) is
+     * always QM. This replaces a hand-authored lookup table whose S2/S3 rows
+     * were column-shifted and inflated the derived ASIL for most inputs.
+     */
     //fusa:req REQ-HARA001
     public static String deriveAsil(int s, int e, int c) {
-        if (s <= 0 || e <= 0) return "QM";
-        int si = Math.min(Math.max(s, 1), 3) - 1;
-        int ei = Math.min(Math.max(e, 1), 4) - 1;
-        int ci = Math.min(Math.max(c, 0), 3);
-        String bare = ASIL_TABLE[si][ei][ci];
+        if (s <= 0 || e <= 0 || c <= 0) return "QM";
+        int si = Math.min(s, 3);
+        int ei = Math.min(e, 4);
+        int ci = Math.min(c, 3);
+        int points = si + ei + ci;
+        String bare = switch (points) {
+            case 7 -> "A";
+            case 8 -> "B";
+            case 9 -> "C";
+            case 10 -> "D";
+            default -> "QM"; // points <= 6
+        };
         return "QM".equals(bare) ? "QM" : "ASIL-" + bare;
     }
 

@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "1.15.2",
+  "kind": "dispositions",
+  "tool": "java-FuSa",
+  "toolVersion": "0.7.0",
+  "language": "java",
+  "generatedAt": "2026-07-30T21:25:37.190983Z",
+  "dispositions": [
+    {
+      "ruleId": "CYBER002",
+      "file": "src/main/java/com/soundmatt/jfusa/cmd/Main.java",
+      "action": "accepted",
+      "rationale": "gitChangedFiles() invokes ProcessBuilder with fully hardcoded args (git diff --name-only HEAD, fixed working directory) — no user-controlled input reaches the process, so CWE-78 injection does not apply here.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.381425Z"
+    },
+    {
+      "ruleId": "CYBER012",
+      "file": "src/main/java/com/soundmatt/jfusa/cyber/CyberRules.java",
+      "action": "accepted",
+      "rationale": "Self-referential false positive: the rule's own Pattern.compile(\"ObjectInputStream|...\") detection literal contains the string it searches for, so RuleCWE502Deserialization flags its own source. Not an actual deserialization call site.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.437756Z"
+    },
+    {
+      "ruleId": "ANA005",
+      "file": "src/test/java/com/soundmatt/jfusa/AnalyzeRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional ANA005 rule-test fixture: an empty catch block written on purpose to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.492625Z"
+    },
+    {
+      "ruleId": "CYBER001",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER001 rule-test fixture (example SQL string concatenation) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.549080Z"
+    },
+    {
+      "ruleId": "CYBER002",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER002 rule-test fixture (example process execution) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.617706Z"
+    },
+    {
+      "ruleId": "CYBER003",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER003 rule-test fixture (example XSS pattern) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.685498Z"
+    },
+    {
+      "ruleId": "CYBER004",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER004 rule-test fixture (example path traversal pattern) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.752008Z"
+    },
+    {
+      "ruleId": "CYBER005",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER005 rule-test fixture (example hardcoded credential) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.817719Z"
+    },
+    {
+      "ruleId": "CYBER006",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER006 rule-test fixture (example hardcoded key/secret) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.873385Z"
+    },
+    {
+      "ruleId": "CYBER008",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER008 rule-test fixture (example weak cipher) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.928347Z"
+    },
+    {
+      "ruleId": "CYBER012",
+      "file": "src/test/java/com/soundmatt/jfusa/CyberRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER012 rule-test fixture (example ObjectInputStream usage) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:36.983834Z"
+    },
+    {
+      "ruleId": "CYBER011",
+      "file": "src/test/java/com/soundmatt/jfusa/GapCoverageTest.java",
+      "action": "accepted",
+      "rationale": "Intentional CYBER011 rule-test fixture (example XXE-vulnerable XML parser setup) used to verify the rule detects it. Not shipped code.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:37.052189Z"
+    },
+    {
+      "ruleId": "LINT002",
+      "file": "src/test/java/com/soundmatt/jfusa/GapCoverageTest.java",
+      "action": "accepted",
+      "rationale": "Intentional LINT002 rule-test fixture (example unannotated System.exit) embedded as source text to verify the rule detects it. Not a real exit call.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:37.120835Z"
+    },
+    {
+      "ruleId": "LINT002",
+      "file": "src/test/java/com/soundmatt/jfusa/LintRulesTest.java",
+      "action": "accepted",
+      "rationale": "Intentional LINT002 rule-test fixture (example unannotated System.exit) embedded as source text to verify the rule detects it. Not a real exit call.",
+      "addedBy": "matt",
+      "timestamp": "2026-07-30T21:25:37.189695Z"
+    }
+  ]
+}

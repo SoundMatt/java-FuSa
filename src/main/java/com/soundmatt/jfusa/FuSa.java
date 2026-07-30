@@ -15,7 +15,7 @@ import java.util.HexFormat;
 public final class FuSa {
 
     /** Current release of java-FuSa. */
-    public static final String VERSION = "0.6.2";
+    public static final String VERSION = "0.7.0";
 
     /** x-FuSa spec version this release implements. */
     public static final String SPEC_VERSION = "1.15.2";
@@ -48,6 +48,12 @@ public final class FuSa {
     //fusa:req REQ-ERR003
     public static final class CheckFailedException extends RuntimeException {
         public CheckFailedException(String msg) { super("jfusa: one or more safety checks failed: " + msg); }
+    }
+
+    //fusa:req REQ-ERR004
+    /** Signals a usage/invocation error; mapped by the CLI to exit code 2. */
+    public static final class UsageException extends RuntimeException {
+        public UsageException(String msg) { super(msg); }
     }
 
     // ── Severity ──────────────────────────────────────────────────────────────

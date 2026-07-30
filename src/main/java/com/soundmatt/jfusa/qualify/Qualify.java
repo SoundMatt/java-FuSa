@@ -280,8 +280,22 @@ public final class Qualify {
         String hashName = outName.endsWith(".json")
                 ? outName.substring(0, outName.length() - ".json".length()) + ".sha256"
                 : outName + ".sha256";
+        // §6 qualify.hash (MUST-145/146/148): the integrity hash MUST be reproducible,
+        // so compute it over a canonical form that blanks the volatile generatedAt
+        // header and sorts results[] by name — not over the file that embeds Instant.now().
+        java.util.Map<String, Object> canon = Json.parseObject(content);
+        canon.put("generatedAt", "");
+        Object results = canon.get("results");
+        if (results instanceof java.util.List<?> rl) {
+            java.util.List<Object> sorted = new java.util.ArrayList<>(rl);
+            sorted.sort(java.util.Comparator.comparing(o ->
+                    o instanceof java.util.Map<?, ?> m ? String.valueOf(m.get("name")) : ""));
+            canon.put("results", sorted);
+        }
+        var cw = new Json.Writer();
+        cw.rawValue(canon);
         Files.writeString(reportPath.resolveSibling(hashName),
-                Release.sha256file(reportPath) + "\n");
+                Release.sha256(cw.toString()) + "\n");
         return content;
     }
 

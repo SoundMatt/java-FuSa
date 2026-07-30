@@ -222,6 +222,40 @@ class MainTest {
         assertTrue(Files.exists(tmp.resolve(".fusa.json")));
     }
 
+    // ── java-FuSa-07: init must parse --standard/--asil ───────────────────────
+
+    @Test
+    void cmdInit_readsStandardFlag() throws Exception {
+        captureOut(() -> Main.cmdInit(tmp, new String[]{"proj", "--standard", "iso26262"}));
+        Config cfg = Config.load(tmp);
+        assertEquals(Config.Standard.ISO26262, cfg.project().standard());
+    }
+
+    @Test
+    void cmdInit_readsAsilFlag() throws Exception {
+        captureOut(() -> Main.cmdInit(tmp, new String[]{"proj", "--standard", "iso26262", "--asil", "ASIL-C"}));
+        Config cfg = Config.load(tmp);
+        assertEquals("ASIL-C", cfg.project().asil());
+    }
+
+    @Test
+    void cmdInit_noStandardFlag_defaultsToGeneric() throws Exception {
+        captureOut(() -> Main.cmdInit(tmp, new String[]{"proj"}));
+        Config cfg = Config.load(tmp);
+        assertEquals(Config.Standard.generic, cfg.project().standard());
+    }
+
+    @Test
+    void cmdInit_flagBeforeName_doesNotMistakeFlagForProjectName() throws Exception {
+        // Regression: args[0] used to be assumed to be the project name even when it was
+        // actually a flag (e.g. "--standard=iso26262 my-project"); the name must be taken
+        // from the first non-flag positional argument instead.
+        captureOut(() -> Main.cmdInit(tmp, new String[]{"--standard", "iso26262", "my-project"}));
+        Config cfg = Config.load(tmp);
+        assertEquals("my-project", cfg.project().name());
+        assertEquals(Config.Standard.ISO26262, cfg.project().standard());
+    }
+
     // ── check / lint / analyze / cyber ───────────────────────────────────────
 
     @Test
@@ -339,6 +373,95 @@ class MainTest {
                 """);
         // N=0 disables the gate — must not throw even though coverage is 0%.
         captureOut(() -> Main.cmdTrace(tmp, new String[]{"--func-coverage", "0"}));
+    }
+
+    // ── §5 --gaps / --req-coverage / --sec-tested / --strict (java-FuSa-03) ──
+
+    private void writeUntestedRequirement(String reqId) throws Exception {
+        Path src = tmp.resolve("src/main/java/Impl.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Impl {
+                    //fusa:req %s
+                    public void doThing() {}
+                }
+                """.formatted(reqId));
+    }
+
+    private void writeTestedRequirement(String reqId) throws Exception {
+        Path src = tmp.resolve("src/main/java/Impl.java");
+        Files.createDirectories(src.getParent());
+        Files.writeString(src, """
+                public class Impl {
+                    //fusa:req %s
+                    //fusa:test %s
+                    public void doThing() {}
+                }
+                """.formatted(reqId, reqId));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_gaps_jsonFormat_listsOnlyUntestedRequirement() throws Exception {
+        initProject();
+        writeUntestedRequirement("REQ-GAP");
+        String out = captureOut(() -> Main.cmdTrace(tmp, new String[]{"--format", "json", "--gaps"}));
+        assertTrue(out.contains("REQ-GAP"));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_reqCoverage_belowThreshold_throwsCheckFailed() throws Exception {
+        initProject();
+        writeUntestedRequirement("REQ-GAP");
+        assertThrows(FuSa.CheckFailedException.class, () ->
+                captureOut(() -> Main.cmdTrace(tmp, new String[]{"--req-coverage", "100"})));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_reqCoverage_zeroDisablesGate() throws Exception {
+        initProject();
+        writeUntestedRequirement("REQ-GAP");
+        // N=0 disables the gate — must not throw even though coverage is 0%.
+        captureOut(() -> Main.cmdTrace(tmp, new String[]{"--req-coverage", "0"}));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_reqCoverage_fullyTested_passes() throws Exception {
+        initProject();
+        writeTestedRequirement("REQ-COVERED");
+        captureOut(() -> Main.cmdTrace(tmp, new String[]{"--req-coverage", "100"}));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_secTested_belowThreshold_throwsCheckFailed() throws Exception {
+        initProject();
+        // Has a "test" tag but not "sec-test" — secTested percentage is 0.
+        writeTestedRequirement("REQ-COVERED");
+        assertThrows(FuSa.CheckFailedException.class, () ->
+                captureOut(() -> Main.cmdTrace(tmp, new String[]{"--sec-tested", "100"})));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_strict_impliesFullReqAndSecTestedCoverage() throws Exception {
+        initProject();
+        writeUntestedRequirement("REQ-GAP");
+        // --strict with no explicit threshold ⇒ --req-coverage 100 --sec-tested 100.
+        assertThrows(FuSa.CheckFailedException.class, () ->
+                captureOut(() -> Main.cmdTrace(tmp, new String[]{"--strict"})));
+    }
+
+    @Test
+    //fusa:test REQ-TRACE005
+    void cmdTrace_strict_explicitReqCoverageOverridesImpliedThreshold() throws Exception {
+        initProject();
+        writeUntestedRequirement("REQ-GAP");
+        // Explicit --req-coverage 0 overrides --strict's implied 100 for that gate.
+        captureOut(() -> Main.cmdTrace(tmp, new String[]{"--strict", "--req-coverage", "0", "--sec-tested", "0"}));
     }
 
     // ── verify / qualify ──────────────────────────────────────────────────────
@@ -577,6 +700,23 @@ class MainTest {
         assertTrue(standardsSection.contains("\"iec62443-4-1\""), standardsSection);
         assertFalse(standardsSection.contains("\"iec62443\","), standardsSection);
         assertFalse(standardsSection.contains("\"iec62443\"\n"), standardsSection);
+    }
+
+    @Test
+    void capabilities_json_standardsListOnlyIdsTheToolActuallyEmits() throws Exception {
+        // java-FuSa-09: capabilities.standards previously omitted "misra-java" (which
+        // Misra.java genuinely emits — see MISRA_JSON/"misra-java-gap-report.json") and MUST
+        // NOT claim "iec62443-4-2", "unece-r156", "misra-c", or "misra-cpp" — none of those
+        // are ever written by this tool (that's c-FuSa/cpp-FuSa territory); listing them
+        // would be the exact same "capability the tool can't back up" defect this finding
+        // was raised to fix.
+        String out = captureOut(() -> Main.cmdCapabilitiesFmt("json"));
+        String standardsSection = out.substring(out.indexOf("\"standards\""));
+        assertTrue(standardsSection.contains("\"misra-java\""), standardsSection);
+        assertFalse(standardsSection.contains("\"iec62443-4-2\""), standardsSection);
+        assertFalse(standardsSection.contains("\"unece-r156\""), standardsSection);
+        assertFalse(standardsSection.contains("\"misra-c\""), standardsSection);
+        assertFalse(standardsSection.contains("\"misra-cpp\""), standardsSection);
     }
 
     //fusa:test REQ-UNECE001
@@ -848,8 +988,10 @@ class MainTest {
 
     @Test
     void cmdFix_printsPlaceholder() throws Exception {
-        String out = captureOut(() -> Main.cmdFix(tmp, new String[]{}));
-        assertTrue(out.contains("fix") || out.contains("not yet implemented") || out.length() > 0);
+        // Unimplemented stub must signal a usage error (exit 2) rather than success.
+        org.junit.jupiter.api.Assertions.assertThrows(
+                FuSa.UsageException.class,
+                () -> Main.cmdFix(tmp, new String[]{}));
     }
 
     @Test
