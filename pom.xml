@@ -6,11 +6,11 @@
 
   <groupId>com.soundmatt</groupId>
   <artifactId>java-fusa</artifactId>
-  <version>0.6.2</version>
+  <version>0.7.0</version>
   <packaging>jar</packaging>
 
   <name>java-FuSa</name>
-  <description>Functional safety enablement toolkit for Java projects (x-FuSa spec 1.14.0)</description>
+  <description>Functional safety enablement toolkit for Java projects (x-FuSa spec 1.15.2)</description>
   <url>https://github.com/SoundMatt/java-FuSa</url>
 
   <licenses>
@@ -118,6 +118,14 @@
                 <requireJavaVersion>
                   <version>[21,)</version>
                 </requireJavaVersion>
+                <!-- Enforce the zero-dependency runtime contract: only test-scope
+                     dependencies are allowed (compile/runtime scope external deps ban). -->
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>*:*:*:*:compile</exclude>
+                    <exclude>*:*:*:*:runtime</exclude>
+                  </excludes>
+                </bannedDependencies>
               </rules>
             </configuration>
           </execution>
@@ -150,7 +158,7 @@
                     <limit>
                       <counter>INSTRUCTION</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.70</minimum>
+                      <minimum>0.80</minimum>
                     </limit>
                   </limits>
                 </rule>

@@ -11,7 +11,7 @@ It is feature-equivalent to [go-FuSa](https://github.com/soundmatt/go-FuSa) and 
 
 ## Features
 
-- **45 commands** covering the full safety evidence pipeline
+- **43 commands** covering the full safety evidence pipeline
 - **Zero runtime dependencies** — pure Java 21 stdlib
 - **Self-qualifying** — `jfusa qualify` runs TC-001 through TC-010 and produces a signed `qualify-report.json`
 - **50+ rules**: FUSA, LINT, ANA, CYBER, TRACE, COMP, COV, MISRA, SLSA, IEC62443, VULN

@@ -174,6 +174,47 @@ public final class Trace {
         return matrix;
     }
 
+    /**
+     * §5 coverage counters. Per requirement: {@code tracedRequirements} counts it if it has ≥1 tag
+     * of any kind; {@code testedRequirements} counts it if it has a {@code test} or {@code sec-test}
+     * tag; {@code secTestedRequirements} counts it only if it has a {@code sec-test} tag.
+     */
+    public record CoverageCounts(int total, long traced, long tested, long secTested) {
+        /** Percentage 0–100 of {@link #tested()} out of {@link #total()}; 100.0 when total is 0. */
+        public double testedPct() { return total == 0 ? 100.0 : 100.0 * tested / total; }
+        /** Percentage 0–100 of {@link #secTested()} out of {@link #total()}; 100.0 when total is 0. */
+        public double secTestedPct() { return total == 0 ? 100.0 : 100.0 * secTested / total; }
+    }
+
+    /** Computes the §5 coverage counters over the full matrix (used by both renderers and the CLI gates). */
+    //fusa:req REQ-TRACE005
+    public static CoverageCounts computeCoverage(Map<String, List<Annotation>> matrix) {
+        int total = matrix.size();
+        long traced = matrix.entrySet().stream().filter(e -> !e.getValue().isEmpty()).count();
+        long tested = matrix.entrySet().stream()
+                .filter(e -> e.getValue().stream().anyMatch(a ->
+                        a.type().equals("test") || a.type().equals("sec-test"))).count();
+        long secTested = matrix.entrySet().stream()
+                .filter(e -> e.getValue().stream().anyMatch(a -> a.type().equals("sec-test"))).count();
+        return new CoverageCounts(total, traced, tested, secTested);
+    }
+
+    /**
+     * §5 {@code --gaps}: returns the subset of {@code matrix} whose requirements carry no tag of
+     * kind {@code test} or {@code sec-test} (regardless of whether they carry an {@code impl} tag —
+     * a broader set than {@link #findGaps}, which additionally requires an {@code impl} tag for the
+     * TRACE001 lint rule's narrower "annotated but untested" purpose).
+     */
+    public static Map<String, List<Annotation>> untestedMatrix(Map<String, List<Annotation>> matrix) {
+        Map<String, List<Annotation>> out = new LinkedHashMap<>();
+        for (var e : matrix.entrySet()) {
+            boolean hasTest = e.getValue().stream().anyMatch(a ->
+                    a.type().equals("test") || a.type().equals("sec-test"));
+            if (!hasTest) out.put(e.getKey(), e.getValue());
+        }
+        return out;
+    }
+
     public static String renderText(Map<String, List<Annotation>> matrix) {
         if (matrix.isEmpty()) return "No //fusa:req or //fusa:test annotations found.\n";
         var sb = new StringBuilder();
@@ -362,25 +403,69 @@ public final class Trace {
 
     /** Text rendering with optional HLR/LLR hierarchy info appended. */
     public static String renderText(Map<String, List<Annotation>> matrix, HlrLlrResult hlr) {
-        String base = renderText(matrix);
-        if (hlr == null) return base;
-        var sb = new StringBuilder(base);
-        sb.append("\nHLR/LLR Hierarchy\n").append("-".repeat(40)).append('\n');
-        if (hlr.childlessHlrs().isEmpty() && hlr.orphanLlrs().isEmpty()) {
-            sb.append("  No HLR/LLR hierarchy issues found.\n");
+        return renderText(matrix, hlr, false);
+    }
+
+    /**
+     * Text rendering with optional HLR/LLR hierarchy info appended and optional §5 {@code --gaps}
+     * filtering: when {@code gapsOnly} is true, only requirements with no test-or-sec-test tag are
+     * listed in the body, but the coverage footer still reports the full totals.
+     */
+    public static String renderText(Map<String, List<Annotation>> matrix, HlrLlrResult hlr, boolean gapsOnly) {
+        if (hlr == null && !gapsOnly) return renderText(matrix);
+        Map<String, List<Annotation>> displayMatrix = gapsOnly ? untestedMatrix(matrix) : matrix;
+        var sb = new StringBuilder();
+        if (matrix.isEmpty()) {
+            sb.append("No //fusa:req or //fusa:test annotations found.\n");
+        } else if (gapsOnly && displayMatrix.isEmpty()) {
+            sb.append("No untested requirements — full test coverage.\n");
         } else {
-            for (String id : hlr.childlessHlrs())
-                sb.append("  WARN  HLR ").append(id).append(" has no LLR children\n");
-            for (String id : hlr.orphanLlrs())
-                sb.append("  WARN  LLR ").append(id).append(" references unknown parent\n");
+            sb.append("Requirement Traceability Matrix\n");
+            sb.append("=".repeat(60)).append('\n');
+            for (var e : displayMatrix.entrySet()) {
+                sb.append(e.getKey()).append('\n');
+                for (Annotation a : e.getValue()) {
+                    sb.append("  [").append(a.type()).append("] ")
+                            .append(a.file()).append(':').append(a.line()).append('\n');
+                }
+            }
+            sb.append("-".repeat(60)).append('\n');
+        }
+        if (!matrix.isEmpty()) {
+            CoverageCounts cov = computeCoverage(matrix);
+            sb.append("Total requirements annotated: ").append(cov.total()).append('\n');
+            sb.append("Requirements with test coverage: ").append(cov.tested()).append('\n');
+            sb.append("Security-tested requirements: ").append(cov.secTested()).append('\n');
+            sb.append(String.format("Test coverage: %.0f%%\n", cov.testedPct()));
+        }
+        if (hlr != null) {
+            sb.append("\nHLR/LLR Hierarchy\n").append("-".repeat(40)).append('\n');
+            if (hlr.childlessHlrs().isEmpty() && hlr.orphanLlrs().isEmpty()) {
+                sb.append("  No HLR/LLR hierarchy issues found.\n");
+            } else {
+                for (String id : hlr.childlessHlrs())
+                    sb.append("  WARN  HLR ").append(id).append(" has no LLR children\n");
+                for (String id : hlr.orphanLlrs())
+                    sb.append("  WARN  LLR ").append(id).append(" references unknown parent\n");
+            }
         }
         return sb.toString();
     }
 
     /** JSON rendering with optional HLR/LLR hierarchy object appended. */
     public static String renderJson(Map<String, List<Annotation>> matrix, Path root, HlrLlrResult hlr) {
-        if (hlr == null) return renderJson(matrix, root);
-        // Re-build the base JSON but intercept before final objectEnd to add hierarchy
+        return renderJson(matrix, root, hlr, false);
+    }
+
+    /**
+     * JSON rendering with optional HLR/LLR hierarchy object appended and optional §5 {@code --gaps}
+     * filtering: when {@code gapsOnly} is true, {@code requirements[]}/{@code tags[]} are restricted
+     * to requirements with no test-or-sec-test tag, but {@code coverage} MUST still report the full
+     * totals (§5) so the gap set doesn't distort the percentage.
+     */
+    public static String renderJson(Map<String, List<Annotation>> matrix, Path root, HlrLlrResult hlr, boolean gapsOnly) {
+        if (hlr == null && !gapsOnly) return renderJson(matrix, root);
+        Map<String, List<Annotation>> displayMatrix = gapsOnly ? untestedMatrix(matrix) : matrix;
         Map<String, Map<String, String>> reqMeta = loadReqsMeta(root);
         var w = new Json.Writer();
         w.objectStart();
@@ -391,7 +476,7 @@ public final class Trace {
         w.field("language", "java");
         w.field("generatedAt", Instant.now().toString());
         w.key("requirements"); w.arrayStart();
-        for (String reqId : matrix.keySet()) {
+        for (String reqId : displayMatrix.keySet()) {
             w.objectStart();
             w.field("id", reqId);
             Map<String, String> meta = reqMeta.get(reqId);
@@ -405,7 +490,7 @@ public final class Trace {
         }
         w.arrayEnd();
         w.key("tags"); w.arrayStart();
-        for (var e : matrix.entrySet()) {
+        for (var e : displayMatrix.entrySet()) {
             for (Annotation a : e.getValue()) {
                 w.objectStart();
                 w.field("requirementId", a.reqId());
@@ -416,29 +501,26 @@ public final class Trace {
             }
         }
         w.arrayEnd();
-        int total = matrix.size();
-        long traced = matrix.entrySet().stream().filter(e -> !e.getValue().isEmpty()).count();
-        long tested = matrix.entrySet().stream()
-                .filter(e -> e.getValue().stream().anyMatch(a ->
-                        a.type().equals("test") || a.type().equals("sec-test"))).count();
-        long secTested = matrix.entrySet().stream()
-                .filter(e -> e.getValue().stream().anyMatch(a -> a.type().equals("sec-test"))).count();
+        // §5 coverage MUST report the full totals even under --gaps.
+        CoverageCounts cov = computeCoverage(matrix);
         w.key("coverage"); w.objectStart();
-        w.field("totalRequirements", total);
-        w.field("tracedRequirements", traced);
-        w.field("testedRequirements", tested);
-        w.field("secTestedRequirements", secTested);
+        w.field("totalRequirements", cov.total());
+        w.field("tracedRequirements", cov.traced());
+        w.field("testedRequirements", cov.tested());
+        w.field("secTestedRequirements", cov.secTested());
         w.objectEnd();
-        // HLR/LLR hierarchy section
-        w.key("hierarchy"); w.objectStart();
-        w.field("hasViolations", hlr.hasViolations());
-        w.key("childlessHlrs"); w.arrayStart();
-        for (String id : hlr.childlessHlrs()) w.value(id);
-        w.arrayEnd();
-        w.key("orphanLlrs"); w.arrayStart();
-        for (String id : hlr.orphanLlrs()) w.value(id);
-        w.arrayEnd();
-        w.objectEnd();
+        if (hlr != null) {
+            // HLR/LLR hierarchy section
+            w.key("hierarchy"); w.objectStart();
+            w.field("hasViolations", hlr.hasViolations());
+            w.key("childlessHlrs"); w.arrayStart();
+            for (String id : hlr.childlessHlrs()) w.value(id);
+            w.arrayEnd();
+            w.key("orphanLlrs"); w.arrayStart();
+            for (String id : hlr.orphanLlrs()) w.value(id);
+            w.arrayEnd();
+            w.objectEnd();
+        }
         w.objectEnd();
         return w.toPretty();
     }

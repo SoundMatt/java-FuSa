@@ -84,10 +84,21 @@ public final class Vuln {
         );
         List<VulnEntry> found = new ArrayList<>();
         for (Dependency d : deps) {
-            String key = d.artifactId() + ":" + d.version();
-            if (knownBad.containsKey(key)) {
-                String[] parts = knownBad.get(key).split(":");
-                found.add(new VulnEntry(d, parts[0], parts[1], parts[2]));
+            for (var e : knownBad.entrySet()) {
+                int idx = e.getKey().lastIndexOf(':');
+                String badArtifact = e.getKey().substring(0, idx);
+                String badVersion = e.getKey().substring(idx + 1);
+                if (!d.artifactId().equals(badArtifact)) continue;
+                // Match the pinned major.minor key against a patch-pinned POM version:
+                // real POMs pin e.g. "2.14.1" (the actual Log4Shell release), which must
+                // still match the "2.14" key rather than being reported as clean.
+                String v = d.version();
+                if (v.equals(badVersion) || v.startsWith(badVersion + ".")) {
+                    // limit=3 so a description containing ':' is not truncated.
+                    String[] parts = e.getValue().split(":", 3);
+                    found.add(new VulnEntry(d, parts[0], parts[1], parts[2]));
+                    break;
+                }
             }
         }
         return found;

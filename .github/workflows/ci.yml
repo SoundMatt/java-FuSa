@@ -70,17 +70,14 @@ jobs:
       - name: Gate check (jfusa check)
         if: matrix.os == 'ubuntu-latest'
         run: java -jar target/jfusa.jar check --format=json --output=fusa-report.json
-        continue-on-error: true
 
       - name: Lint check
         if: matrix.os == 'ubuntu-latest'
         run: java -jar target/jfusa.jar lint
-        continue-on-error: true
 
       - name: Security check
         if: matrix.os == 'ubuntu-latest'
         run: java -jar target/jfusa.jar cyber --format=sarif --output=fusa-security.sarif
-        continue-on-error: true
 
       - name: Upload SARIF to GitHub Code Scanning
         if: matrix.os == 'ubuntu-latest' && hashFiles('fusa-security.sarif') != ''
@@ -135,7 +132,7 @@ jobs:
           push: false
           tags: ghcr.io/soundmatt/java-fusa:latest
           build-args: |
-            VERSION=0.6.2
+            VERSION=0.7.0
             SPEC_VERSION=1.15.2
             GIT_COMMIT=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}

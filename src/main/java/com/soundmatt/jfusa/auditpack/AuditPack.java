@@ -35,6 +35,13 @@ public final class AuditPack {
     /** x-FuSa spec §8: the audit-pack's own top-level manifest, entry name inside the ZIP. */
     public static final String MANIFEST_ENTRY  = "manifest.json";
 
+    /**
+     * Fixed ZIP-entry timestamp (Unix epoch) so byte-identical inputs produce a
+     * byte-identical, hash-verifiable audit-pack.zip regardless of run time or
+     * source file mtimes (reproducible-build convention / SOURCE_DATE_EPOCH=0).
+     */
+    private static final FileTime FIXED_ENTRY_TIME = FileTime.from(Instant.EPOCH);
+
     /** §8 MUST: every §1.2 input file and every §1.3 generated file this tool can produce
      *  (except {@link #AUDIT_PACK_FILE} itself, which is excluded from its own contents). */
     private static final List<String> ARTIFACTS = List.of(
@@ -85,7 +92,7 @@ public final class AuditPack {
             // release's artifact-manifest.json (which is bundled as an ordinary evidence
             // file above, if present, not misnamed as this manifest).
             ZipEntry manifestEntry = new ZipEntry(MANIFEST_ENTRY);
-            manifestEntry.setLastModifiedTime(FileTime.from(Instant.now()));
+            manifestEntry.setLastModifiedTime(FIXED_ENTRY_TIME);
             zos.putNextEntry(manifestEntry);
             zos.write(manifestJson.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -137,7 +144,7 @@ public final class AuditPack {
     static void addToZip(ZipOutputStream zos, Path file, String entryName) throws IOException {
         if (!Files.exists(file)) return;
         ZipEntry entry = new ZipEntry(entryName);
-        entry.setLastModifiedTime(Files.getLastModifiedTime(file));
+        entry.setLastModifiedTime(FIXED_ENTRY_TIME);
         zos.putNextEntry(entry);
         Files.copy(file, zos);
         zos.closeEntry();

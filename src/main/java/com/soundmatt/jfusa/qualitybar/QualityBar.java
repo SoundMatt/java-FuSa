@@ -159,7 +159,7 @@ public final class QualityBar {
         List<FuSa.Finding> findings = new ArrayList<>();
         boolean blocking = false;
         for (FuSa.Finding f : scanPlaceholders(artifactFile, fields)) {
-            boolean suppressed = isDispositioned(root, STUB001, artifactFile);
+            boolean suppressed = isDispositioned(root, f.ruleId(), artifactFile);
             findings.add(suppressed ? withDisposition(f, FuSa.Disposition.accepted) : f);
             if (!suppressed) blocking = true;
         }

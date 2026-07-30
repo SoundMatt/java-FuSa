@@ -32,29 +32,38 @@ class HaraTest {
 
     @Test
     //fusa:test REQ-HARA001
-    void deriveAsil_severityTwo_highExposureHighControllability_isC() {
-        // s=2, e=3, c=3 -> ASIL-C (ISO 26262-3:2018 Table 4)
-        assertEquals("ASIL-C", Hara.deriveAsil(2, 3, 3));
+    void deriveAsil_severityTwo_highExposureHighControllability_isB() {
+        // s=2, e=3, c=3 -> 8 points -> ASIL-B (ISO 26262-3:2018 Table 4)
+        assertEquals("ASIL-B", Hara.deriveAsil(2, 3, 3));
     }
 
     @Test
     //fusa:test REQ-HARA001
-    void deriveAsil_severityThree_exposureThreeControllabilityTwo_isD() {
-        // s=3, e=3, c=2 -> ASIL-D (ISO 26262-3:2018 Table 4)
-        assertEquals("ASIL-D", Hara.deriveAsil(3, 3, 2));
+    void deriveAsil_severityThree_exposureThreeControllabilityTwo_isB() {
+        // s=3, e=3, c=2 -> 8 points -> ASIL-B (ISO 26262-3:2018 Table 4)
+        assertEquals("ASIL-B", Hara.deriveAsil(3, 3, 2));
     }
 
     @Test
     //fusa:test REQ-HARA001
-    void deriveAsil_severityThree_highestExposureAndControllability_isD() {
-        // s=3, e>=4, c==2 -> ASIL-D
-        assertEquals("ASIL-D", Hara.deriveAsil(3, 4, 2));
+    void deriveAsil_severityThree_highestExposureAndControllabilityTwo_isC() {
+        // s=3, e=4, c=2 -> 9 points -> ASIL-C
+        assertEquals("ASIL-C", Hara.deriveAsil(3, 4, 2));
+    }
+
+    @Test
+    //fusa:test REQ-HARA001
+    void deriveAsil_worstCase_isDOnlyAtS3E4C3() {
+        // ASIL-D arises only at the single worst case S3/E4/C3 (3+4+3=10 points)
+        assertEquals("ASIL-D", Hara.deriveAsil(3, 4, 3));
+        assertEquals("ASIL-C", Hara.deriveAsil(3, 3, 3)); // 9 points
+        assertEquals("ASIL-A", Hara.deriveAsil(3, 1, 3)); // 7 points
     }
 
     @Test
     //fusa:test REQ-HARA001
     void deriveAsil_stringOverload_parsesLetterDigitForm() {
-        assertEquals("ASIL-D", Hara.deriveAsil("S3", "E3", "C2"));
+        assertEquals("ASIL-B", Hara.deriveAsil("S3", "E3", "C2")); // 8 points
         assertEquals("QM", Hara.deriveAsil("S0", "E4", "C3"));
     }
 
@@ -211,6 +220,6 @@ class HaraTest {
         String json = Hara.renderJson(doc, c);
         assertTrue(json.contains("\"kind\": \"hara-report\""));
         assertTrue(json.contains("\"completeness\""));
-        assertTrue(json.contains("\"ASIL-D\""), "ASIL should be derived from S3/E3/C2 even though risk.asil was blank");
+        assertTrue(json.contains("\"ASIL-B\""), "ASIL should be derived from S3/E3/C2 (8 points) even though risk.asil was blank");
     }
 }

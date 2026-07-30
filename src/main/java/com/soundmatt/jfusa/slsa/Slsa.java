@@ -76,7 +76,7 @@ public final class Slsa {
         // L4: Hermetic / reproducible build (informational)
         objs.add(obj("SLSA-L4-1", "Hermetic / reproducible build", "L4",
                 levelNum >= 4 ? "gap" : "satisfied",
-                List.of(), levelNum >= 4 ? List.of() : List.of()));
+                List.of(), levelNum >= 4 ? List.of("SLSA006") : List.of()));
         return objs;
     }
 
