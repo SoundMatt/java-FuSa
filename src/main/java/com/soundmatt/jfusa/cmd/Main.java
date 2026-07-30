@@ -81,7 +81,7 @@ public final class Main {
     }
 
     public static void main(String[] args) {
-        if (args.length == 0) { usage(); System.exit(EXIT_USAGE); }
+        if (args.length == 0) { usage(); System.exit(EXIT_USAGE); } //fusa:safe-state no args given — usage already printed, nothing mutated
 
         // §2.6 global --no-color flag — scan all args before dispatch
         if (hasFlag(args, "--no-color")) System.setProperty("jfusa.nocolor", "1");
@@ -146,24 +146,24 @@ public final class Main {
                 default -> {
                     System.err.println("jfusa: unknown command '" + cmd + "'");
                     System.err.println("Run 'jfusa --help' for usage.");
-                    System.exit(EXIT_USAGE);
+                    System.exit(EXIT_USAGE); //fusa:safe-state unknown command — nothing mutated, exit usage-error
                 }
             }
         } catch (NoConfigException e) {
             emitJsonError(ERR_NO_CONFIG, "no .fusa.json found — run 'jfusa init' first");
-            System.exit(EXIT_RUNTIME);
+            System.exit(EXIT_RUNTIME); //fusa:safe-state error already reported to stderr; no partial output written
         } catch (InvalidConfigException e) {
             emitJsonError(ERR_INVALID_CONFIG, e.getMessage());
-            System.exit(EXIT_RUNTIME);
+            System.exit(EXIT_RUNTIME); //fusa:safe-state error already reported to stderr; no partial output written
         } catch (CheckFailedException e) {
-            System.exit(EXIT_GATE_FAIL);
+            System.exit(EXIT_GATE_FAIL); //fusa:safe-state report was already written by the command before this throw
         } catch (UsageException e) {
             if (e.getMessage() != null && !e.getMessage().isEmpty()) System.err.println(e.getMessage());
-            System.exit(EXIT_USAGE);
+            System.exit(EXIT_USAGE); //fusa:safe-state usage error — message (if any) already printed above
         } catch (Exception e) {
             emitJsonError(ERR_INTERNAL, e.getMessage() != null ? e.getMessage() : e.getClass().getName());
             if (System.getenv("JFUSA_DEBUG") != null) e.printStackTrace();
-            System.exit(EXIT_RUNTIME);
+            System.exit(EXIT_RUNTIME); //fusa:safe-state unexpected error already reported to stderr above
         }
     }
 
@@ -218,7 +218,7 @@ public final class Main {
         String standardStr = flagValue(args, "--standard", "");
         if (standardFlagGiven && standardStr.isBlank() && System.console() == null) {
             System.err.println("jfusa init: --standard requires a value (non-interactive stdin)");
-            System.exit(EXIT_USAGE);
+            System.exit(EXIT_USAGE); //fusa:safe-state no config written yet — nothing to unwind
             return;
         }
         Config.Standard standard = standardStr.isBlank() ? Config.Standard.generic : Config.Standard.of(standardStr);
@@ -312,7 +312,7 @@ public final class Main {
         Path target = base.resolve(output).normalize();
         if (!target.startsWith(base)) {
             System.err.println("jfusa: --output must stay within the project root: " + output);
-            System.exit(EXIT_USAGE);
+            System.exit(EXIT_USAGE); //fusa:safe-state containment violation caught before any write occurred
             return;
         }
         Files.writeString(target, content);
@@ -372,7 +372,7 @@ public final class Main {
         // gate-fails (only exit 2/3 apply), so --strict here is a usage error (SHOULD).
         if (hasFlag(args, "--strict")) {
             System.err.println("jfusa report: --strict is not supported — report never gate-fails (see 'jfusa check')");
-            System.exit(EXIT_USAGE);
+            System.exit(EXIT_USAGE); //fusa:safe-state rejected before any analysis ran; nothing to unwind
             return;
         }
         Config cfg = Config.load(root);
@@ -393,7 +393,7 @@ public final class Main {
     }
 
     static void cmdTemplate(Path root, String[] args) throws IOException {
-        if (args.length < 1) { System.err.println("Usage: jfusa template <kind> [name]"); System.exit(EXIT_USAGE); }
+        if (args.length < 1) { System.err.println("Usage: jfusa template <kind> [name]"); System.exit(EXIT_USAGE); } //fusa:safe-state no template written, nothing mutated
         String kind = args[0];
         String name = args.length > 1 ? args[1] : "project";
         Template.generate(root, kind, name);
@@ -640,7 +640,7 @@ public final class Main {
         if (!Files.exists(haraFile)) {
             if ("json".equals(format)) {
                 emitJsonError(ERR_NO_CONFIG, "no " + Hara.HARA_FILE + " found — run 'jfusa hara --init' first");
-                System.exit(EXIT_RUNTIME);
+                System.exit(EXIT_RUNTIME); //fusa:safe-state error already reported via emitJsonError above
                 return;
             }
             System.out.println("No " + Hara.HARA_FILE + " found. Run 'jfusa hara --init' to scaffold one.");
@@ -702,7 +702,7 @@ public final class Main {
     static void cmdDiff(Path root, String[] args) throws IOException {
         if (args.length < 2) {
             System.err.println("Usage: jfusa diff <before.json> <after.json>");
-            System.exit(EXIT_USAGE);
+            System.exit(EXIT_USAGE); //fusa:safe-state no comparison run, nothing mutated
         }
         Diff.DiffResult r = Diff.compare(root.resolve(args[0]), root.resolve(args[1]));
         System.out.println(Diff.renderText(r, args[0], args[1]));
@@ -718,7 +718,7 @@ public final class Main {
     }
 
     static void cmdReq(Path root, String[] args) throws IOException {
-        if (args.length == 0) { System.err.println("Usage: jfusa req <list|add|show> [args]"); System.exit(EXIT_USAGE); }
+        if (args.length == 0) { System.err.println("Usage: jfusa req <list|add|show> [args]"); System.exit(EXIT_USAGE); } //fusa:safe-state no sub-command given, nothing mutated
         switch (args[0]) {
             case "list" -> {
                 Path reqs = root.resolve(".fusa-reqs.json");
@@ -726,7 +726,7 @@ public final class Main {
                 System.out.println(Files.readString(reqs));
             }
             case "add" -> {
-                if (args.length < 3) { System.err.println("Usage: jfusa req add <id> <title>"); System.exit(EXIT_USAGE); }
+                if (args.length < 3) { System.err.println("Usage: jfusa req add <id> <title>"); System.exit(EXIT_USAGE); } //fusa:safe-state no requirement written, nothing mutated
                 addRequirement(root, args[1], args[2]);
             }
             default -> System.err.println("Unknown req sub-command: " + args[0]);
@@ -751,7 +751,7 @@ public final class Main {
         for (Object o : requirements) {
             if (o instanceof java.util.Map<?, ?> m && id.equals(m.get("id"))) {
                 System.err.println("Requirement " + id + " already exists.");
-                System.exit(EXIT_USAGE);
+                System.exit(EXIT_USAGE); //fusa:safe-state rejected before any write — duplicate id, registry unchanged
                 return;
             }
         }
@@ -777,7 +777,7 @@ public final class Main {
     }
 
     static void cmdHooks(Path root, String[] args) throws IOException {
-        if (args.length == 0) { System.err.println("Usage: jfusa hooks <install|remove>"); System.exit(EXIT_USAGE); }
+        if (args.length == 0) { System.err.println("Usage: jfusa hooks <install|remove>"); System.exit(EXIT_USAGE); } //fusa:safe-state no sub-command given, nothing mutated
         switch (args[0]) {
             case "install" -> Hooks.install(root);
             case "remove"  -> Hooks.remove(root);
@@ -786,7 +786,7 @@ public final class Main {
     }
 
     static void cmdSign(Path root, String[] args) throws IOException {
-        if (args.length < 2) { System.err.println("Usage: jfusa sign <sign|verify> <file>"); System.exit(EXIT_USAGE); }
+        if (args.length < 2) { System.err.println("Usage: jfusa sign <sign|verify> <file>"); System.exit(EXIT_USAGE); } //fusa:safe-state no sub-command given, nothing mutated
         Path keyFile = root.resolve(".fusa-signing.key");
         switch (args[0]) {
             case "generate-key" -> {
@@ -801,7 +801,7 @@ public final class Main {
             case "verify" -> {
                 boolean ok = Sign.verify(root.resolve(args[1]), keyFile);
                 System.out.println(args[1] + ": " + (ok ? "VALID" : "INVALID"));
-                if (!ok) System.exit(EXIT_GATE_FAIL);
+                if (!ok) System.exit(EXIT_GATE_FAIL); //fusa:safe-state verification result already printed above
             }
             default -> System.err.println("Unknown sign sub-command: " + args[0]);
         }
@@ -939,16 +939,16 @@ public final class Main {
     }
 
     static void cmdPr(Path root, String[] args) throws IOException {
-        if (args.length == 0) { System.err.println("Usage: jfusa pr <init|add|close|list>"); System.exit(EXIT_USAGE); }
+        if (args.length == 0) { System.err.println("Usage: jfusa pr <init|add|close|list>"); System.exit(EXIT_USAGE); } //fusa:safe-state no sub-command given, nothing mutated
         switch (args[0]) {
             case "init"  -> ProblemReport.init(root);
             case "list"  -> System.out.print(ProblemReport.list(root));
             case "add"   -> {
-                if (args.length < 4) { System.err.println("Usage: jfusa pr add <id> <title> <severity>"); System.exit(EXIT_USAGE); }
+                if (args.length < 4) { System.err.println("Usage: jfusa pr add <id> <title> <severity>"); System.exit(EXIT_USAGE); } //fusa:safe-state no problem report written, nothing mutated
                 ProblemReport.add(root, args[1], args[2], args[3]);
             }
             case "close" -> {
-                if (args.length < 3) { System.err.println("Usage: jfusa pr close <id> <resolution>"); System.exit(EXIT_USAGE); }
+                if (args.length < 3) { System.err.println("Usage: jfusa pr close <id> <resolution>"); System.exit(EXIT_USAGE); } //fusa:safe-state no problem report mutated
                 ProblemReport.close(root, args[1], args[2]);
             }
             default -> System.err.println("Unknown pr sub-command: " + args[0]);
@@ -956,11 +956,11 @@ public final class Main {
     }
 
     static void cmdDisposition(Path root, String[] args) throws IOException {
-        if (args.length == 0) { System.err.println("Usage: jfusa disposition <list|add|update>"); System.exit(EXIT_USAGE); }
+        if (args.length == 0) { System.err.println("Usage: jfusa disposition <list|add|update>"); System.exit(EXIT_USAGE); } //fusa:safe-state no sub-command given, nothing mutated
         switch (args[0]) {
             case "list" -> System.out.print(Disposition.list(root));
             case "add"  -> {
-                if (args.length < 5) { System.err.println("Usage: jfusa disposition add <ruleId> <file> <action> <rationale>"); System.exit(EXIT_USAGE); }
+                if (args.length < 5) { System.err.println("Usage: jfusa disposition add <ruleId> <file> <action> <rationale>"); System.exit(EXIT_USAGE); } //fusa:safe-state no disposition written, nothing mutated
                 Disposition.add(root, args[1], args[2], args[3], args[4]);
             }
             default -> System.err.println("Unknown disposition sub-command: " + args[0]);

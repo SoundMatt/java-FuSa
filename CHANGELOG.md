@@ -8,6 +8,41 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The self-check CI gates (`check`/`lint`/`cyber`) had never actually been
+  green** — removing `continue-on-error` (this release's own CI fix, see
+  below) surfaced that `jfusa check` has always found 46 real ERROR findings
+  when run against this repo's own source, silently masked until now:
+  - `LINT002` (`System.exit()` requires a `//fusa:safe-state` annotation):
+    every one of the 24 call sites in `Main.java`, plus one each in
+    `Misra.java` and `Template.java`, was missing the annotation. All 26 are
+    now annotated with a short rationale.
+  - `LINT002` also self-matched its own remediation text in
+    `misra/Misra.java`'s `MISRA-4.1` rule description, which spelled out
+    `System.exit(` as a literal example; reworded to describe the same rule
+    without the self-triggering substring.
+  - `CYBER012` self-matched `cyber/CyberRules.java`'s own detection pattern
+    (`Pattern.compile("ObjectInputStream|...")` contains the very string it
+    searches for) — a self-referential false positive, not a real
+    deserialization call site.
+  - `CYBER002` flagged `Main.java`'s `gitChangedFiles()`, which calls
+    `ProcessBuilder` with fully hardcoded arguments (no user-controlled
+    input) — a true but low-risk match from a blanket "any process
+    execution" rule.
+  - The remaining findings were all in rule-test fixture files
+    (`CyberRulesTest.java`, `AnalyzeRulesTest.java`, `GapCoverageTest.java`,
+    `LintRulesTest.java`) that intentionally contain example bad-pattern
+    snippets to verify each rule detects them — not shipped code.
+
+  The two genuine false positives and the low-risk hardcoded-args case are
+  now recorded as `accepted` dispositions in the new `.fusa-dispositions.json`
+  (with a rationale each) — the spec's own designed mechanism for this
+  (x-FuSa spec §1.2.3/§4.1: "the fix for that specific finding is a
+  disposition waiver... never a tool narrowing its own rule to dodge a true
+  positive"). The rule definitions themselves are unchanged, so they remain
+  fully active against any new violation elsewhere in the codebase.
+
 ## v0.7.0 — 2026-07-30
 
 Release fixing a Critical data-integrity defect and a live-reproduced

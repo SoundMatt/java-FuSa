@@ -32,7 +32,11 @@ public final class Misra {
                       Pattern.compile("\\(byte\\)|\\(short\\)|\\(char\\)")),
         new MisraRule("MISRA-2.3",  "Avoid dead code (empty blocks that are not documented)",
                       Pattern.compile("\\{\\s*\\}")),
-        new MisraRule("MISRA-4.1",  "Do not use System.exit() in library code",
+        // Note: the description below deliberately doesn't spell out the flagged call with an
+        // open paren — LINT002 (RuleSystemExit) scans description strings along with real
+        // source lines, so writing it out as a literal example was a self-referential false
+        // positive (matching this very comment too, previously).
+        new MisraRule("MISRA-4.1",  "Do not call System.exit in library code",
                       Pattern.compile("System\\.exit\\s*\\(")),
         new MisraRule("MISRA-4.3",  "Do not use ThreadDeath or Error subtypes",
                       Pattern.compile("catch\\s*\\(\\s*(Error|ThreadDeath)")),
